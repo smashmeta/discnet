@@ -1,0 +1,34 @@
+
+# adding thirdparty dependencies
+find_package(fmt CONFIG REQUIRED)
+find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(GTest CONFIG REQUIRED)
+
+# enabling and adding google tests
+enable_testing()
+add_test(project_test_cases gifviewer)
+
+# setting up source files and header files groups
+file(GLOB HEADERS_DEFAULT_GRP "${discnet_INCLUDE_DIRS}/discnet_test/*.hpp")
+file(GLOB SOURCE_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+
+# adding file filters to visual studio project
+source_group("header/" FILES ${HEADERS_DEFAULT_GRP})
+source_group("src/" FILES ${SOURCE_DEFAULT_GRP})
+
+# adding thirdparty include directories
+include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${fmt_INCLUDE_DIRS})
+include_directories(${discnet_INCLUDE_DIRS})
+
+# setting up executable
+add_executable(discnet_test
+    ${HEADERS_DEFAULT_GRP}
+	${SOURCE_DEFAULT_GRP}
+)
+
+# adding thirdparty library dependencies
+target_link_libraries(discnet_test PRIVATE ${Boost_LIBRARIES})
+target_link_libraries(discnet_test PRIVATE fmt::fmt-header-only)
+target_link_libraries(discnet_test PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
+target_link_libraries(discnet_test PRIVATE discnet_lib)

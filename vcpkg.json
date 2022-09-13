@@ -1,0 +1,11 @@
+{
+  "name": "discnet",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "fmt",
+	  "boost-program-options",
+    "boost-algorithm",
+    "boost-asio",
+	  "gtest"
+  ]
+}
