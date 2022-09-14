@@ -11,7 +11,11 @@
 
 namespace discnet::test
 {
-
+	template<typename ... Ts>
+	std::vector<std::byte> make_bytes(Ts&&... args) noexcept
+	{
+		return { std::byte(std::forward<Ts>(args))... };
+	}
 }
 
 TEST(no_fixture_test, is_direct_node)
@@ -57,20 +61,13 @@ TEST(no_fixture_test, bytes_to_hex_string)
 	}
 
 	{	// 9-15 test
-		std::vector<std::byte> buffer = {
-			std::byte{9}, std::byte{10}, std::byte{11}, std::byte{12},
-			std::byte{13}, std::byte{14}, std::byte{15} 
-		};
-
+		std::vector<std::byte> buffer = discnet::test::make_bytes(9, 10, 11, 12, 13, 14, 15);
 		std::string hex_string = discnet::bytes_to_hex_string(buffer);
 		EXPECT_EQ(hex_string, "09 0A 0B 0C 0D 0E 0F");
 	}
 
 	{	// top down test { 0xff, 0xfe, ..., 0x00 }
-		std::vector<std::byte> buffer = {
-			std::byte{0xFF}, std::byte{0xFE}, std::byte{0xFD}, std::byte{0x00}
-		};
-
+		std::vector<std::byte> buffer = discnet::test::make_bytes(0xFF, 0xFE, 0xFD, 0x00);
 		std::string hex_string = discnet::bytes_to_hex_string(buffer);
 		EXPECT_EQ(hex_string, "FF FE FD 00");
 	}
