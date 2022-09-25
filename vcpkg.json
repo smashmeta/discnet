@@ -6,6 +6,8 @@
 	  "boost-program-options",
     "boost-algorithm",
     "boost-asio",
+    "boost-uuid",
+    "boost-signals2",
 	  "gtest"
   ]
 }

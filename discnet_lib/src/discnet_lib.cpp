@@ -36,7 +36,7 @@ namespace discnet
 		return false;
 	}
 
-	bool is_unique_route(const std::span<route_identifier>& routes, const route_identifier& val)
+	bool contains(const std::span<route_identifier>& routes, const route_identifier& val)
 	{
 		for (auto& route : routes)
 		{
