@@ -8,7 +8,8 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/uuid/random_generator.hpp>
-#include "discnet_lib/discnet_lib.hpp"
+#include <discnet_lib/route.hpp>
+#include <discnet_lib/adapter_manager.hpp>
 
 namespace discnet::test
 {
@@ -36,6 +37,8 @@ namespace discnet::test
 		MOCK_METHOD(void, changed_adapter, (const discnet::adapter_t&, const discnet::adapter_t&), (override));
 		MOCK_METHOD(void, removed_adapter, (const discnet::adapter_t&), (override));
 	};
+
+	typedef discnet::test::adapter_manager_callbacks_mock callback_tester_t;
 }
 
 TEST(no_fixture_test, is_direct_node)
@@ -68,8 +71,8 @@ TEST(no_fixture_test, routes_contains)
 	discnet::route_identifier route_3{ node_1, adapter_ip, sender_3_ip };
 	std::vector<discnet::route_identifier> routes = { route_1, route_2 };
 
-	EXPECT_TRUE(discnet::contains(routes, route_3));
-	EXPECT_FALSE(discnet::contains(routes, route_2));
+	EXPECT_FALSE(discnet::contains(routes, route_3));
+	EXPECT_TRUE(discnet::contains(routes, route_2));
 }
 
 TEST(no_fixture_test, bytes_to_hex_string)
@@ -99,13 +102,13 @@ TEST(no_fixture_test, adapter_manager)
 	discnet::adapter_t adapter_1;
 	adapter_1.m_guid = boost::uuids::random_generator()();
 	adapter_1.m_name = "test_adapter";
-	discnet::adapter_t adapter_2 = adapter_1;
-	adapter_2.m_name = "test_adapter_changed_name";
+	discnet::adapter_t adapter_1_changed_name = adapter_1;
+	adapter_1_changed_name.m_name = "test_adapter_changed_name";
 	std::vector<discnet::adapter_t> adapters = {adapter_1};
-	std::vector<discnet::adapter_t> adapters_changed = {adapter_2};
+	std::vector<discnet::adapter_t> adapters_changed = {adapter_1_changed_name};
 	std::vector<discnet::adapter_t> adapters_empty = {};
 
-	{	// making sure that the manager is destroyed
+	{	// making sure that the manager is destroyed (or else gtest will complain about memory leaks)
 		auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
 		EXPECT_CALL(*fetcher.get(), get_adapters())
 			.Times(3)
@@ -114,12 +117,12 @@ TEST(no_fixture_test, adapter_manager)
 			.WillOnce(testing::Return(adapters_empty));
 
 		discnet::adapter_manager manager { std::move(fetcher) };
-
-		typedef discnet::test::adapter_manager_callbacks_mock callback_tester_t; 
-		callback_tester_t callbacks_tester;
-		manager.e_new.connect(std::bind(&callback_tester_t::new_adapter, &callbacks_tester, std::placeholders::_1));
-		manager.e_changed.connect(std::bind(&callback_tester_t::changed_adapter, &callbacks_tester, std::placeholders::_1, std::placeholders::_2));
-		manager.e_removed.connect(std::bind(&callback_tester_t::removed_adapter, &callbacks_tester, std::placeholders::_1));
+ 
+		discnet::test::callback_tester_t callbacks_tester;
+		manager.e_new.connect(std::bind(&discnet::test::callback_tester_t::new_adapter, &callbacks_tester, std::placeholders::_1));
+		manager.e_changed.connect(std::bind(&discnet::test::callback_tester_t::changed_adapter, &callbacks_tester, std::placeholders::_1, std::placeholders::_2));
+		manager.e_removed.connect(std::bind(&discnet::test::callback_tester_t::removed_adapter, &callbacks_tester, std::placeholders::_1));
+		
 		EXPECT_CALL(callbacks_tester, new_adapter(testing::_)).Times(1);
 		EXPECT_CALL(callbacks_tester, changed_adapter(testing::_, testing::_)).Times(1);
 		EXPECT_CALL(callbacks_tester, removed_adapter(testing::_)).Times(1);

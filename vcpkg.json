@@ -8,6 +8,8 @@
     "boost-asio",
     "boost-uuid",
     "boost-signals2",
+    "boost-log",
+    "boost-lexical-cast",
 	  "gtest"
   ]
 }
