@@ -16,9 +16,9 @@ namespace discnet
 		}
 
 		auto current_time = std::chrono::system_clock::now();
-		auto breakof_time = current_time - std::chrono::seconds(90);
-		if (route.m_last_tdp > current_time ||
-			route.m_last_data_message > current_time)
+		auto timeout_limit = current_time - std::chrono::seconds(90);
+		if (route.m_last_tdp > timeout_limit ||
+			route.m_last_data_message > timeout_limit)
 		{
 			return true;
 		}

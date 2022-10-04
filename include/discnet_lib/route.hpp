@@ -31,25 +31,12 @@ namespace discnet
         route_identifier m_identifier;
         time_point_t m_last_tdp;
         time_point_t m_last_data_message;
+        bool m_online;
         bool m_persistent;
         bool m_silent;
         uint8_t m_metric;
     };
-
-    struct route_manager
-    {
-        void update(time_point_t current_time)
-        {
-            for (const auto& route : m_routes)
-            {
-                
-            }
-        }
-
-        std::map<route_identifier, route_t> m_routes;
-        std::vector<route_identifier> m_active_routes;
-    };
-
+    
     DISCNET_EXPORT bool is_route_online(const route_t& route);
     DISCNET_EXPORT bool is_direct_node(const route_identifier& route);
     DISCNET_EXPORT bool contains(const std::span<route_identifier>& routes, const route_identifier& route);

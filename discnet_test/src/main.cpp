@@ -104,6 +104,7 @@ TEST(no_fixture_test, adapter_manager)
 	adapter_1.m_name = "test_adapter";
 	discnet::adapter_t adapter_1_changed_name = adapter_1;
 	adapter_1_changed_name.m_name = "test_adapter_changed_name";
+	
 	std::vector<discnet::adapter_t> adapters = {adapter_1};
 	std::vector<discnet::adapter_t> adapters_changed = {adapter_1_changed_name};
 	std::vector<discnet::adapter_t> adapters_empty = {};
