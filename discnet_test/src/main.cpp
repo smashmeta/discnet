@@ -102,14 +102,21 @@ TEST(no_fixture_test, adapter_manager)
 	discnet::adapter_t adapter_1;
 	adapter_1.m_guid = boost::uuids::random_generator()();
 	adapter_1.m_name = "test_adapter";
+
 	discnet::adapter_t adapter_1_changed_name = adapter_1;
 	adapter_1_changed_name.m_name = "test_adapter_changed_name";
+
+	discnet::adapter_t adapter_2;
+	adapter_2.m_guid = boost::uuids::random_generator()();
+	adapter_2.m_name = "test_adapter_2";
+
 	std::vector<discnet::adapter_t> adapters = {adapter_1};
-	std::vector<discnet::adapter_t> adapters_changed = {adapter_1_changed_name};
+	std::vector<discnet::adapter_t> adapters_changed = {adapter_1_changed_name, adapter_2};
 	std::vector<discnet::adapter_t> adapters_empty = {};
 
 	{	// making sure that the manager is destroyed (or else gtest will complain about memory leaks)
 		auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
+		
 		EXPECT_CALL(*fetcher.get(), get_adapters())
 			.Times(3)
 			.WillOnce(testing::Return(adapters))
@@ -125,7 +132,7 @@ TEST(no_fixture_test, adapter_manager)
 		
 		EXPECT_CALL(callbacks_tester, new_adapter(testing::_)).Times(1);
 		EXPECT_CALL(callbacks_tester, changed_adapter(testing::_, testing::_)).Times(1);
-		EXPECT_CALL(callbacks_tester, removed_adapter(testing::_)).Times(1);
+		EXPECT_CALL(callbacks_tester, removed_adapter(testing::_)).Times(2);
 
 		// first call to update adds test adapter (see WillOnce(test adapter list))
 		manager.update();
