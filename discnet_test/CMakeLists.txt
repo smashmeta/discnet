@@ -31,7 +31,7 @@ add_executable(discnet_test
 
 # adding thirdparty library dependencies
 target_link_libraries(discnet_test PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
-target_link_libraries(discnet_test PRIVATE ${Boost_LIBRARIES})
+target_link_libraries(discnet_test PRIVATE Boost::log)
 target_link_libraries(discnet_test PRIVATE fmt::fmt)
 target_link_libraries(discnet_test PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
 target_link_libraries(discnet_test PRIVATE discnet_lib)

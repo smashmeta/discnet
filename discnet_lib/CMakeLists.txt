@@ -26,6 +26,5 @@ add_library(discnet_lib
 )
 
 # adding thirdparty library dependencies
-target_link_libraries(discnet_lib PRIVATE ${Boost_LIBRARIES})
 target_link_libraries(discnet_lib PRIVATE fmt::fmt)
 target_link_libraries(discnet_lib PRIVATE ${whatlog_LIBRARIES})
