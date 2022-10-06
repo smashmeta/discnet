@@ -2,30 +2,45 @@
  *
  */
 
+#include <ranges>
 #include <discnet_lib/route_manager.hpp>
 
 namespace discnet
 {
-void route_manager::update(time_point_t current_time)
+void route_manager_t::update(time_point_t current_time)
 {
-    for (auto& route : m_routes)
+    for (routes_t& routes : m_adapter_routes | std::views::values)
     {
-        if (is_route_online(route.second))
+        for (route_t& route : routes)
         {
-            if (!route.second.m_online)
+            if (is_route_online(route))
             {
-                route.second.m_online = true;
-                e_online_state_changed(route.second, false);
+                if (!route.m_status.m_online)
+                {
+                    route.m_status.m_online = true;
+                    e_online_state_changed(route, false);
+                }
             }
-        }
-        else
-        {
-            if (route.second.m_online)
+            else
             {
-                route.second.m_online = false;
-                e_online_state_changed(route.second, true);
+                if (route.m_status.m_online)
+                {
+                    route.m_status.m_online = false;
+                    e_online_state_changed(route, true);
+                }
             }
         }
     }
+}
+
+bool route_manager_t::add_route(const adapter_identifier_t& adapter_id, route_t& route)
+{
+    auto itr_adapter_routes = m_adapter_routes.find(adapter_id);
+    if (itr_adapter_routes != m_adapter_routes.end())
+    {
+        
+    }
+
+    return false; // todo: implement
 }
 } // !namespace discnet
