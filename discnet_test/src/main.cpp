@@ -10,6 +10,7 @@
 #include <boost/uuid/random_generator.hpp>
 #include <discnet_lib/route.hpp>
 #include <discnet_lib/adapter_manager.hpp>
+#include <discnet_lib/route_manager.hpp>
 
 namespace discnet::test
 {
@@ -47,7 +48,7 @@ TEST(no_fixture_test, is_direct_node)
 	auto adapter_ip = discnet::address_v4_t::from_string("192.169.10.11");
 	auto sender_ip = node_ip;
 
-	discnet::node_identifier node{ 1, node_ip };
+	discnet::node_identifier_t node{ 1, node_ip };
 	discnet::route_identifier direct_route{ node, adapter_ip, sender_ip };
 
 	EXPECT_TRUE(discnet::is_direct_node(direct_route));
@@ -65,7 +66,7 @@ TEST(no_fixture_test, routes_contains)
 	auto sender_2_ip = discnet::address_v4_t::from_string("192.169.10.30");
 	auto sender_3_ip = discnet::address_v4_t::from_string("192.169.10.40");
 
-	discnet::node_identifier node_1{ 1, discnet::address_v4_t::from_string("192.169.10.10") };
+	discnet::node_identifier_t node_1{ 1, discnet::address_v4_t::from_string("192.169.10.10") };
 	discnet::route_identifier route_1{ node_1, adapter_ip, sender_1_ip };
 	discnet::route_identifier route_2{ node_1, adapter_ip, sender_2_ip };
 	discnet::route_identifier route_3{ node_1, adapter_ip, sender_3_ip };
@@ -73,6 +74,11 @@ TEST(no_fixture_test, routes_contains)
 
 	EXPECT_FALSE(discnet::contains(routes, route_3));
 	EXPECT_TRUE(discnet::contains(routes, route_2));
+}
+
+TEST(no_fixture_test, route_manager_disconnect)
+{
+	discnet::route_manager_t route_manager;
 }
 
 TEST(no_fixture_test, bytes_to_hex_string)
@@ -89,7 +95,7 @@ TEST(no_fixture_test, bytes_to_hex_string)
 		EXPECT_EQ(hex_string, "09 0A 0B 0C 0D 0E 0F");
 	}
 
-	{	// top down test { 0xff, 0xfe, ..., 0x00 }
+	{	// top down test { 0xff, 0xfe, 0xfd, 0x00 }
 		std::vector<std::byte> buffer = discnet::test::make_bytes(0xFF, 0xFE, 0xFD, 0x00);
 		std::string hex_string = discnet::bytes_to_hex_string(buffer);
 		EXPECT_EQ(hex_string, "FF FE FD 00");
@@ -102,21 +108,15 @@ TEST(no_fixture_test, adapter_manager)
 	discnet::adapter_t adapter_1;
 	adapter_1.m_guid = boost::uuids::random_generator()();
 	adapter_1.m_name = "test_adapter";
-
 	discnet::adapter_t adapter_1_changed_name = adapter_1;
 	adapter_1_changed_name.m_name = "test_adapter_changed_name";
-
-	discnet::adapter_t adapter_2;
-	adapter_2.m_guid = boost::uuids::random_generator()();
-	adapter_2.m_name = "test_adapter_2";
-
+	
 	std::vector<discnet::adapter_t> adapters = {adapter_1};
-	std::vector<discnet::adapter_t> adapters_changed = {adapter_1_changed_name, adapter_2};
+	std::vector<discnet::adapter_t> adapters_changed = {adapter_1_changed_name};
 	std::vector<discnet::adapter_t> adapters_empty = {};
 
 	{	// making sure that the manager is destroyed (or else gtest will complain about memory leaks)
 		auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
-		
 		EXPECT_CALL(*fetcher.get(), get_adapters())
 			.Times(3)
 			.WillOnce(testing::Return(adapters))
@@ -132,7 +132,7 @@ TEST(no_fixture_test, adapter_manager)
 		
 		EXPECT_CALL(callbacks_tester, new_adapter(testing::_)).Times(1);
 		EXPECT_CALL(callbacks_tester, changed_adapter(testing::_, testing::_)).Times(1);
-		EXPECT_CALL(callbacks_tester, removed_adapter(testing::_)).Times(2);
+		EXPECT_CALL(callbacks_tester, removed_adapter(testing::_)).Times(1);
 
 		// first call to update adds test adapter (see WillOnce(test adapter list))
 		manager.update();

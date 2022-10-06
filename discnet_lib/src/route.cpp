@@ -10,7 +10,7 @@ namespace discnet
 {
     bool is_route_online(const route_t& route)
 	{
-		if (route.m_persistent)
+		if (route.m_status.m_persistent)
 		{
 			return true;
 		}

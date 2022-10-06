@@ -8,6 +8,8 @@
 
 namespace discnet
 {
+    typedef uuid_t adapter_identifier_t;
+
     /*
         guid: {154EA313-6D41-415A-B007-BBB7AD740F1F}
         mac_address: 3C:A9:F4:3C:1F:00
@@ -20,7 +22,7 @@ namespace discnet
      */
     struct adapter_t
     {   
-        uuid_t m_guid;
+        adapter_identifier_t m_guid;
         std::string m_mac_address;
         uint8_t m_index;
         std::string m_name;

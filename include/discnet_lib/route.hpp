@@ -11,9 +11,17 @@ namespace discnet
 {
     struct route_identifier
     {
-        node_identifier m_node;
+        node_identifier_t m_node;
         address_v4_t m_adapter;
         address_v4_t m_reporter;
+    };
+
+    struct route_status_t
+    {
+        bool m_online;
+        bool m_persistent;
+        bool m_silent;
+        uint8_t m_metric;
     };
 
     /* 
@@ -21,9 +29,7 @@ namespace discnet
             route_id: [ node: { 1010, 192.169.10.10 }, adapter: 192.169.10.1, reporter: 192.169.10.10 ] 
             last_tdp:  2022-12-09 14:23:11
             last_data: 1970-01-01 00:00:00 <no data received>
-            persistent: false
-            silent: false
-            metric: 256
+            status: [ online: true, persistent: false, silent: false ]
         }
     */
     struct route_t
@@ -31,10 +37,7 @@ namespace discnet
         route_identifier m_identifier;
         time_point_t m_last_tdp;
         time_point_t m_last_data_message;
-        bool m_online;
-        bool m_persistent;
-        bool m_silent;
-        uint8_t m_metric;
+        route_status_t m_status;
     };
     
     DISCNET_EXPORT bool is_route_online(const route_t& route);
