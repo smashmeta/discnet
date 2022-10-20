@@ -10,10 +10,10 @@
 #include <Wbemidl.h>
 #include <iphlpapi.h>
 #include <fmt/core.h>
-#include <discnet_lib/wbem_consumer.hpp>
+#include <discnet_lib/windows/wbem_consumer.hpp>
 #include <whatlog/logger.hpp>
 
-namespace discnet
+namespace discnet::windows
 {
     namespace 
     {
@@ -179,4 +179,4 @@ namespace discnet
 
         return pEnumerator;
     }
-} // !namespace discnet
+} // !namespace discnet::windows

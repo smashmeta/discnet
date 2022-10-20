@@ -35,4 +35,14 @@ target_link_libraries(discnet_test PRIVATE Boost::log)
 target_link_libraries(discnet_test PRIVATE fmt::fmt)
 target_link_libraries(discnet_test PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
 target_link_libraries(discnet_test PRIVATE discnet_lib)
-target_link_libraries(discnet_test PRIVATE ${whatlog_LIBRARIES})
+target_link_libraries(discnet_test PRIVATE whatlog::whatlog)
+
+############# force copy of dependencies to build folder #############
+
+add_custom_command( 
+	TARGET discnet_test POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_RUNTIME_DLLS:discnet_test>
+        $<TARGET_FILE_DIR:discnet_test>
+        COMMAND_EXPAND_LISTS
+)

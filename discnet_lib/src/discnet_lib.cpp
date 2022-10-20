@@ -8,7 +8,7 @@
 
 namespace discnet
 {
-    std::string bytes_to_hex_string(const std::span<std::byte>& buffer)
+    std::string bytes_to_hex_string(const std::span<const std::byte>& buffer)
     {
 		std::stringstream result;
 
@@ -27,4 +27,9 @@ namespace discnet
 
 		return boost::to_upper_copy(result.str());
     }
+
+	std::string bytes_to_hex_string(const std::span<const discnet::byte_t>& buffer)
+	{
+		return bytes_to_hex_string((const std::span<std::byte>&)buffer);
+	}
 } // !namespace discnet

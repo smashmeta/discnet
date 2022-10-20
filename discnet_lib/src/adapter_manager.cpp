@@ -10,6 +10,7 @@
 #include <vector>
 #include <locale>
 #include <codecvt>
+#include <ranges>
 #include <fmt/format.h>
 #include <boost/lexical_cast.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -77,7 +78,22 @@ namespace discnet
         }
     }
 
-    windows_adapter_fetcher::windows_adapter_fetcher(discnet::shared_wbem_consumer consumer)
+    adapter_t adapter_manager::find_adapter(const address_v4_t& address) const
+    {
+        for (const auto& adapter : m_adapters | std::views::values)
+        {
+            auto existing_adapter = std::find_if(adapter.m_address_list.begin(), adapter.m_address_list.end(), 
+                [&](const address_mask_v4_t& val){ return val.first == address; });
+            if (existing_adapter != adapter.m_address_list.end())
+            {
+                return adapter;
+            }
+        }
+
+        return {};
+    }
+
+    windows_adapter_fetcher::windows_adapter_fetcher(discnet::windows::shared_wbem_consumer consumer)
         : m_consumer(consumer)
     {
         // nothing for now
