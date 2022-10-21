@@ -13,6 +13,8 @@
 #include <discnet_lib/route_manager.hpp>
 #include <discnet_lib/discovery_message.hpp>
 #include <discnet_lib/network/buffer.hpp>
+#include <discnet_lib/network/messages/discovery_message.hpp>
+#include <discnet_lib/network/messages/packet.hpp>
 
 namespace discnet::test
 {
@@ -189,27 +191,31 @@ TEST(no_fixture_test, buffer_t__packet)
 {
 	using ipv4 = boost::asio::ip::address_v4;
 
-	discnet::discovery_message_t message;
+	discnet::network::messages::discovery_message_t message;
 	message.m_id = 1024;
-	message.m_nodes = { discnet::node_identifier_t{ 1025, ipv4::from_string("192.200.1.1") } };
+	message.m_nodes = { 
+		discnet::node_t{ discnet::node_identifier_t{1025, ipv4::from_string("192.200.1.1")}, discnet::jumps_t{512, 256} } 
+	};
 
 	discnet::network::buffer_t buffer(1024);
-	discnet::message_list_t messages = { message };
-	discnet::packet_codec_t::encode(buffer, messages);
+	discnet::network::messages::message_list_t messages = { message };
+	discnet::network::messages::packet_codec_t::encode(buffer, messages);
 
 	std::string output = discnet::bytes_to_hex_string(buffer.data());
 
-	// packet: size + message count :	{ 00 00 00 28, 00 01 } = { 40, 1 }
+	// packet: size + message count :	{ 00 00 00 20, 00 01 } = { 32, 1 }
 	// header: size + type :			{ 00 00 00 0C, 00 01 } = { 12, 1 }
 	// discovery id + element count :	{ 04 00 00 00, 00 01 } = { 1024, 1 }
-	// element 1 :						{ 04 01, C0 C8 01 01 } = { 1025, 192.200.1.1 }
-	// checksum :						{ 2A 9C 1C A8 } = 4-bytes
+	// element 1 (identifier) :			{ 04 01, C0 C8 01 01 } = { 1025, 192.200.1.1 }
+	// element 1 (status) :				{ 02 00, 01 00 } = { 512, 256 }
+	// checksum :						{ 3C AD 23 D2 } = 4-bytes
 	EXPECT_EQ(output, 
-		"00 00 00 1C 00 01 "
+		"00 00 00 20 00 01 "
 		"00 00 00 0C 00 01 "
 		"04 00 00 00 00 01 "
 		"04 01 C0 C8 01 01 "
-		"2A 9C 1C A8");
+		"02 00 01 00 "
+		"3C AD 23 D2");
 }
 
 int main(int arguments_count, char** arguments_vector) 

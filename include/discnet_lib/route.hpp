@@ -11,17 +11,17 @@ namespace discnet
 {
     struct route_identifier
     {
-        node_identifier_t m_node;
-        address_v4_t m_adapter;
-        address_v4_t m_reporter;
+        node_identifier_t m_node = init_required;
+        address_v4_t m_adapter = init_required;
+        address_v4_t m_reporter = init_required;
     };
 
     struct route_status_t
     {
-        bool m_online;
-        bool m_persistent;
-        bool m_silent;
-        uint8_t m_metric;
+        bool m_online = false;
+        bool m_persistent = false;
+        bool m_silent = false;
+        uint8_t m_metric = 0;
     };
 
     /* 
@@ -34,10 +34,10 @@ namespace discnet
     */
     struct route_t
     {
-        route_identifier m_identifier;
-        time_point_t m_last_tdp;
-        time_point_t m_last_data_message;
-        route_status_t m_status;
+        route_identifier m_identifier = init_required;
+        time_point_t m_last_tdp = time_point_t::min();
+        time_point_t m_last_data_message = time_point_t::min();
+        route_status_t m_status = route_status_t();
     };
     
     DISCNET_EXPORT bool is_route_online(const route_t& route);

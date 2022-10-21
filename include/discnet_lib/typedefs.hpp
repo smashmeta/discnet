@@ -18,4 +18,10 @@ namespace discnet
     typedef std::pair<address_v4_t, address_v4_t> address_mask_v4_t; 
     typedef std::shared_ptr<boost::asio::io_service> shared_io_service;
     typedef std::shared_ptr<boost::asio::ip::udp::socket> shared_udp_socket;
+
+    struct init_required_t 
+    {
+        template <class T>
+        operator T() const { static_assert(typeof(T) == 0, "struct memeber not initialized"); }
+    } static const init_required;
 }
