@@ -17,12 +17,13 @@ namespace discnet
 {
     namespace
     {
-        template<class> inline constexpr bool always_false_v = false;
+        template<class ... Ts> struct overloaded : Ts ... { using Ts::operator()...; };
     } // !anonymouse namespace
 
     enum class message_type_e : uint16_t
     {
-        discovery_message = 1
+        discovery_message = 1,
+        command_message = 2
     };
 
     /*
@@ -112,149 +113,6 @@ namespace discnet
         }
     };
 
-    struct packet_codec_t
-    {
-        static const size_t packet_size = 4;
-        static const size_t messages_count_size = 2;
-        static const size_t checksum_size = 4;
-        static const size_t header_size = packet_size + messages_count_size + checksum_size;
-        using md5 = boost::uuids::detail::md5;
-
-        static size_t message_size_visit(const message_variant_t& message_variant)
-        {
-            return std::visit(
-                [&](const auto& message) -> size_t
-                {
-                    using message_type = std::decay_t<decltype(message)>;
-                    if constexpr (std::is_same_v<message_type, discovery_message_t>)
-                    {
-                        const discovery_message_t& discovery_msg = (discovery_message_t&)message;
-                        return discovery_message_codec_t::encoded_size(discovery_msg); 
-                    }
-                    else
-                    {
-                        static_assert(always_false_v, "non-exhaustive visitor!");
-                    }
-                }
-            ,message_variant);
-        }
-
-        static bool message_encode_visit(discnet::network::buffer_t& buffer, const message_variant_t& message_variant)
-        {
-            return std::visit(
-                [&](const auto& message) -> bool
-                {
-                    using message_type = std::decay_t<decltype(message)>;
-                    if constexpr (std::is_same_v<message_type, discovery_message_t>)
-                    {
-                        const discovery_message_t& discovery_msg = (discovery_message_t&)message;
-                        return discovery_message_codec_t::encode(buffer ,discovery_msg); 
-                    }
-                    else
-                    {
-                        static_assert(always_false_v, "non-exhaustive visitor!");
-                    }
-                }
-            ,message_variant);
-        }
-
-        static bool encode(discnet::network::buffer_t& buffer, const message_list_t& messages)
-        {
-            size_t packet_size = header_size;
-            for (const message_variant_t& message : messages)
-            {
-                packet_size += message_size_visit(message);
-            }
-
-            // verify that we can fit the packet inside our buffer
-            if (packet_size > buffer.remaining_bytes())
-            {
-                // todo: error message goes here.
-                return false;
-            }
-
-            buffer.append(boost::endian::native_to_big((uint32_t)packet_size));
-            buffer.append(boost::endian::native_to_big((uint16_t)messages.size()));
-
-            for (const message_variant_t& message : messages)
-            {
-                if (!message_encode_visit(buffer, message))
-                {
-                    // todo: error message goes here.
-                    return false;
-                }
-            }
-
-            // generate hash for message
-            md5 hash;
-            md5::digest_type digest;
-            hash.process_bytes((const void*)(buffer.data().data()), buffer.appended_bytes());
-            hash.get_digest(digest);
-
-            // only using the last 4 bytes for verification
-            buffer.append(boost::endian::native_to_big((uint32_t)digest[3]));
-
-            return true;
-        }
-
-        static std::vector<discnet::byte_t> encode(discnet::network::buffer_span_t messages_buffer, size_t message_count)
-        {
-            size_t payload_size = messages_buffer.size();
-            std::vector<discnet::byte_t> result(header_size + payload_size, 0);
-            (uint32_t&)result[0] = boost::endian::native_to_big((uint32_t)(header_size + payload_size));
-            (uint16_t&)result[4] = boost::endian::native_to_big((uint16_t)message_count);
-            size_t current_index = header_size - checksum_size;
-            std::copy(messages_buffer.begin(), messages_buffer.end(), result.begin() + current_index);
-            current_index += payload_size;
-
-            md5 hash;
-            md5::digest_type digest;
-            size_t bytes_to_checksum_size = payload_size + header_size - checksum_size;
-            hash.process_bytes((const void*)&(result[0]), bytes_to_checksum_size);
-            hash.get_digest(digest);
-            
-            // only using the last 4 bytes for verification
-            (uint32_t&)result[current_index] = boost::endian::native_to_big((uint32_t)digest[3]);
-
-            return result;
-        }
-
-        static std::vector<discnet::byte_t> encode(const packet_t& packet)
-        {
-            size_t payload_size = 0;
-            for (const auto& message : packet.m_messages)
-            {
-                payload_size += message.m_buffer.size();
-            }
-
-            std::vector<discnet::byte_t> result(header_size + payload_size, 0);
-            (uint32_t&)result[0] = boost::endian::native_to_big((uint32_t)(header_size + payload_size));
-            (uint16_t&)result[4] = boost::endian::native_to_big((uint16_t)packet.m_messages.size());
-            
-            size_t current_index = header_size - checksum_size;
-            for (const auto& message : packet.m_messages)
-            {
-                std::copy(message.m_buffer.begin(), message.m_buffer.end(), result.begin() + current_index);
-                current_index += message.m_buffer.size();
-            }
-
-            md5 hash;
-            md5::digest_type digest;
-            hash.process_bytes((const void*)&(result[0]), payload_size + header_size - checksum_size);
-            hash.get_digest(digest);
-
-            // only using the last 4 bytes for verification
-            (uint32_t&)result[current_index] = boost::endian::native_to_big((uint32_t)digest[3]);
-
-            return result;
-        }
-
-        static std::expected<packet_t, std::string> decode(const std::span<discnet::byte_t>& buffer)
-        {
-
-        }
-    };
-
     struct header_codec_t
     {
         const static size_t s_header_size = 6;
@@ -275,27 +133,6 @@ namespace discnet
             buffer.append(boost::endian::native_to_big((uint16_t)message_type));
 
             return true;
-        }
-
-        static std::vector<discnet::byte_t> encode(const message_header_t& message)
-        {
-            std::vector<discnet::byte_t> result(s_header_size, 0);
-            (uint32_t&)result[0] = boost::endian::native_to_big(message.m_size);
-            (uint16_t&)result[4] = boost::endian::native_to_big((uint16_t)message.m_type);
-            return result;
-        }
-
-        static std::expected<message_header_t, std::string> decode(const std::span<discnet::byte_t>& buffer)
-        {
-            if (buffer.size() != s_header_size)
-            {
-                return std::unexpected("invalid header size.");
-            }
-
-            message_header_t header;
-            header.m_size = boost::endian::big_to_native((uint32_t&)buffer[0]);
-            header.m_type = (message_type_e)boost::endian::big_to_native((uint16_t&)buffer[4]);
-            return header;
         }
     };
 
@@ -340,70 +177,89 @@ namespace discnet
 
             return true;
         }
+    };
 
-        static std::vector<discnet::byte_t> encode(const discovery_message_t& message)
+    struct packet_codec_t
+    {
+        static const size_t packet_size = 4;
+        static const size_t messages_count_size = 2;
+        static const size_t checksum_size = 4;
+        static const size_t header_size = packet_size + messages_count_size + checksum_size;
+        using md5 = boost::uuids::detail::md5;
+
+        struct visit_message_encode_t
         {
-            const size_t nodes_array_total_size = message.m_nodes.size() * s_nodes_array_element_size;
-            const size_t buffer_size = s_node_id_size + s_nodes_array_size + nodes_array_total_size;
-            std::vector<discnet::byte_t> result(buffer_size, 0);
-            
-            (uint16_t&)result[0] = boost::endian::native_to_big(message.m_id);
-            (uint32_t&)result[2] = boost::endian::native_to_big((uint32_t)message.m_nodes.size());
-
-            size_t index = 0;
-            for (const node_identifier_t& node : message.m_nodes)
+            visit_message_encode_t(discnet::network::buffer_t& buffer) : m_buffer(buffer) {}
+            bool operator()(const discovery_message_t& message) const
             {
-                size_t current_index = (index * s_nodes_array_element_size) + 6;
-                (uint16_t&)result[current_index] = boost::endian::native_to_big(node.m_id);
-                current_index += 2;
-                (uint32_t&)result[current_index] = boost::endian::native_to_big(node.m_address.to_uint());
-                index += 1;
+                return discovery_message_codec_t::encode(m_buffer, message);
             }
 
-            return result;
+            discnet::network::buffer_t& m_buffer;
+        };
+
+        static size_t message_size_visit(const message_variant_t& message_variant)
+        {
+            return std::visit(overloaded {
+                [](const discovery_message_t& message) -> size_t { return discovery_message_codec_t::encoded_size(message); }
+            }, message_variant);
         }
 
-        static std::expected<discovery_message_t, std::string> decode(const std::span<discnet::byte_t>& buffer)
+        static bool message_encode_visit(discnet::network::buffer_t& buffer, const message_variant_t& message_variant)
         {
-            // verify buffer size first
-            size_t buffer_size = buffer.size();
-            if (buffer_size < 6)
+            return std::visit(overloaded {
+                [&](const discovery_message_t& message) -> bool { return discovery_message_codec_t::encode(buffer, message); }
+            }, message_variant);
+        }
+
+        static size_t message_size(const discovery_message_t& message)
+        {
+            return discovery_message_codec_t::encoded_size(message);
+        }
+
+        static bool encode(discnet::network::buffer_t& buffer, const message_list_t& messages)
+        {
+            size_t packet_size = header_size;
+            for (const message_variant_t& message : messages)
             {
-                return std::unexpected("invalid buffer size. header size invalid.");
+                auto size_visitor = [&](const auto& message) -> size_t { return message_size(message); };
+                packet_size += std::visit(size_visitor, message);
             }
 
-            discovery_message_t message;
-            message.m_id = (uint16_t&)buffer[0];
-            boost::endian::big_to_native_inplace(message.m_id);
-
-            uint32_t elements = (uint32_t&)buffer[2];
-            boost::endian::big_to_native_inplace(elements);
-
-            if ((buffer_size - 6) % s_nodes_array_element_size != 0)
+            // verify that we can fit the packet inside our buffer
+            if (packet_size > buffer.remaining_bytes())
             {
-                return std::unexpected("invalid buffer size. elements size invalid.");
+                // todo: error message goes here.
+                return false;
             }
 
-            size_t array_elements = (buffer_size - 6) / s_nodes_array_element_size;
-            if (array_elements != elements)
+            buffer.append(boost::endian::native_to_big((uint32_t)packet_size));
+            buffer.append(boost::endian::native_to_big((uint16_t)messages.size()));
+
+            for (const message_variant_t& message : messages)
             {
-                return std::unexpected("mismatch between reported elements count and remaining bytes to parse.");
+                if (!std::visit(visit_message_encode_t(buffer), message))
+                {
+                    // todo: error message goes here.
+                    return false;
+                }
             }
 
-            for (size_t index = 0; index < array_elements; ++index)
-            {
-                size_t current_index = (index * s_nodes_array_element_size) + 6;
-                node_identifier_t node;
-                node.m_id = (uint16_t&)buffer[current_index];
-                boost::endian::big_to_native_inplace(node.m_id);
-                current_index += 2;
-                uint32_t node_address = (uint32_t&)(buffer[current_index]);
-                node.m_address = address_v4_t(boost::endian::big_to_native(node_address));
+            // generate hash for message
+            md5 hash;
+            md5::digest_type digest;
+            hash.process_bytes((const void*)(buffer.data().data()), buffer.appended_bytes());
+            hash.get_digest(digest);
 
-                message.m_nodes.push_back(node);
-            }
- 
-            return message;
+            // only using the last 4 bytes for verification
+            buffer.append(boost::endian::native_to_big((uint32_t)digest[3]));
+
+            return true;
+        }
+
+        static std::expected<packet_t, std::string> decode(const std::span<discnet::byte_t>& buffer)
+        {
+
         }
     };
 } // !namespace discnet
