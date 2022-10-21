@@ -20,5 +20,8 @@
 
 namespace discnet
 {
-    DISCNET_EXPORT std::string bytes_to_hex_string(const std::span<std::byte>& buffer);
+    typedef uint8_t byte_t;
+
+    DISCNET_EXPORT std::string bytes_to_hex_string(const std::span<const std::byte>& buffer);
+    DISCNET_EXPORT std::string bytes_to_hex_string(const std::span<const discnet::byte_t>& buffer);
 } // !namesapce discnet

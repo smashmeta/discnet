@@ -11,6 +11,8 @@
 #include <discnet_lib/route.hpp>
 #include <discnet_lib/adapter_manager.hpp>
 #include <discnet_lib/route_manager.hpp>
+#include <discnet_lib/discovery_message.hpp>
+#include <discnet_lib/network/buffer.hpp>
 
 namespace discnet::test
 {
@@ -102,7 +104,7 @@ TEST(no_fixture_test, bytes_to_hex_string)
 	}
 }
 
-TEST(no_fixture_test, adapter_manager)
+TEST(no_fixture_test, adapter_manager__update)
 {
 	// setting up data
 	discnet::adapter_t adapter_1;
@@ -143,7 +145,209 @@ TEST(no_fixture_test, adapter_manager)
 	}
 }
 
-int main(int argc, char** argv) {
-	testing::InitGoogleTest(&argc, argv);
+TEST(no_fixture_test, adapter_manager__find_adapter)
+{
+	using ipv4 = boost::asio::ip::address_v4;
+
+	// setting up data
+	discnet::adapter_t adapter_1;
+	adapter_1.m_guid = boost::uuids::random_generator()();
+	adapter_1.m_index = 0;
+	adapter_1.m_name = "test_adapter1";
+	adapter_1.m_description = "description_adapter_1";
+	adapter_1.m_enabled = false;
+	adapter_1.m_gateway = ipv4::from_string("0.0.0.0");
+	adapter_1.m_address_list = { {ipv4::from_string("192.200.1.3"), ipv4::from_string("255.255.255.0")},
+								 {ipv4::from_string("192.169.40.130"), ipv4::from_string("255.255.255.0")} };
+	discnet::adapter_t adapter_2;
+	adapter_2.m_guid = boost::uuids::random_generator()();
+	adapter_2.m_index = 1;
+	adapter_2.m_name = "test_adapter_2";
+	adapter_2.m_description = "description_adapter_2";
+	adapter_2.m_gateway = ipv4::from_string("0.0.0.0");
+	adapter_1.m_enabled = true;
+	adapter_2.m_address_list = { {ipv4::from_string("10.0.0.1"), ipv4::from_string("255.255.255.0")}};
+
+	std::vector<discnet::adapter_t> adapters = {adapter_1, adapter_2};
+
+	{	// making sure that the manager is destroyed (or else gtest will complain about memory leaks)
+		auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
+		EXPECT_CALL(*fetcher.get(), get_adapters()).Times(1).WillOnce(testing::Return(adapters));
+		discnet::adapter_manager manager { std::move(fetcher) };
+		manager.update();
+
+		auto adapter_valid_10 = manager.find_adapter(ipv4::from_string("10.0.0.1"));
+		EXPECT_EQ(adapter_valid_10.m_guid, adapter_2.m_guid);
+		auto adapter_valid_192 = manager.find_adapter(ipv4::from_string("192.200.1.3"));
+		EXPECT_EQ(adapter_valid_192.m_name, adapter_1.m_name);
+		auto adapter_failed_not_contained = manager.find_adapter(ipv4::from_string("10.11.12.13"));
+		EXPECT_EQ(adapter_failed_not_contained.m_guid, boost::uuids::nil_uuid());
+	}
+}
+
+TEST(no_fixture_test, header_codec)
+{
+	discnet::network::buffer_t output(4096);
+	discnet::discovery_message_t message;
+	message.m_id = 888;
+	message.m_nodes = {};
+	
+	std::vector<discnet::byte_t> messag_buffer = discnet::discovery_message_codec_t::encode(message);
+	std::string encoded_message_bytes = discnet::bytes_to_hex_string(messag_buffer);
+
+	//	node id + elements count: 	{ 03 78, 00 00 00 00 } => { 888, 0 }
+	EXPECT_EQ(encoded_message_bytes, "03 78 00 00 00 00");
+
+	discnet::message_header_t header;
+	header.m_type = discnet::message_type_e::discovery_message;
+	header.m_size = messag_buffer.size();
+
+	std::vector<discnet::byte_t> header_buffer = discnet::header_codec_t::encode(header);
+	std::string encoded_header_bytes = discnet::bytes_to_hex_string(header_buffer);
+
+	// type + size: { 00 00 00 06, 00 01 } => { 6, 1 }
+	EXPECT_EQ(encoded_header_bytes, "00 00 00 06 00 01");
+
+	output.append(discnet::network::buffer_span_t(header_buffer.data(), header_buffer.size()));
+	output.append(discnet::network::buffer_span_t(messag_buffer.data(), messag_buffer.size()));
+	std::string encoded_output_bytes = discnet::bytes_to_hex_string(output.data());
+
+	// header + message bytes (see above)
+	EXPECT_EQ(encoded_output_bytes, "00 00 00 06 00 01 03 78 00 00 00 00");
+}
+
+TEST(no_fixture_test, discovery_message_codec)
+{
+	using ipv4 = boost::asio::ip::address_v4;
+
+	discnet::discovery_message_t message;
+	message.m_id = 1024;
+	message.m_nodes = { 
+		{ 1025, ipv4::from_string("192.200.1.1") },
+		{ 1026, ipv4::from_string("193.201.1.2") },
+		{ 1027, ipv4::from_string("194.202.1.3") }  
+	};
+
+	std::vector<discnet::byte_t> buffer = discnet::discovery_message_codec_t::encode(message);
+	std::string encoded_bytes = discnet::bytes_to_hex_string(buffer);
+	//	node id + elements count: 	{ 04 00, 00 00 00 03 } => { 1024, 3 }
+	//	entry 1 (node id + ip): 	{ 04 01, C0 C8 01 01 } => { 1025, 192.200.1.1 }
+	//	entry 2 (node id + ip): 	{ 04 02, C1 C9 01 02 } => { 1026, 193.201.1.2 }
+	//	entry 3 (node id + ip): 	{ 04 03, C2 CA 01 03 } => { 1025, 194.202.1.3 }
+	//	total bytes: 6*4 = 24
+	EXPECT_EQ(encoded_bytes, 		 
+		"04 00 00 00 00 03 "
+		"04 01 C0 C8 01 01 "
+		"04 02 C1 C9 01 02 "
+		"04 03 C2 CA 01 03");
+
+	auto decoded_message = discnet::discovery_message_codec_t::decode(buffer);
+	EXPECT_TRUE(decoded_message);
+	EXPECT_EQ(message.m_id, decoded_message.value().m_id);
+	EXPECT_EQ(message.m_nodes.size(), decoded_message.value().m_nodes.size());
+}
+
+TEST(no_fixture_test, packet_codec_new)
+{
+	using ipv4 = boost::asio::ip::address_v4;
+
+	discnet::discovery_message_t message;
+	message.m_id = 1024;
+	message.m_nodes = { discnet::node_identifier_t{ 1025, ipv4::from_string("192.200.1.1") } };
+	std::vector<discnet::byte_t> discovery_msg_buffer = discnet::discovery_message_codec_t::encode(message);
+
+	discnet::message_header_t header;
+	header.m_type = discnet::message_type_e::discovery_message;
+	header.m_size = discovery_msg_buffer.size();
+	std::vector<discnet::byte_t> header_buffer = discnet::header_codec_t::encode(header);
+
+	discnet::network::buffer_t buffer(4096);
+	buffer.append(header_buffer);
+	buffer.append(discovery_msg_buffer);
+
+	std::vector<discnet::byte_t> packet_buffer = discnet::packet_codec_t::encode(buffer.data(), 1);
+	std::string output = discnet::bytes_to_hex_string(packet_buffer);
+
+	// packet: size + message count :	{ 00 00 00 1C, 00 01 } = { 40, 1 }
+	// header: size + type :			{ 00 00 00 0C, 00 01 } = { 12, 1 }
+	// discovery id + element count :	{ 04 00 00 00, 00 01 } = { 1024, 1 }
+	// element 1 :						{ 04 01, C0 C8 01 01 } = { 1025, 192.200.1.1 }
+	// checksum :						{ A8 1C 9C 2A } = 4-bytes
+	EXPECT_EQ(output,
+		"00 00 00 1C 00 01 "
+		"00 00 00 0C 00 01 "
+		"04 00 00 00 00 01 "
+		"04 01 C0 C8 01 01 "
+		"2A 9C 1C A8");
+
+}
+
+TEST(no_fixture_test, packet_codec_old)
+{
+	using ipv4 = boost::asio::ip::address_v4;
+
+	discnet::discovery_message_t message;
+	message.m_id = 1024;
+	message.m_nodes = { discnet::node_identifier_t{ 1025, ipv4::from_string("192.200.1.1") } };
+	std::vector<discnet::byte_t> discovery_msg_buffer = discnet::discovery_message_codec_t::encode(message);
+	
+	discnet::message_header_t header;
+	header.m_type = discnet::message_type_e::discovery_message;
+	header.m_size = discovery_msg_buffer.size();
+	std::vector<discnet::byte_t> header_buffer = discnet::header_codec_t::encode(header);
+	
+	std::vector<discnet::byte_t> message_buffer(header_buffer.size() + discovery_msg_buffer.size(), 0);
+	std::copy(header_buffer.begin(), header_buffer.end(), message_buffer.begin());
+	std::copy(discovery_msg_buffer.begin(), discovery_msg_buffer.end(), message_buffer.begin() + header_buffer.size());
+	
+	discnet::packet_t packet;
+	packet.m_messages.push_back(discnet::encoded_message_t{message_buffer});
+
+	std::vector<discnet::byte_t> packet_buffer = discnet::packet_codec_t::encode(packet);
+	std::string output = discnet::bytes_to_hex_string(packet_buffer);
+
+	// packet: size + message count :	{ 00 00 00 28, 00 01 } = { 40, 1 }
+	// header: size + type :			{ 00 00 00 0C, 00 01 } = { 12, 1 }
+	// discovery id + element count :	{ 04 00 00 00, 00 01 } = { 1024, 1 }
+	// element 1 :						{ 04 01, C0 C8 01 01 } = { 1025, 192.200.1.1 }
+	// checksum :						{ 2A 9C 1C A8 } = 4-bytes
+	EXPECT_EQ(output, 
+		"00 00 00 1C 00 01 "
+		"00 00 00 0C 00 01 "
+		"04 00 00 00 00 01 "
+		"04 01 C0 C8 01 01 "
+		"2A 9C 1C A8");
+}
+
+TEST(no_fixture_test, buffer_t__packet)
+{
+	using ipv4 = boost::asio::ip::address_v4;
+
+	discnet::discovery_message_t message;
+	message.m_id = 1024;
+	message.m_nodes = { discnet::node_identifier_t{ 1025, ipv4::from_string("192.200.1.1") } };
+
+	discnet::network::buffer_t buffer(1024);
+	discnet::message_list_t messages = { message };
+	discnet::packet_codec_t::encode(buffer, messages);
+
+	std::string output = discnet::bytes_to_hex_string(buffer.data());
+
+	// packet: size + message count :	{ 00 00 00 28, 00 01 } = { 40, 1 }
+	// header: size + type :			{ 00 00 00 0C, 00 01 } = { 12, 1 }
+	// discovery id + element count :	{ 04 00 00 00, 00 01 } = { 1024, 1 }
+	// element 1 :						{ 04 01, C0 C8 01 01 } = { 1025, 192.200.1.1 }
+	// checksum :						{ 2A 9C 1C A8 } = 4-bytes
+	EXPECT_EQ(output, 
+		"00 00 00 1C 00 01 "
+		"00 00 00 0C 00 01 "
+		"04 00 00 00 00 01 "
+		"04 01 C0 C8 01 01 "
+		"2A 9C 1C A8");
+}
+
+int main(int arguments_count, char** arguments_vector) 
+{
+	testing::InitGoogleTest(&arguments_count, arguments_vector);
 	return RUN_ALL_TESTS();
 }

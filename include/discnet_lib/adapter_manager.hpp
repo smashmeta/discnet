@@ -5,7 +5,7 @@
 #pragma once
 
 #include <discnet_lib/adapter.hpp>
-#include <discnet_lib/wbem_consumer.hpp>
+#include <discnet_lib/windows/wbem_consumer.hpp>
 
 namespace discnet
 {
@@ -18,10 +18,10 @@ namespace discnet
 
     struct windows_adapter_fetcher : public adapter_fetcher
     {
-        windows_adapter_fetcher(discnet::shared_wbem_consumer consumer);
+        windows_adapter_fetcher(discnet::windows::shared_wbem_consumer consumer);
         std::vector<adapter_t> get_adapters() override;
     private:
-        discnet::shared_wbem_consumer m_consumer;
+        discnet::windows::shared_wbem_consumer m_consumer;
     };
 
     class adapter_manager
@@ -34,8 +34,10 @@ namespace discnet
         adapter_manager(std::unique_ptr<adapter_fetcher> fetcher);
         bool is_equal(const adapter_t& lhs, const adapter_t& rhs);
         void update();
+
+        adapter_t find_adapter(const address_v4_t& address) const; 
     protected:
         std::unique_ptr<adapter_fetcher> m_fetcher;
         std::map<uuid_t, adapter_t> m_adapters;
     };
-}
+} // !namespace discnet

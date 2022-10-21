@@ -8,7 +8,7 @@
 
 class IEnumWbemClassObject;
 
-namespace discnet
+namespace discnet::windows
 {
 /*
  * WMI (Windows Management Instrumentation) consists of a set of extensions to the 
@@ -40,4 +40,4 @@ private:
 
     impl* m_impl;
 };
-} // !namespace noconn
+} // !namespace noconn::windows

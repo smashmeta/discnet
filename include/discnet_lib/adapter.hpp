@@ -5,6 +5,7 @@
 #pragma once
 
 #include <discnet_lib/typedefs.hpp>
+#include <boost/uuid/nil_generator.hpp>
 
 namespace discnet
 {
@@ -22,6 +23,9 @@ namespace discnet
      */
     struct adapter_t
     {   
+        adapter_t() = default;
+        adapter_t(const adapter_t& val) = default;
+        
         adapter_identifier_t m_guid;
         std::string m_mac_address;
         uint8_t m_index;
