@@ -9,9 +9,9 @@
 #include <boost/endian.hpp>
 #include <boost/uuid/detail/md5.hpp>
 #include <discnet_lib/discnet_lib.hpp>
-#include <discnet_lib/network/buffer.hpp>
-#include <discnet_lib/node.hpp>
+#include <discnet_lib//node.hpp>
 #include <discnet_lib/typedefs.hpp>
+#include <discnet_lib/network/buffer.hpp>
 #include <discnet_lib/network/network_info.hpp>
 #include <discnet_lib/network/messages/discovery_message.hpp>
 

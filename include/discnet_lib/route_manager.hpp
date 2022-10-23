@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <discnet_lib/discovery_message.hpp>
 #include <discnet_lib/adapter.hpp>
 #include <discnet_lib/route.hpp>
 

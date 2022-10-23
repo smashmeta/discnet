@@ -5,12 +5,22 @@
 #pragma once
 
 #include <vector>
-#include <discnet_lib/node.hpp>
 #include <discnet_lib/network/buffer.hpp>
 #include <discnet_lib/network/messages/header.hpp>
 
 namespace discnet::network::messages
 {
+    using jumps_t = std::vector<uint16_t>;
+
+    struct node_t
+    {
+        uint16_t m_identifier = init_required;
+        address_v4_t m_address = init_required;
+        jumps_t m_jumps = {};
+    };
+    
+    using nodes_vector_t = std::vector<node_t>;
+
     /*
     msg [
        id: 1010,
@@ -23,8 +33,8 @@ namespace discnet::network::messages
     */
     struct discovery_message_t
     {
-        uint16_t m_id;
-        nodes_vector_t m_nodes;
+        uint16_t m_identifier = init_required;
+        nodes_vector_t m_nodes = {};
     };
 
     struct discovery_message_codec_t
@@ -63,13 +73,13 @@ namespace discnet::network::messages
             
             header_codec_t::encode(buffer, message_size, s_message_type);
 
-            buffer.append(boost::endian::native_to_big((uint16_t)message.m_id));
+            buffer.append(boost::endian::native_to_big((uint16_t)message.m_identifier));
             buffer.append(boost::endian::native_to_big((uint32_t)message.m_nodes.size()));
 
             for (const node_t& node : message.m_nodes)
             {
-                buffer.append(boost::endian::native_to_big((uint16_t)node.m_identifier.m_id));
-                buffer.append(boost::endian::native_to_big((uint32_t)node.m_identifier.m_address.to_uint()));
+                buffer.append(boost::endian::native_to_big((uint16_t)node.m_identifier));
+                buffer.append(boost::endian::native_to_big((uint32_t)node.m_address.to_uint()));
                 for (const uint16_t jump : node.m_jumps)
                 {
                     buffer.append(boost::endian::native_to_big((uint16_t)jump));

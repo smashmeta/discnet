@@ -11,7 +11,7 @@
 #include <discnet_lib/route.hpp>
 #include <discnet_lib/adapter_manager.hpp>
 #include <discnet_lib/route_manager.hpp>
-#include <discnet_lib/discovery_message.hpp>
+#include <discnet_lib/node.hpp>
 #include <discnet_lib/network/buffer.hpp>
 #include <discnet_lib/network/messages/discovery_message.hpp>
 #include <discnet_lib/network/messages/packet.hpp>
@@ -48,16 +48,19 @@ namespace discnet::test
 
 TEST(no_fixture_test, is_direct_node)
 {
-	auto node_ip = discnet::address_v4_t::from_string("192.169.10.10");
-	auto adapter_ip = discnet::address_v4_t::from_string("192.169.10.11");
+	using ipv4 = boost::asio::ip::address_v4;
+	using node_identifier_t = discnet::node_identifier_t;
+
+	auto node_ip = ipv4::from_string("192.169.10.10");
+	auto adapter_ip = ipv4::from_string("192.169.10.11");
 	auto sender_ip = node_ip;
 
-	discnet::node_identifier_t node{ 1, node_ip };
+	node_identifier_t node{ 1, node_ip };
 	discnet::route_identifier direct_route{ node, adapter_ip, sender_ip };
 
 	EXPECT_TRUE(discnet::is_direct_node(direct_route));
 
-	auto indirect_node_ip = discnet::address_v4_t::from_string("102.169.10.12");
+	auto indirect_node_ip = ipv4::from_string("102.169.10.12");
 	discnet::route_identifier indirect_route{ node, adapter_ip, indirect_node_ip };
 
 	EXPECT_FALSE(discnet::is_direct_node(indirect_route));
@@ -65,12 +68,15 @@ TEST(no_fixture_test, is_direct_node)
 
 TEST(no_fixture_test, routes_contains)
 {
-	auto adapter_ip = discnet::address_v4_t::from_string("192.169.10.11");
-	auto sender_1_ip = discnet::address_v4_t::from_string("192.169.10.20");
-	auto sender_2_ip = discnet::address_v4_t::from_string("192.169.10.30");
-	auto sender_3_ip = discnet::address_v4_t::from_string("192.169.10.40");
+	using ipv4 = boost::asio::ip::address_v4;
+	using node_identifier_t = discnet::node_identifier_t;
 
-	discnet::node_identifier_t node_1{ 1, discnet::address_v4_t::from_string("192.169.10.10") };
+	auto adapter_ip = ipv4::from_string("192.169.10.11");
+	auto sender_1_ip = ipv4::from_string("192.169.10.20");
+	auto sender_2_ip = ipv4::from_string("192.169.10.30");
+	auto sender_3_ip = ipv4::from_string("192.169.10.40");
+
+	node_identifier_t node_1{ 1, discnet::address_v4_t::from_string("192.169.10.10") };
 	discnet::route_identifier route_1{ node_1, adapter_ip, sender_1_ip };
 	discnet::route_identifier route_2{ node_1, adapter_ip, sender_2_ip };
 	discnet::route_identifier route_3{ node_1, adapter_ip, sender_3_ip };
@@ -108,16 +114,19 @@ TEST(no_fixture_test, bytes_to_hex_string)
 
 TEST(no_fixture_test, adapter_manager__update)
 {
+	using adapter_t = discnet::adapter_t;
+	using adapter_manager_t = discnet::adapter_manager_t;
+
 	// setting up data
-	discnet::adapter_t adapter_1;
+	adapter_t adapter_1;
 	adapter_1.m_guid = boost::uuids::random_generator()();
 	adapter_1.m_name = "test_adapter";
-	discnet::adapter_t adapter_1_changed_name = adapter_1;
+	adapter_t adapter_1_changed_name = adapter_1;
 	adapter_1_changed_name.m_name = "test_adapter_changed_name";
 	
-	std::vector<discnet::adapter_t> adapters = {adapter_1};
-	std::vector<discnet::adapter_t> adapters_changed = {adapter_1_changed_name};
-	std::vector<discnet::adapter_t> adapters_empty = {};
+	std::vector<adapter_t> adapters = {adapter_1};
+	std::vector<adapter_t> adapters_changed = {adapter_1_changed_name};
+	std::vector<adapter_t> adapters_empty = {};
 
 	{	// making sure that the manager is destroyed (or else gtest will complain about memory leaks)
 		auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
@@ -127,7 +136,7 @@ TEST(no_fixture_test, adapter_manager__update)
 			.WillOnce(testing::Return(adapters_changed))
 			.WillOnce(testing::Return(adapters_empty));
 
-		discnet::adapter_manager manager { std::move(fetcher) };
+		adapter_manager_t manager { std::move(fetcher) };
  
 		discnet::test::callback_tester_t callbacks_tester;
 		manager.e_new.connect(std::bind(&discnet::test::callback_tester_t::new_adapter, &callbacks_tester, std::placeholders::_1));
@@ -175,7 +184,7 @@ TEST(no_fixture_test, adapter_manager__find_adapter)
 	{	// making sure that the manager is destroyed (or else gtest will complain about memory leaks)
 		auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
 		EXPECT_CALL(*fetcher.get(), get_adapters()).Times(1).WillOnce(testing::Return(adapters));
-		discnet::adapter_manager manager { std::move(fetcher) };
+		discnet::adapter_manager_t manager { std::move(fetcher) };
 		manager.update();
 
 		auto adapter_valid_10 = manager.find_adapter(ipv4::from_string("10.0.0.1"));
@@ -190,16 +199,22 @@ TEST(no_fixture_test, adapter_manager__find_adapter)
 TEST(no_fixture_test, buffer_t__packet)
 {
 	using ipv4 = boost::asio::ip::address_v4;
+	using node_identifier_t = discnet::node_identifier_t;
+	using node_t = discnet::network::messages::node_t;
+	using buffer_t = discnet::network::buffer_t;
+	using discovery_message_t = discnet::network::messages::discovery_message_t;
+	using jumps_t = discnet::network::messages::jumps_t;
+	using packet_codec_t = discnet::network::messages::packet_codec_t;
+	using message_list_t = discnet::network::messages::message_list_t;
 
-	discnet::network::messages::discovery_message_t message;
-	message.m_id = 1024;
+	discovery_message_t message {.m_identifier = 1024};
 	message.m_nodes = { 
-		discnet::node_t{ discnet::node_identifier_t{1025, ipv4::from_string("192.200.1.1")}, discnet::jumps_t{512, 256} } 
+		node_t{ 1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} } 
 	};
 
-	discnet::network::buffer_t buffer(1024);
-	discnet::network::messages::message_list_t messages = { message };
-	discnet::network::messages::packet_codec_t::encode(buffer, messages);
+	buffer_t buffer(1024);
+	message_list_t messages = { message };
+	packet_codec_t::encode(buffer, messages);
 
 	std::string output = discnet::bytes_to_hex_string(buffer.data());
 

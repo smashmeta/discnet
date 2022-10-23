@@ -24,14 +24,14 @@ namespace discnet
         discnet::windows::shared_wbem_consumer m_consumer;
     };
 
-    class adapter_manager
+    class adapter_manager_t
     {
     public:
         boost::signals2::signal<void(const adapter_t&)> e_new;
         boost::signals2::signal<void(const adapter_t& prev, const adapter_t& curr)> e_changed;
         boost::signals2::signal<void(const adapter_t&)> e_removed;
 
-        adapter_manager(std::unique_ptr<adapter_fetcher> fetcher);
+        adapter_manager_t(std::unique_ptr<adapter_fetcher> fetcher);
         bool is_equal(const adapter_t& lhs, const adapter_t& rhs);
         void update();
 

@@ -19,13 +19,13 @@
 
 namespace discnet
 {
-    adapter_manager::adapter_manager(std::unique_ptr<adapter_fetcher> fetcher)
+    adapter_manager_t::adapter_manager_t(std::unique_ptr<adapter_fetcher> fetcher)
         : m_fetcher{std::move(fetcher)} 
     {
         // nothing for now
     }
 
-    bool adapter_manager::is_equal(const adapter_t& lhs, const adapter_t& rhs)
+    bool adapter_manager_t::is_equal(const adapter_t& lhs, const adapter_t& rhs)
     {
         return  lhs.m_guid == rhs.m_guid &&
                 lhs.m_mac_address == rhs.m_mac_address &&
@@ -36,7 +36,7 @@ namespace discnet
                 lhs.m_address_list == rhs.m_address_list;
     }
 
-    void adapter_manager::update()
+    void adapter_manager_t::update()
     {
         auto current_adapters = m_fetcher->get_adapters();
         for (const adapter_t& adapter : current_adapters)
@@ -78,7 +78,7 @@ namespace discnet
         }
     }
 
-    adapter_t adapter_manager::find_adapter(const address_v4_t& address) const
+    adapter_t adapter_manager_t::find_adapter(const address_v4_t& address) const
     {
         for (const auto& adapter : m_adapters | std::views::values)
         {
