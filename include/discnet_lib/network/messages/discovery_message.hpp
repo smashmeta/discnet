@@ -61,15 +61,12 @@ namespace discnet::network::messages
 
         static bool encode(network::buffer_t& buffer, const discovery_message_t& message)
         {
+            const size_t message_size = encoded_size(message);
             // don't touch the buffer if we cant fit the whole message inside
-            if (buffer.remaining_bytes() < encoded_size(message))
+            if (buffer.remaining_bytes() < message_size)
             {
                 return false;
             }
-
-            // message size set in the header section
-            const size_t message_size = s_node_id_size + s_nodes_array_size + 
-                (s_nodes_array_element_size * message.m_nodes.size()); 
             
             header_codec_t::encode(buffer, message_size, s_message_type);
 

@@ -12,10 +12,11 @@
 #include <discnet_lib/typedefs.hpp>
 #include <discnet_lib/network/buffer.hpp>
 #include <discnet_lib/network/messages/discovery_message.hpp>
+#include <discnet_lib/network/messages/data_message.hpp>
 
 namespace discnet::network::messages
 {
-    using message_variant_t = std::variant<discovery_message_t>;
+    using message_variant_t = std::variant<discovery_message_t, data_message_t>;
     using message_list_t = std::vector<message_variant_t>;
 
     struct packet_t
@@ -37,15 +38,26 @@ namespace discnet::network::messages
             {
                 return discovery_message_codec_t::encoded_size(message);
             }
+
+            size_t operator()(const data_message_t& message) const
+            {
+                return data_message_codec_t::encoded_size(message);
+            }
         };
 
         struct visit_message_encode_t
         {
             visit_message_encode_t(discnet::network::buffer_t& buffer) : m_buffer(buffer){}
             discnet::network::buffer_t& m_buffer;
+            
             bool operator()(const discovery_message_t& message) const
             {
                 return discovery_message_codec_t::encode(m_buffer, message);
+            }
+
+            bool operator()(const data_message_t& message) const
+            {
+                return data_message_codec_t::encode(m_buffer, message);
             }
         };
 

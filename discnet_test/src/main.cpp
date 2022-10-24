@@ -199,38 +199,43 @@ TEST(no_fixture_test, adapter_manager__find_adapter)
 TEST(no_fixture_test, buffer_t__packet)
 {
 	using ipv4 = boost::asio::ip::address_v4;
-	using node_identifier_t = discnet::node_identifier_t;
-	using node_t = discnet::network::messages::node_t;
-	using buffer_t = discnet::network::buffer_t;
-	using discovery_message_t = discnet::network::messages::discovery_message_t;
-	using jumps_t = discnet::network::messages::jumps_t;
-	using packet_codec_t = discnet::network::messages::packet_codec_t;
-	using message_list_t = discnet::network::messages::message_list_t;
+	using discnet::node_identifier_t;
+	using discnet::network::buffer_t;
+	using namespace discnet::network::messages;
 
-	discovery_message_t message {.m_identifier = 1024};
-	message.m_nodes = { 
+	discovery_message_t discovery_message {.m_identifier = 1024};
+	discovery_message.m_nodes = { 
 		node_t{ 1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} } 
 	};
 
+	data_message_t data_message {.m_identifier = 1};
+	data_message.m_buffer = {1, 2, 3, 4, 5};
+
 	buffer_t buffer(1024);
-	message_list_t messages = { message };
+	message_list_t messages = {discovery_message, data_message};
 	packet_codec_t::encode(buffer, messages);
 
 	std::string output = discnet::bytes_to_hex_string(buffer.data());
 
 	// packet: size + message count :	{ 00 00 00 20, 00 01 } = { 32, 1 }
-	// header: size + type :			{ 00 00 00 0C, 00 01 } = { 12, 1 }
+	// header: size + type :			{ 00 00 00 16, 00 01 } = { 22, 1 }
 	// discovery id + element count :	{ 04 00 00 00, 00 01 } = { 1024, 1 }
 	// element 1 (identifier) :			{ 04 01, C0 C8 01 01 } = { 1025, 192.200.1.1 }
 	// element 1 (status) :				{ 02 00, 01 00 } = { 512, 256 }
-	// checksum :						{ 3C AD 23 D2 } = 4-bytes
+	// header: size + type :			{ 00 00 00 0F, 00 02 } = { 15, 2 }
+	// data id + size :					{ 00 01 00 05 } = { 1, 5 }
+	// buffer :							{ 01 02 03 04 05 }= { 1, 2, 3, 4, 5 }
+	// checksum :						{ CD C6 A2 8E } = 4-bytes
 	EXPECT_EQ(output, 
-		"00 00 00 20 00 01 "
-		"00 00 00 0C 00 01 "
+		"00 00 00 2F 00 02 "
+		"00 00 00 16 00 01 "
 		"04 00 00 00 00 01 "
 		"04 01 C0 C8 01 01 "
 		"02 00 01 00 "
-		"3C AD 23 D2");
+		"00 00 00 0F 00 02 "
+		"00 01 00 05 "
+		"01 02 03 04 05 "
+		"CD C6 A2 8E");
 }
 
 int main(int arguments_count, char** arguments_vector) 
