@@ -8,10 +8,12 @@
 #include <span>
 #include <discnet_lib/discnet_lib.hpp>
 #include <discnet_lib/typedefs.hpp>
+#include <boost/asio/buffer.hpp>
 
 namespace discnet::network
 {
     typedef std::span<const discnet::byte_t> buffer_span_t;
+    typedef boost::asio::const_buffer const_buffer_t;
 
     class buffer_t
     {
@@ -21,6 +23,8 @@ namespace discnet::network
         buffer_span_t data() const;
         size_t remaining_bytes() const;
         size_t appended_bytes() const;
+
+        const_buffer_t const_buffer() const;
 
         bool append(const buffer_span_t& buffer);
         bool append(const uint8_t val);

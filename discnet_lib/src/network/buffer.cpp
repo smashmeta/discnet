@@ -32,6 +32,11 @@ namespace discnet::network
     {
         return m_offset;
     }
+    
+    const_buffer_t buffer_t::const_buffer() const
+    {
+        return const_buffer_t((void*)m_buffer.data(), m_offset);
+    }
 
     bool buffer_t::append(const buffer_span_t& buffer)
     {

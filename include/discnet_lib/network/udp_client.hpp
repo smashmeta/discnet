@@ -21,10 +21,11 @@ namespace discnet::network
     class udp_client
     {
     public:
-        udp_client(discnet::shared_io_service io_service, multicast_info info)
+        udp_client(discnet::shared_io_service io_service, multicast_info info, size_t buffer_size)
             :   m_service(io_service), 
                 m_rcv_socket(new discnet::socket_t{*io_service.get()}),
                 m_snd_socket(new discnet::socket_t{*io_service.get()}),
+                m_rcv_buffer(buffer_size),
                 m_info(info)
         {
             // nothing for now
@@ -32,10 +33,25 @@ namespace discnet::network
 
         bool open()
         {
-            return open_multicast_rcv_socket() && open_multicast_snd_socket();
+            bool result = open_multicast_rcv_socket() && open_multicast_snd_socket();
+            
+            if (result)
+            {
+                boost::asio::mutable_buffer data_buffer((void*)m_rcv_buffer.data(), m_rcv_buffer.size());
+                m_rcv_socket->async_receive_from(data_buffer, m_rcv_endpoint, 
+                    boost::bind(&udp_client::handle_read, this, 
+                        boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+            }
+            
+            if (!result)
+            {
+                close();
+            }
+
+            return result;
         }
 
-        bool send(const discnet::network::buffer_t& buffer)
+        bool write(const discnet::network::buffer_t& buffer)
         {
             using udp_t = boost::asio::ip::udp;
             
@@ -43,12 +59,17 @@ namespace discnet::network
             auto const_buffer = boost::asio::const_buffer(buffer.data().data(), buffer.data().size());
             udp_t::endpoint multicast_endpoint{m_info.m_multicast_address, m_info.m_multicast_port};
             m_snd_socket->async_send_to(const_buffer, multicast_endpoint, 
-                boost::bind(&udp_client::handle_send, this, boost::asio::placeholders::error));
+                boost::bind(&udp_client::handle_write, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
         }
 
-        void handle_send(const discnet::error_code_t error)
+        void handle_write(const boost::system::error_code& error, size_t bytes_transferred)
         {
-            
+            // todo: implement
+        }
+
+        void handle_read(const boost::system::error_code& error, size_t bytes_received)
+        {
+            // todo: implement
         }
 
         void close()
@@ -91,6 +112,8 @@ namespace discnet::network
         discnet::shared_io_service m_service;
         discnet::shared_udp_socket m_rcv_socket;
         discnet::shared_udp_socket m_snd_socket;
+        std::vector<discnet::byte_t> m_rcv_buffer;
+        boost::asio::ip::udp::endpoint m_rcv_endpoint;
         multicast_info m_info;
     };
 } // !namespace discnet::network

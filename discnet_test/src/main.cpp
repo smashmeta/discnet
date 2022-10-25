@@ -217,15 +217,18 @@ TEST(no_fixture_test, buffer_t__packet)
 
 	std::string output = discnet::bytes_to_hex_string(buffer.data());
 
-	// packet: size + message count :	{ 00 00 00 20, 00 01 } = { 32, 1 }
+	// packet: size + message count :	{ 00 00 00 20, 00 02 } = { 32, 2 }
+	// discovery message:
 	// header: size + type :			{ 00 00 00 16, 00 01 } = { 22, 1 }
 	// discovery id + element count :	{ 04 00 00 00, 00 01 } = { 1024, 1 }
 	// element 1 (identifier) :			{ 04 01, C0 C8 01 01 } = { 1025, 192.200.1.1 }
 	// element 1 (status) :				{ 02 00, 01 00 } = { 512, 256 }
+	// data message:
 	// header: size + type :			{ 00 00 00 0F, 00 02 } = { 15, 2 }
 	// data id + size :					{ 00 01 00 05 } = { 1, 5 }
 	// buffer :							{ 01 02 03 04 05 }= { 1, 2, 3, 4, 5 }
-	// checksum :						{ CD C6 A2 8E } = 4-bytes
+	// checksum :
+	// checksum value :					{ CD C6 A2 8E } = 4-bytes
 	EXPECT_EQ(output, 
 		"00 00 00 2F 00 02 "
 		"00 00 00 16 00 01 "
