@@ -8,6 +8,7 @@
 #include <expected>
 #include <boost/endian.hpp>
 #include <boost/uuid/detail/md5.hpp>
+#include <boost/core/ignore_unused.hpp>
 #include <discnet_lib/discnet_lib.hpp>
 #include <discnet_lib/typedefs.hpp>
 #include <discnet_lib/network/buffer.hpp>
@@ -21,15 +22,15 @@ namespace discnet::network::messages
 
     struct packet_t
     {
-        message_list_t m_messages;
+        message_list_t m_messages = {};
     };
 
     struct packet_codec_t
     {
-        static const size_t packet_size = 4;
-        static const size_t messages_count_size = 2;
+        static const size_t packet_size_field_size = 4;
+        static const size_t message_count_field_size = 2;
         static const size_t checksum_size = 4;
-        static const size_t header_size = packet_size + messages_count_size + checksum_size;
+        static const size_t header_size = packet_size_field_size + message_count_field_size + checksum_size;
         using md5 = boost::uuids::detail::md5;
 
         struct visit_message_size_t
@@ -63,20 +64,20 @@ namespace discnet::network::messages
 
         static bool encode(discnet::network::buffer_t& buffer, const message_list_t& messages)
         {
-            size_t packet_size = header_size;
+            size_t total_packet_size = header_size;
             for (const message_variant_t& message : messages)
             {
-                packet_size += std::visit(visit_message_size_t(), message);
+                total_packet_size += std::visit(visit_message_size_t(), message);
             }
 
             // verify that we can fit the packet inside our buffer
-            if (packet_size > buffer.remaining_bytes())
+            if (total_packet_size > buffer.remaining_bytes())
             {
                 // todo: error message goes here.
                 return false;
             }
 
-            buffer.append(boost::endian::native_to_big((uint32_t)packet_size));
+            buffer.append(boost::endian::native_to_big((uint32_t)total_packet_size));
             buffer.append(boost::endian::native_to_big((uint16_t)messages.size()));
 
             for (const message_variant_t& message : messages)
@@ -102,7 +103,8 @@ namespace discnet::network::messages
 
         static std::expected<packet_t, std::string> decode(const std::span<discnet::byte_t>& buffer)
         {
-
+            // todo: implement
+            boost::ignore_unused(buffer);
         }
     };
 } // !namespace discnet::network::messages

@@ -39,7 +39,7 @@ namespace discnet::network::messages
             return s_header_size;
         }
 
-        static bool encode(network::buffer_t& buffer, uint32_t size, message_type_e message_type)
+        static bool encode(network::buffer_t& buffer, size_t size, message_type_e message_type)
         {
             if (buffer.remaining_bytes() < s_header_size)
             {

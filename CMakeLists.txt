@@ -18,6 +18,13 @@ project(discnet VERSION ${DISCNET_VERSION} LANGUAGES CXX)
 add_compile_definitions(DISCNET_DLL)
 set(CMAKE_CXX_STANDARD 23)
 
+if (MSVC)
+	add_compile_options(/W4)
+	add_compile_definitions(_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
+else()
+	add_compile_options(-Wall -pedantic)
+endif()
+
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 set(discnet_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")

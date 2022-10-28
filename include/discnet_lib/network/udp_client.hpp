@@ -5,6 +5,7 @@
 #pragma once
 
 #include <boost/asio.hpp>
+#include <boost/core/ignore_unused.hpp>
 #include <discnet_lib/discnet_lib.hpp>
 #include <discnet_lib/typedefs.hpp>
 #include <discnet_lib/network/buffer.hpp>
@@ -65,11 +66,20 @@ namespace discnet::network
         void handle_write(const boost::system::error_code& error, size_t bytes_transferred)
         {
             // todo: implement
+            boost::ignore_unused(error);
+            boost::ignore_unused(bytes_transferred);
         }
 
         void handle_read(const boost::system::error_code& error, size_t bytes_received)
         {
             // todo: implement
+            boost::ignore_unused(error);
+            boost::ignore_unused(bytes_received);
+
+            boost::asio::mutable_buffer data_buffer((void*)m_rcv_buffer.data(), m_rcv_buffer.size());
+                m_rcv_socket->async_receive_from(data_buffer, m_rcv_endpoint, 
+                    boost::bind(&udp_client::handle_read, this, 
+                        boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
         }
 
         void close()

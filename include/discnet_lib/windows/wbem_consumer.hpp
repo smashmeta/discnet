@@ -6,7 +6,7 @@
 
 #include <string>
 
-class IEnumWbemClassObject;
+struct IEnumWbemClassObject;
 
 namespace discnet::windows
 {

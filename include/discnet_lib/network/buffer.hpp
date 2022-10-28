@@ -18,26 +18,25 @@ namespace discnet::network
     class buffer_t
     {
     public:
-        buffer_t(const size_t size);
+        DISCNET_EXPORT buffer_t(size_t size);
 
-        buffer_span_t data() const;
-        size_t remaining_bytes() const;
-        size_t appended_bytes() const;
+        DISCNET_EXPORT buffer_span_t data() const;
+        DISCNET_EXPORT size_t remaining_bytes() const;
+        DISCNET_EXPORT size_t appended_bytes() const;
 
-        const_buffer_t const_buffer() const;
+        DISCNET_EXPORT const_buffer_t const_buffer() const;
 
-        bool append(const buffer_span_t& buffer);
-        bool append(const uint8_t val);
-        bool append(const int8_t val);
-        bool append(const uint16_t val);
-        bool append(const int16_t val);
-        bool append(const uint32_t val);
-        bool append(const int32_t val);
-        bool append(const uint64_t val);
-        bool append(const int64_t val);
+        template <typename type_t>
+        DISCNET_EXPORT type_t read();
+        template <typename type_t>
+        DISCNET_EXPORT bool append(type_t val);
 
-        void reset();
-        void resize(const size_t new_size);
+        DISCNET_EXPORT buffer_span_t read_buffer(size_t length);
+        DISCNET_EXPORT bool append(const buffer_span_t& buffer);
+
+        DISCNET_EXPORT void reset();
+        DISCNET_EXPORT void reset_offset();
+        DISCNET_EXPORT void resize(size_t new_size);
     private:
         size_t m_offset;
         std::vector<discnet::byte_t> m_buffer;

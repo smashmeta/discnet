@@ -18,9 +18,9 @@ namespace discnet::network
     */
     struct network_info_t
     {
-        time_point_t m_reception_time;
-        address_v4_t m_sender;
-        address_v4_t m_receiver;
-        address_v4_t m_adapter;
+        time_point_t m_reception_time = time_point_t::time_point::min();
+        address_v4_t m_sender = address_v4_t::any();
+        address_v4_t m_receiver = address_v4_t::any();
+        address_v4_t m_adapter = address_v4_t::any();
     };
 } // !namespace discnet::network

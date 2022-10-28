@@ -114,8 +114,7 @@ namespace discnet
 
             while (pEnumerator)
             {
-                HRESULT hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
-
+                pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
                 if (0 == uReturn)
                 {
                     break;
@@ -150,9 +149,6 @@ namespace discnet
                     HRESULT hr_enabled = pclsObj->Get(L"NetEnabled", 0, &vtProp, 0, 0);
                     bool enabled = vtProp.boolVal;
 
-                    HRESULT hr_availability = pclsObj->Get(L"Availability", 0, &vtProp, 0, 0);
-                    int availability = vtProp.intVal;
-
                     HRESULT hr_mac_address = pclsObj->Get(L"MACAddress", 0, &vtProp, 0, 0);
                     std::wstring mac_address = vtProp.bstrVal;
 
@@ -162,8 +158,7 @@ namespace discnet
                         SUCCEEDED(hr_adapter_type) &&
                         SUCCEEDED(hr_connection_name) &&
                         SUCCEEDED(hr_interface_index) &&
-                        SUCCEEDED(hr_enabled) &&
-                        SUCCEEDED(hr_availability) && 
+                        SUCCEEDED(hr_enabled) && 
                         SUCCEEDED(hr_mac_address))
                     {
 
@@ -171,7 +166,7 @@ namespace discnet
                         adapter.m_guid = boost::lexical_cast<discnet::uuid_t>(converter.to_bytes(guid));
                         adapter.m_name = converter.to_bytes(connection_name); 
                         adapter.m_description = converter.to_bytes(desc); 
-                        adapter.m_index = index;
+                        adapter.m_index = static_cast<uint8_t>(index);
                         adapter.m_enabled = enabled;
                         adapter.m_mac_address = converter.to_bytes(mac_address);
 
@@ -187,7 +182,6 @@ namespace discnet
         }
         else
         {
-            std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
             log.error(fmt::format("failed to execute query \"{}\".", converter.to_bytes(query)));
         }
 

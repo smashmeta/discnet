@@ -9,7 +9,7 @@
 
 namespace discnet
 {
-    typedef uuid_t adapter_identifier_t;
+    using adapter_identifier_t = uuid_t;
 
     /*
         guid: {154EA313-6D41-415A-B007-BBB7AD740F1F}
@@ -26,13 +26,13 @@ namespace discnet
         adapter_t() = default;
         adapter_t(const adapter_t& val) = default;
         
-        adapter_identifier_t m_guid = adapter_identifier_t();
-        std::string m_mac_address = "";
+        adapter_identifier_t m_guid = {};
+        std::string m_mac_address = {};
         uint8_t m_index = 0;
-        std::string m_name = "";
-        std::string m_description = "";
+        std::string m_name = {};
+        std::string m_description = {};
         bool m_enabled = false;
-        std::list<address_mask_v4_t> m_address_list;
+        std::list<address_mask_v4_t> m_address_list = {};
         address_v4_t m_gateway = address_v4_t::any();
     };
 }
