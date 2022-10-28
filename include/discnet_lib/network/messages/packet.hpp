@@ -8,7 +8,6 @@
 #include <expected>
 #include <boost/endian.hpp>
 #include <boost/uuid/detail/md5.hpp>
-#include <boost/core/ignore_unused.hpp>
 #include <discnet_lib/discnet_lib.hpp>
 #include <discnet_lib/typedefs.hpp>
 #include <discnet_lib/network/buffer.hpp>
@@ -25,12 +24,14 @@ namespace discnet::network::messages
         message_list_t m_messages = {};
     };
 
+    using expected_packet_t = std::expected<packet_t, std::string>;
+
     struct packet_codec_t
     {
-        static const size_t packet_size_field_size = 4;
-        static const size_t message_count_field_size = 2;
-        static const size_t checksum_size = 4;
-        static const size_t header_size = packet_size_field_size + message_count_field_size + checksum_size;
+        static const size_t s_packet_size_field_size = 4;
+        static const size_t s_message_count_field_size = 2;
+        static const size_t s_checksum_size = 4;
+        static const size_t s_header_size = s_packet_size_field_size + s_message_count_field_size + s_checksum_size;
         using md5 = boost::uuids::detail::md5;
 
         struct visit_message_size_t
@@ -64,7 +65,7 @@ namespace discnet::network::messages
 
         static bool encode(discnet::network::buffer_t& buffer, const message_list_t& messages)
         {
-            size_t total_packet_size = header_size;
+            size_t total_packet_size = s_header_size;
             for (const message_variant_t& message : messages)
             {
                 total_packet_size += std::visit(visit_message_size_t(), message);
@@ -101,10 +102,38 @@ namespace discnet::network::messages
             return true;
         }
 
-        static std::expected<packet_t, std::string> decode(const std::span<discnet::byte_t>& buffer)
+        static expected_packet_t decode(network::buffer_t& buffer)
         {
-            // todo: implement
-            boost::ignore_unused(buffer);
+            if (buffer.bytes_left_to_read() < s_packet_size_field_size)
+            {
+                return std::unexpected("not enough bytes in buffer to read packet. (header missing)");
+            }
+
+            uint32_t size = boost::endian::big_to_native(buffer.read<uint32_t>());
+            buffer.reset_read();
+            
+            // todo: validate if checksum size check is correct
+            if (buffer.bytes_left_to_read() < size || size < s_checksum_size)
+            {
+                return std::unexpected("not enough bytes in buffer to read packet. (data missing)");
+            }
+            
+            buffer_span_t complete_message = buffer.read_buffer(size - s_checksum_size);
+            uint32_t checksum = buffer.read<uint32_t>();
+
+            // generate hash for message
+            md5 hash;
+            md5::digest_type digest;
+            hash.process_bytes((const void*)(complete_message.data()), complete_message.size());
+            hash.get_digest(digest);
+
+            if (checksum != digest[3])
+            {
+                return std::unexpected("packet checksum validation failed.");
+            }
+
+            // todo: implement the rest of the function
+            return std::unexpected("unfinished");
         }
     };
 } // !namespace discnet::network::messages

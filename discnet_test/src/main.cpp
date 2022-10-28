@@ -217,12 +217,12 @@ TEST(no_fixture_test, buffer_t__packet)
 
 	std::string output = discnet::bytes_to_hex_string(buffer.data());
 
-	// packet: size + message count :	{ 00 00 00 20, 00 02 } = { 32, 2 }
+	// packet: size + message count :	{ 00 00 00 2F, 00 02 } = { 32, 2 }
 	// discovery message:
 	// header: size + type :			{ 00 00 00 16, 00 01 } = { 22, 1 }
-	// discovery id + element count :	{ 04 00 00 00, 00 01 } = { 1024, 1 }
+	// discovery id + element count :	{ 04 00, 00 01 } = { 1024, 1 }
 	// element 1 (identifier) :			{ 04 01, C0 C8 01 01 } = { 1025, 192.200.1.1 }
-	// element 1 (status) :				{ 02 00, 01 00 } = { 512, 256 }
+	// element 1 (status) :				{ 00 02, 02 00, 01 00 } = { 2, 512, 256 }
 	// data message:
 	// header: size + type :			{ 00 00 00 0F, 00 02 } = { 15, 2 }
 	// data id + size :					{ 00 01 00 05 } = { 1, 5 }
@@ -232,13 +232,13 @@ TEST(no_fixture_test, buffer_t__packet)
 	EXPECT_EQ(output, 
 		"00 00 00 2F 00 02 "
 		"00 00 00 16 00 01 "
-		"04 00 00 00 00 01 "
+		"04 00 00 01 "
 		"04 01 C0 C8 01 01 "
-		"02 00 01 00 "
+		"00 02 02 00 01 00 "
 		"00 00 00 0F 00 02 "
 		"00 01 00 05 "
 		"01 02 03 04 05 "
-		"CD C6 A2 8E");
+		"16 B0 75 F0");
 }
 
 int main(int arguments_count, char** arguments_vector) 
