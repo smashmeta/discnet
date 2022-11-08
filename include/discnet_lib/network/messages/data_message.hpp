@@ -15,6 +15,12 @@ namespace discnet::network::messages
     {
         uint16_t m_identifier = init_required;
         std::vector<discnet::byte_t> m_buffer = {};
+
+        bool operator==(const data_message_t& message) const
+        {
+            return m_identifier == message.m_identifier &&
+                std::equal(m_buffer.begin(), m_buffer.end(), message.m_buffer.begin(), message.m_buffer.end());
+        }
     };
 
     using expected_data_message_t = std::expected<data_message_t, std::string>;

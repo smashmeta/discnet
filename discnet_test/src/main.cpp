@@ -242,6 +242,17 @@ TEST(no_fixture_test, buffer_t__packet)
 
     expected_packet_t packet = packet_codec_t::decode(buffer);
     EXPECT_TRUE(packet.has_value()) << packet.error();
+
+    const auto& decoded_messages = packet.value().m_messages;
+    EXPECT_EQ(decoded_messages.size(), 2);
+    
+    EXPECT_TRUE(std::holds_alternative<discovery_message_t>(decoded_messages[0]));
+    auto decoded_discovery_message = std::get<discovery_message_t>(decoded_messages[0]);
+    EXPECT_EQ(decoded_discovery_message, discovery_message);
+
+    EXPECT_TRUE(std::holds_alternative<data_message_t>(decoded_messages[1]));
+    auto decoded_data_message = std::get<data_message_t>(decoded_messages[1]);
+    EXPECT_EQ(decoded_data_message, data_message);
 }
 
 int main(int arguments_count, char** arguments_vector) 

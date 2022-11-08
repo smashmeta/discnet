@@ -17,6 +17,13 @@ namespace discnet::network::messages
         uint16_t m_identifier = init_required;
         address_v4_t m_address = init_required;
         jumps_t m_jumps = {};
+
+        bool operator==(const node_t& node) const
+        {
+            return m_identifier == node.m_identifier &&
+                m_address == node.m_address &&
+                std::equal(m_jumps.begin(), m_jumps.end(), node.m_jumps.begin(), node.m_jumps.end());
+        }
     };
     
     using nodes_vector_t = std::vector<node_t>;
@@ -35,6 +42,12 @@ namespace discnet::network::messages
     {
         uint16_t m_identifier = init_required;
         nodes_vector_t m_nodes = {};
+
+        bool operator==(const discovery_message_t& message) const
+        {
+            return m_identifier == message.m_identifier &&
+                std::equal(m_nodes.begin(), m_nodes.end(), message.m_nodes.begin(), message.m_nodes.end());
+        }
     };
 
     using expected_discovery_message_t = std::expected<discovery_message_t, std::string>;
