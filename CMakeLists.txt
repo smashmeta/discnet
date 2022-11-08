@@ -15,7 +15,6 @@ set(whatlog_DIR "C:/Users/smashcomp/Desktop/void/projects/whatlog/install/cmake"
 
 set(DISCNET_VERSION 1.0.0)
 project(discnet VERSION ${DISCNET_VERSION} LANGUAGES CXX)
-add_compile_definitions(DISCNET_DLL)
 set(CMAKE_CXX_STANDARD 23)
 
 if (MSVC)

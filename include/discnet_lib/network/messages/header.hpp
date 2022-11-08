@@ -62,8 +62,8 @@ namespace discnet::network::messages
                 return std::unexpected("not enough bytes in buffer to read header.");
             }
 
-            uint32_t size = boost::endian::big_to_native(buffer.read<uint32_t>());
-            message_type_e type = (message_type_e)boost::endian::big_to_native(buffer.read<uint16_t>());
+            uint32_t size = boost::endian::big_to_native(buffer.read_uint32());
+            message_type_e type = (message_type_e)boost::endian::big_to_native(buffer.read_uint16());
             return header_t{.m_size = size, .m_type = type};
         }
     };

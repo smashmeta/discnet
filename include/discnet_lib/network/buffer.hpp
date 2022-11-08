@@ -10,6 +10,8 @@
 #include <discnet_lib/typedefs.hpp>
 #include <boost/asio/buffer.hpp>
 
+// C:\Users\smashcomp\Desktop\void\projects\discnet\build\discnet_lib\Debug>dumpbin /ARCHIVEMEMBERS discnet_lib.lib
+
 namespace discnet::network
 {
     typedef std::span<const discnet::byte_t> buffer_span_t;
@@ -27,10 +29,11 @@ namespace discnet::network
 
         DISCNET_EXPORT const_buffer_t const_buffer() const;
 
-        template <typename type_t>
-        DISCNET_EXPORT type_t read();
-        template <typename type_t>
-        DISCNET_EXPORT bool append(type_t val);
+        DISCNET_EXPORT uint16_t read_uint16();
+        DISCNET_EXPORT uint32_t read_uint32();
+
+        DISCNET_EXPORT bool append(uint16_t val);
+        DISCNET_EXPORT bool append(uint32_t val);
 
         DISCNET_EXPORT buffer_span_t read_buffer(size_t length);
         DISCNET_EXPORT bool append(const buffer_span_t& buffer);
@@ -39,6 +42,9 @@ namespace discnet::network
         DISCNET_EXPORT void reset_read();
         DISCNET_EXPORT void resize(size_t new_size);
     private:
+        template <typename type_t> type_t read();
+        template <typename type_t> bool append(type_t val);
+
         size_t m_write_offset;
         size_t m_read_offset;
         std::vector<discnet::byte_t> m_buffer;

@@ -31,11 +31,11 @@ namespace discnet
         boost::signals2::signal<void(const adapter_t& prev, const adapter_t& curr)> e_changed;
         boost::signals2::signal<void(const adapter_t&)> e_removed;
 
-        adapter_manager_t(std::unique_ptr<adapter_fetcher> fetcher);
-        bool is_equal(const adapter_t& lhs, const adapter_t& rhs);
-        void update();
+        DISCNET_EXPORT adapter_manager_t(std::unique_ptr<adapter_fetcher> fetcher);
+        DISCNET_EXPORT bool is_equal(const adapter_t& lhs, const adapter_t& rhs);
+        DISCNET_EXPORT void update();
 
-        adapter_t find_adapter(const address_v4_t& address) const; 
+        DISCNET_EXPORT adapter_t find_adapter(const address_v4_t& address) const;
     protected:
         std::unique_ptr<adapter_fetcher> m_fetcher;
         std::map<uuid_t, adapter_t> m_adapters;

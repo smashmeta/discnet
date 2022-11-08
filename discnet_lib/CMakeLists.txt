@@ -4,6 +4,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options log)
 find_package(whatlog REQUIRED whatlog)
 
+add_compile_definitions(DISCNET_DLL)
 
 # setting up source files and header files groups
 file(GLOB HEADERS_DEFAULT_GRP "${discnet_INCLUDE_DIRS}/discnet_lib/*.hpp")
@@ -33,7 +34,7 @@ include_directories(${discnet_INCLUDE_DIRS})
 include_directories(${whatlog_INCLUDE_DIRS})
 
 # setting up executable
-add_library(discnet_lib
+add_library(discnet_lib SHARED
 	${SOURCE_DEFAULT_GRP}
     ${SOURCE_NETWORK_GRP}
     ${SOURCE_NETWORK_MESSAGES_GRP}
@@ -47,3 +48,4 @@ add_library(discnet_lib
 # adding thirdparty library dependencies
 target_link_libraries(discnet_lib PRIVATE fmt::fmt)
 target_link_libraries(discnet_lib PRIVATE whatlog::whatlog)
+target_link_libraries(discnet_lib PRIVATE IPHLPAPI wbemuuid)

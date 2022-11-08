@@ -102,24 +102,26 @@ namespace discnet::network::messages
             return true;
         }
 
-        static expected_packet_t decode(network::buffer_t& buffer)
+        static std::expected<bool,std::string> validate_packet(network::buffer_t& buffer)
         {
+            // checking that the packet header content is correct
             if (buffer.bytes_left_to_read() < s_packet_size_field_size)
             {
                 return std::unexpected("not enough bytes in buffer to read packet. (header missing)");
             }
 
-            uint32_t size = boost::endian::big_to_native(buffer.read<uint32_t>());
+            uint32_t size = boost::endian::big_to_native(buffer.read_uint32());
             buffer.reset_read();
             
-            // todo: validate if checksum size check is correct
-            if (buffer.bytes_left_to_read() < size || size < s_checksum_size)
+            // check that we got enough bytes in our buffer
+            if (buffer.bytes_left_to_read() < size)
             {
                 return std::unexpected("not enough bytes in buffer to read packet. (data missing)");
             }
-            
+
+            // validate our packet bytes against the given checksum digest
             buffer_span_t complete_message = buffer.read_buffer(size - s_checksum_size);
-            uint32_t checksum = buffer.read<uint32_t>();
+            uint32_t checksum = boost::endian::big_to_native(buffer.read_uint32());
 
             // generate hash for message
             md5 hash;
@@ -129,11 +131,75 @@ namespace discnet::network::messages
 
             if (checksum != digest[3])
             {
-                return std::unexpected("packet checksum validation failed.");
+                return std::unexpected(std::format(
+                    "packet checksum validation failed. encoded digest: {}, calculated digest: {}",
+                    checksum, digest[3]));
             }
 
-            // todo: implement the rest of the function
-            return std::unexpected("unfinished");
+            return true;
+        }
+
+        static expected_packet_t decode(network::buffer_t& buffer)
+        {
+            // check that our packet is valid first
+            auto valid = validate_packet(buffer);
+            buffer.reset_read();
+
+            if (!valid.has_value())
+            {
+                return std::unexpected(valid.error());
+            }
+
+            // fetch messages received
+            size_t size = boost::endian::big_to_native(buffer.read_uint32());
+            boost::ignore_unused(size);
+            uint16_t messages = boost::endian::big_to_native(buffer.read_uint16());
+
+            packet_t result;
+
+            for (size_t i = 0; i < messages; ++i)
+            {
+                auto header = header_codec_t::decode(buffer);
+                if (!header.has_value())
+                {
+                    // early exist because we do not know what to do with the
+                    // rest of the buffer if we get an invalid message
+                    std::string error_message = std::format("message header number {} failed to parse: {}.", i, header.error());
+                    return std::unexpected(error_message);
+                }
+
+                auto header_type = header.value().m_type;
+                switch (header.value().m_type)
+                {
+                    case message_type_e::discovery_message:
+                        {
+                            expected_discovery_message_t message = discovery_message_codec_t::decode(buffer);
+                            if (!message.has_value())
+                            {
+                                return std::unexpected(std::format("failed to parse message number {}. error: {}", i, message.error()));
+                            }
+                            
+                            result.m_messages.push_back(message.value());
+                            break;
+                        }
+                    case message_type_e::data_message:
+                        {
+                            expected_data_message_t message = data_message_codec_t::decode(buffer);
+                            if (!message.has_value())
+                            {
+                                return std::unexpected(std::format("failed to parse message number {}. error: {}", i, message.error()));
+                            }
+// 
+                            result.m_messages.push_back(message.value());
+                            break;
+                        }
+                        
+                    default:
+                        return std::unexpected(std::format("received message of unknown message type {}.", (int)header_type));
+                }
+            }
+
+            return result;
         }
     };
 } // !namespace discnet::network::messages

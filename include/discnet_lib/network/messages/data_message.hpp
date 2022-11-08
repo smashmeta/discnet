@@ -55,8 +55,8 @@ namespace discnet::network::messages
                 return std::unexpected("not enough bytes in buffer to read data_message.");
             }
             
-            uint16_t identifier = boost::endian::big_to_native(buffer.read<uint16_t>());
-            uint16_t size = boost::endian::big_to_native(buffer.read<uint16_t>());
+            uint16_t identifier = boost::endian::big_to_native(buffer.read_uint16());
+            uint16_t size = boost::endian::big_to_native(buffer.read_uint16());
             buffer_span_t data = buffer.read_buffer(size);
             
             data_message_t result{.m_identifier = identifier};

@@ -48,6 +48,26 @@ namespace discnet::network
         return const_buffer_t((void*)m_buffer.data(), m_write_offset);
     }
 
+    uint16_t buffer_t::read_uint16()
+    {
+        return read<uint16_t>();
+    }
+
+    uint32_t buffer_t::read_uint32()
+    {
+        return read<uint32_t>();
+    }
+
+    bool buffer_t::append(uint16_t val)
+    {
+        return append<uint16_t>(val);
+    }
+
+    bool buffer_t::append(uint32_t val)
+    {
+        return append<uint32_t>(val);
+    }
+
     template <typename type_t>
     type_t buffer_t::read()
     {
@@ -58,10 +78,10 @@ namespace discnet::network
         }
 
         const size_t remaining = m_write_offset - m_read_offset;
-        if (remaining > sizeof(type_t))
+        if (remaining >= sizeof(type_t))
         {
-            result = (type_t&)m_buffer[m_write_offset];
-            m_write_offset += sizeof(type_t);
+            result = (type_t&)m_buffer[m_read_offset];
+            m_read_offset += sizeof(type_t);
         }
 
         return result;
@@ -91,9 +111,12 @@ namespace discnet::network
         }
 
         const size_t remaining = m_write_offset - m_read_offset;
-        if (remaining > (sizeof(discnet::byte_t) * length))
+        const size_t read_length = (sizeof(discnet::byte_t) * length);
+        if (remaining > read_length)
         {
-            return buffer_span_t(&m_buffer[m_write_offset], length);
+            buffer_span_t result{&m_buffer[m_read_offset], read_length};
+            m_read_offset += read_length;
+            return result;
         }
 
         return buffer_span_t();

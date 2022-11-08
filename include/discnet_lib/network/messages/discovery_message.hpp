@@ -97,22 +97,22 @@ namespace discnet::network::messages
                 return std::unexpected("not enough bytes in buffer to read discovery_message.");
             }
 
-            uint16_t identifier = boost::endian::big_to_native(buffer.read<uint16_t>());
-            uint16_t size = boost::endian::big_to_native(buffer.read<uint16_t>());
+            uint16_t identifier = boost::endian::big_to_native(buffer.read_uint16());
+            uint16_t size = boost::endian::big_to_native(buffer.read_uint16());
             
             discovery_message_t result{.m_identifier = identifier};
 
             for (uint16_t node_nr = 0; node_nr < size; ++node_nr)
             {
-                uint16_t node_id = boost::endian::big_to_native(buffer.read<uint16_t>());
-                uint32_t ip_address = boost::endian::big_to_native(buffer.read<uint32_t>());
+                uint16_t node_id = boost::endian::big_to_native(buffer.read_uint16());
+                uint32_t ip_address = boost::endian::big_to_native(buffer.read_uint32());
 
                 node_t node{.m_identifier = node_id, .m_address = discnet::address_v4_t(ip_address)};
 
-                uint16_t jumps = boost::endian::big_to_native(buffer.read<uint16_t>());
+                uint16_t jumps = boost::endian::big_to_native(buffer.read_uint16());
                 for (uint16_t jump_nr = 0; jump_nr < jumps; ++jump_nr)
                 {
-                    uint16_t jump = boost::endian::big_to_native(buffer.read<uint16_t>());
+                    uint16_t jump = boost::endian::big_to_native(buffer.read_uint16());
                     node.m_jumps.push_back(jump);
                 }
 
