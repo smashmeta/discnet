@@ -28,5 +28,5 @@ set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 set(discnet_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
 
-add_subdirectory(discnet_lib)
+add_subdirectory(discnet)
 add_subdirectory(discnet_test)

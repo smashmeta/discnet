@@ -8,13 +8,13 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/uuid/random_generator.hpp>
-#include <discnet_lib/route.hpp>
-#include <discnet_lib/adapter_manager.hpp>
-#include <discnet_lib/route_manager.hpp>
-#include <discnet_lib/node.hpp>
-#include <discnet_lib/network/buffer.hpp>
-#include <discnet_lib/network/messages/discovery_message.hpp>
-#include <discnet_lib/network/messages/packet.hpp>
+#include <discnet/route.hpp>
+#include <discnet/adapter_manager.hpp>
+#include <discnet/route_manager.hpp>
+#include <discnet/node.hpp>
+#include <discnet/network/buffer.hpp>
+#include <discnet/network/messages/discovery_message.hpp>
+#include <discnet/network/messages/packet.hpp>
 
 namespace discnet::test
 {
