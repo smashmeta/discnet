@@ -7,11 +7,6 @@
 
 namespace discnet::network
 {
-    namespace
-    {
-        // nothing for now
-    } // !anoynmous namespace
-     
     buffer_t::buffer_t(size_t size)
         : m_write_offset(0), m_read_offset(0), m_buffer(size, 0)
     {
@@ -43,6 +38,11 @@ namespace discnet::network
         return m_write_offset - m_read_offset;
     }
     
+    size_t buffer_t::size() const
+    {
+        return m_buffer.size();
+    }
+
     const_buffer_t buffer_t::const_buffer() const
     {
         return const_buffer_t((void*)m_buffer.data(), m_write_offset);
@@ -192,6 +192,7 @@ namespace discnet::network
     void buffer_t::resize(size_t new_size)
     {
         m_write_offset = 0;
+        m_read_offset = 0;
         m_buffer.resize(new_size, discnet::byte_t());
     }
 } // !namespace discnet::network

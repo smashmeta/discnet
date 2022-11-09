@@ -26,6 +26,7 @@ namespace discnet::network
         DISCNET_EXPORT size_t remaining_bytes() const;
         DISCNET_EXPORT size_t appended_bytes() const;
         DISCNET_EXPORT size_t bytes_left_to_read() const;
+        DISCNET_EXPORT size_t size() const;
 
         DISCNET_EXPORT const_buffer_t const_buffer() const;
 

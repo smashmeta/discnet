@@ -20,12 +20,12 @@ namespace discnet::network
         discnet::port_type_t m_multicast_port = init_required;
     };
 
-    class udp_client
+    class multicast_client
     {
     public:
         boost::signals2::signal<void(buffer_t&, const network_info_t&)> e_received_data;
     public:
-        DISCNET_EXPORT udp_client(discnet::shared_io_service io_service, multicast_info info, size_t buffer_size);
+        DISCNET_EXPORT multicast_client(discnet::shared_io_service io_service, multicast_info info, size_t buffer_size);
 
         DISCNET_EXPORT bool open();
         DISCNET_EXPORT bool write(const discnet::network::buffer_t& buffer);
