@@ -86,11 +86,6 @@ TEST(no_fixture_test, routes_contains)
     EXPECT_TRUE(discnet::contains(routes, route_2));
 }
 
-TEST(no_fixture_test, route_manager_disconnect)
-{
-    discnet::route_manager_t route_manager;
-}
-
 TEST(no_fixture_test, bytes_to_hex_string)
 {
     {	// empty list test
@@ -213,7 +208,7 @@ TEST(no_fixture_test, buffer_t__packet)
 
     buffer_t buffer(1024);
     message_list_t messages = {discovery_message, data_message};
-    packet_codec_t::encode(buffer, messages);
+    EXPECT_TRUE(packet_codec_t::encode(buffer, messages));
 
     std::string output = discnet::bytes_to_hex_string(buffer.data());
 

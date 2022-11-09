@@ -37,34 +37,8 @@ namespace discnet::network::messages
     {
         const static size_t s_header_size = 6;
 
-        static size_t size()
-        {
-            return s_header_size;
-        }
-
-        static bool encode(network::buffer_t& buffer, size_t size, message_type_e message_type)
-        {
-            if (buffer.remaining_bytes() < s_header_size)
-            {
-                return false;
-            }
-
-            buffer.append(boost::endian::native_to_big((uint32_t)size));
-            buffer.append(boost::endian::native_to_big((uint16_t)message_type));
-
-            return true;
-        }
-
-        static expected_header_t decode(network::buffer_t& buffer)
-        {
-            if (buffer.bytes_left_to_read() < s_header_size)
-            {
-                return std::unexpected("not enough bytes in buffer to read header.");
-            }
-
-            uint32_t size = boost::endian::big_to_native(buffer.read_uint32());
-            message_type_e type = (message_type_e)boost::endian::big_to_native(buffer.read_uint16());
-            return header_t{.m_size = size, .m_type = type};
-        }
+        DISCNET_EXPORT static size_t size();
+        DISCNET_EXPORT static bool encode(network::buffer_t& buffer, size_t size, message_type_e message_type);
+        DISCNET_EXPORT static expected_header_t decode(network::buffer_t& buffer);
     };
 } // namespace discnet::network::messages

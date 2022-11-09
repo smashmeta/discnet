@@ -58,6 +58,26 @@ namespace discnet::network
         return read<uint32_t>();
     }
 
+    uint64_t buffer_t::read_uint64()
+    {
+        return read<uint64_t>();
+    }
+
+    int16_t buffer_t::read_int16()
+    {
+        return read<int16_t>();
+    }
+
+    int32_t buffer_t::read_int32()
+    {
+        return read<int32_t>();
+    }
+
+    int64_t buffer_t::read_int64()
+    {
+        return read<int64_t>();
+    }
+
     bool buffer_t::append(uint16_t val)
     {
         return append<uint16_t>(val);
@@ -66,6 +86,26 @@ namespace discnet::network
     bool buffer_t::append(uint32_t val)
     {
         return append<uint32_t>(val);
+    }
+
+    bool buffer_t::append(uint64_t val)
+    {
+        return append<uint64_t>(val);
+    }
+
+    bool buffer_t::append(int16_t val)
+    {
+        return append<int16_t>(val);
+    }
+
+    bool buffer_t::append(int32_t val)
+    {
+        return append<int32_t>(val);
+    }
+
+    bool buffer_t::append(int64_t val)
+    {
+        return append<int64_t>(val);
     }
 
     template <typename type_t>
@@ -154,13 +194,4 @@ namespace discnet::network
         m_write_offset = 0;
         m_buffer.resize(new_size, discnet::byte_t());
     }
-
-    template bool buffer_t::append<uint8_t>(uint8_t val);
-    template bool buffer_t::append<uint16_t>(uint16_t val);
-    template bool buffer_t::append<uint32_t>(uint32_t val);
-    template bool buffer_t::append<uint64_t>(uint64_t val);
-    template bool buffer_t::append<int8_t>(int8_t val);
-    template bool buffer_t::append<int16_t>(int16_t val);
-    template bool buffer_t::append<int32_t>(int32_t val);
-    template bool buffer_t::append<int64_t>(int64_t val);
 } // !namespace discnet::network

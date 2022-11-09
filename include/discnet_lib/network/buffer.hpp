@@ -31,9 +31,17 @@ namespace discnet::network
 
         DISCNET_EXPORT uint16_t read_uint16();
         DISCNET_EXPORT uint32_t read_uint32();
+        DISCNET_EXPORT uint64_t read_uint64();
+        DISCNET_EXPORT int16_t read_int16();
+        DISCNET_EXPORT int32_t read_int32();
+        DISCNET_EXPORT int64_t read_int64();
 
         DISCNET_EXPORT bool append(uint16_t val);
         DISCNET_EXPORT bool append(uint32_t val);
+        DISCNET_EXPORT bool append(uint64_t val);
+        DISCNET_EXPORT bool append(int16_t val);
+        DISCNET_EXPORT bool append(int32_t val);
+        DISCNET_EXPORT bool append(int64_t val);
 
         DISCNET_EXPORT buffer_span_t read_buffer(size_t length);
         DISCNET_EXPORT bool append(const buffer_span_t& buffer);
