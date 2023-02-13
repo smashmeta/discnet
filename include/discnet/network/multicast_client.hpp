@@ -15,18 +15,21 @@ namespace discnet::network
 {
     struct multicast_info
     {
-        discnet::address_v4_t m_adapter_address = init_required;
-        discnet::address_v4_t m_multicast_address = init_required;
-        discnet::port_type_t m_multicast_port = init_required;
+        discnet::address_v4_t m_adapter_address;
+        discnet::address_v4_t m_multicast_address;
+        discnet::port_type_t m_multicast_port;
     };
+
+    class data_handler;
 
     class multicast_client
     {
     public:
-        boost::signals2::signal<void(buffer_t&, const network_info_t&)> e_received_data;
+        boost::signals2::signal<void(const messages::packet_t&, const network_info_t&)> e_packet_received;
     public:
         DISCNET_EXPORT multicast_client(discnet::shared_io_service io_service, multicast_info info, size_t buffer_size);
 
+        DISCNET_EXPORT void process();
         DISCNET_EXPORT bool open();
         DISCNET_EXPORT bool write(const discnet::network::buffer_t& buffer);
         DISCNET_EXPORT void handle_write(const boost::system::error_code& error, size_t bytes_transferred);
@@ -36,6 +39,7 @@ namespace discnet::network
         bool open_multicast_snd_socket();
         bool open_multicast_rcv_socket();
 
+        data_handler* m_data_handler;
         discnet::shared_io_service m_service;
         discnet::shared_udp_socket m_rcv_socket;
         discnet::shared_udp_socket m_snd_socket;

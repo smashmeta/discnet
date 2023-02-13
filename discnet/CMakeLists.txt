@@ -2,6 +2,7 @@
 # adding thirdparty dependencies
 find_package(fmt CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options log)
+find_package(OpenSSL REQUIRED)
 find_package(whatlog REQUIRED whatlog)
 
 add_compile_definitions(DISCNET_DLL)
@@ -30,6 +31,7 @@ source_group("src/windows/" FILES ${SOURCE_WINDOWS_GRP})
 # adding thirdparty include directories
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${fmt_INCLUDE_DIRS})
+include_directories(${OpenSSL_INCLUDE_DIRS})
 include_directories(${discnet_INCLUDE_DIRS})
 include_directories(${whatlog_INCLUDE_DIRS})
 
@@ -47,5 +49,6 @@ add_library(discnet SHARED
 
 # adding thirdparty library dependencies
 target_link_libraries(discnet PRIVATE fmt::fmt)
+target_link_libraries(discnet PRIVATE OpenSSL::Crypto)
 target_link_libraries(discnet PRIVATE whatlog::whatlog)
 target_link_libraries(discnet PRIVATE IPHLPAPI wbemuuid)

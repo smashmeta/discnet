@@ -11,6 +11,7 @@
 #include <discnet/discnet.hpp>
 #include <discnet/typedefs.hpp>
 #include <discnet/network/buffer.hpp>
+#include <discnet/network/read_buffer.hpp>
 #include <discnet/network/messages/discovery_message.hpp>
 #include <discnet/network/messages/data_message.hpp>
 

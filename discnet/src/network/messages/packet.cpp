@@ -38,6 +38,7 @@ namespace discnet::network::messages
             }
         };
     } // ! anonymous namespace
+    
     std::expected<bool,std::string> packet_codec_t::validate_packet(network::buffer_t& buffer)
     {
         using md5 = boost::uuids::detail::md5;

@@ -2,6 +2,8 @@
  *
  */
 
+#pragma once
+
 #include <discnet/network/buffer.hpp>
 
 namespace discnet::network

@@ -24,4 +24,5 @@ namespace discnet
 
     DISCNET_EXPORT std::string bytes_to_hex_string(const std::span<const std::byte>& buffer);
     DISCNET_EXPORT std::string bytes_to_hex_string(const std::span<const discnet::byte_t>& buffer);
+    DISCNET_EXPORT std::string sha256_file(const std::string& filename);
 } // !namesapce discnet

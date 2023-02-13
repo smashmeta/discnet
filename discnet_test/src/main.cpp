@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/uuid/random_generator.hpp>
+#include <boost/thread.hpp>
 #include <discnet/route.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/route_manager.hpp>
@@ -15,6 +16,7 @@
 #include <discnet/network/buffer.hpp>
 #include <discnet/network/messages/discovery_message.hpp>
 #include <discnet/network/messages/packet.hpp>
+#include <discnet/network/multicast_client.hpp>
 
 namespace discnet::test
 {
@@ -44,6 +46,21 @@ namespace discnet::test
     };
 
     typedef discnet::test::adapter_manager_callbacks_mock callback_tester_t;
+}
+
+TEST(no_fixture_test, shift_buffer_debugging_remove_later)
+{
+    auto buffer = discnet::test::make_bytes(1, 2, 3, 4, 5, 6);
+    std::shift_left(buffer.begin(), buffer.end(), 3);
+    buffer.resize(3);
+    std::string hex_string = discnet::bytes_to_hex_string(buffer);
+    EXPECT_EQ(hex_string, "04 05 06");
+}
+
+TEST(no_fixture_test, sha256_file)
+{
+    std::string hashed_file = discnet::sha256_file("C:\\Users\\smashcomp\\Desktop\\void\\npp.8.4.9.Installer.x64.exe");
+    EXPECT_EQ(hashed_file, "6b170127061feb082ffd1b14309ef6d4a783df3c0fd51999e1786067731a49f3");
 }
 
 TEST(no_fixture_test, is_direct_node)
@@ -105,6 +122,18 @@ TEST(no_fixture_test, bytes_to_hex_string)
         std::string hex_string = discnet::bytes_to_hex_string(buffer);
         EXPECT_EQ(hex_string, "FF FE FD 00");
     }
+
+    {   // single byte 
+        std::vector<std::byte> buffer = discnet::test::make_bytes(16);
+        std::string hex_string = discnet::bytes_to_hex_string(buffer);
+        EXPECT_EQ(hex_string, "10");
+    }
+
+    {   // single byte (padded)
+        std::vector<std::byte> buffer = discnet::test::make_bytes(8);
+        std::string hex_string = discnet::bytes_to_hex_string(buffer);
+        EXPECT_EQ(hex_string, "08");
+    }
 }
 
 TEST(no_fixture_test, adapter_manager__update)
@@ -144,7 +173,7 @@ TEST(no_fixture_test, adapter_manager__update)
 
         // first call to update adds test adapter (see WillOnce(test adapter list))
         manager.update();
-        // second call to update changes the adapter name (see WillOnce(test change adapter list))
+        // second call to update changes the adapter name (see WillOnce(test changed adapter list))
         manager.update();
         // third call to update removes test adapter (see WillOnce(empty adapter list))
         manager.update();
@@ -248,6 +277,78 @@ TEST(no_fixture_test, buffer_t__packet)
     EXPECT_TRUE(std::holds_alternative<data_message_t>(decoded_messages[1]));
     auto decoded_data_message = std::get<data_message_t>(decoded_messages[1]);
     EXPECT_EQ(decoded_data_message, data_message);
+}
+
+void work_handler(const std::string&, std::shared_ptr<boost::asio::io_context> io_context)
+{
+    for (;;)
+    {
+        try
+        {
+            boost::system::error_code error_code;
+            io_context->run(error_code);
+            if (error_code)
+            {
+                // log.error(fmt::format("worker thread encountered an error. message: ", error_code.message()));
+            }
+
+            break;
+        }
+        catch (std::exception&)
+        {
+            // log.warning(fmt::format("worker thread encountered an error. exception: {}.", std::string(ex.what())));
+        }
+        catch (...)
+        {
+            // log.warning("worker thread encountered an unknown exception.");
+        }
+    }
+}
+
+TEST(no_fixture_test, multicast_testing)
+{
+    using ipv4 = boost::asio::ip::address_v4;
+    using discnet::node_identifier_t;
+    using discnet::network::buffer_t;
+    using namespace discnet::network::messages;
+
+    std::vector<std::string> thread_names = { "mercury", "venus", "earth", "mars", "jupiter" };
+    const size_t worker_threads_count = thread_names.size();
+
+    auto io_context = std::make_shared<boost::asio::io_context>((int)worker_threads_count);
+    auto work = std::make_shared<boost::asio::io_context::work>(*io_context);
+    
+    boost::thread_group worker_threads;
+    for (size_t i = 0; i < worker_threads_count; ++i)
+    {
+        worker_threads.create_thread(boost::bind(&work_handler, thread_names[i], io_context));
+    }
+
+    discnet::network::multicast_info info;
+    info.m_adapter_address = discnet::address_v4_t::from_string("192.168.0.15");
+    info.m_multicast_address = discnet::address_v4_t::from_string("231.45.6.7");
+    info.m_multicast_port = discnet::port_type_t(4114);
+    discnet::network::multicast_client client(io_context, info, 12560);
+    EXPECT_TRUE(client.open());
+
+    discovery_message_t discovery_message{ .m_identifier = 1024 };
+    discovery_message.m_nodes = {
+        node_t{ 1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} }
+    };
+
+    data_message_t data_message{ .m_identifier = 1 };
+    data_message.m_buffer = { 1, 2, 3, 4, 5 };
+
+    buffer_t buffer(1024);
+    message_list_t messages = { discovery_message, data_message };
+    EXPECT_TRUE(packet_codec_t::encode(buffer, messages));
+
+    while (true)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        client.process();
+        client.write(buffer);
+    }
 }
 
 int main(int arguments_count, char** arguments_vector) 
