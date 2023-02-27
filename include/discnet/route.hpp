@@ -12,8 +12,8 @@ namespace discnet
     struct route_identifier
     {
         node_identifier_t m_node = init_required;
-        address_v4_t m_adapter = init_required;
-        address_v4_t m_reporter = init_required;
+        address_t m_adapter = init_required;
+        address_t m_reporter = init_required;
     };
 
     struct route_status_t

@@ -15,7 +15,7 @@ namespace discnet::network::messages
     struct node_t
     {
         uint16_t m_identifier = init_required;
-        address_v4_t m_address = init_required;
+        address_t m_address = init_required;
         jumps_t m_jumps = {};
     };
     

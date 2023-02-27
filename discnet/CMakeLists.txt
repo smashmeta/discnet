@@ -48,6 +48,7 @@ add_library(discnet SHARED
 )
 
 # adding thirdparty library dependencies
+target_link_libraries(discnet PRIVATE bcrypt)
 target_link_libraries(discnet PRIVATE fmt::fmt)
 target_link_libraries(discnet PRIVATE OpenSSL::Crypto)
 target_link_libraries(discnet PRIVATE whatlog::whatlog)

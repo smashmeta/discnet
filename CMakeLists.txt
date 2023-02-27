@@ -30,3 +30,4 @@ set(discnet_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
 
 add_subdirectory(discnet)
 add_subdirectory(discnet_test)
+add_subdirectory(discnet_app)

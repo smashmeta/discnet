@@ -18,8 +18,8 @@ namespace discnet
 
     struct windows_adapter_fetcher : public adapter_fetcher
     {
-        windows_adapter_fetcher(discnet::windows::shared_wbem_consumer consumer);
-        std::vector<adapter_t> get_adapters() override;
+        DISCNET_EXPORT windows_adapter_fetcher(discnet::windows::shared_wbem_consumer consumer);
+        DISCNET_EXPORT std::vector<adapter_t> get_adapters() override;
     private:
         discnet::windows::shared_wbem_consumer m_consumer;
     };
@@ -35,7 +35,7 @@ namespace discnet
         DISCNET_EXPORT bool is_equal(const adapter_t& lhs, const adapter_t& rhs);
         DISCNET_EXPORT void update();
 
-        DISCNET_EXPORT adapter_t find_adapter(const address_v4_t& address) const;
+        DISCNET_EXPORT adapter_t find_adapter(const address_t& address) const;
     protected:
         std::unique_ptr<adapter_fetcher> m_fetcher;
         std::map<uuid_t, adapter_t> m_adapters;

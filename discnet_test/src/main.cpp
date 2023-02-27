@@ -14,8 +14,8 @@
 #include <discnet/route_manager.hpp>
 #include <discnet/node.hpp>
 #include <discnet/network/buffer.hpp>
-#include <discnet/network/messages/discovery_message.hpp>
 #include <discnet/network/messages/packet.hpp>
+#include <discnet/network/messages/discovery_message.hpp>
 #include <discnet/network/multicast_client.hpp>
 
 namespace discnet::test
@@ -65,7 +65,7 @@ TEST(no_fixture_test, sha256_file)
 
 TEST(no_fixture_test, is_direct_node)
 {
-    using ipv4 = boost::asio::ip::address_v4;
+    using ipv4 = discnet::address_t;
     using node_identifier_t = discnet::node_identifier_t;
 
     auto node_ip = ipv4::from_string("192.169.10.10");
@@ -85,7 +85,7 @@ TEST(no_fixture_test, is_direct_node)
 
 TEST(no_fixture_test, routes_contains)
 {
-    using ipv4 = boost::asio::ip::address_v4;
+    using ipv4 = discnet::address_t;
     using node_identifier_t = discnet::node_identifier_t;
 
     auto adapter_ip = ipv4::from_string("192.169.10.11");
@@ -93,7 +93,7 @@ TEST(no_fixture_test, routes_contains)
     auto sender_2_ip = ipv4::from_string("192.169.10.30");
     auto sender_3_ip = ipv4::from_string("192.169.10.40");
 
-    node_identifier_t node_1{ 1, discnet::address_v4_t::from_string("192.169.10.10") };
+    node_identifier_t node_1{ 1, ipv4::from_string("192.169.10.10") };
     discnet::route_identifier route_1{ node_1, adapter_ip, sender_1_ip };
     discnet::route_identifier route_2{ node_1, adapter_ip, sender_2_ip };
     discnet::route_identifier route_3{ node_1, adapter_ip, sender_3_ip };
@@ -182,7 +182,7 @@ TEST(no_fixture_test, adapter_manager__update)
 
 TEST(no_fixture_test, adapter_manager__find_adapter)
 {
-    using ipv4 = boost::asio::ip::address_v4;
+    using ipv4 = discnet::address_t;
 
     // setting up data
     discnet::adapter_t adapter_1;
@@ -222,7 +222,7 @@ TEST(no_fixture_test, adapter_manager__find_adapter)
 
 TEST(no_fixture_test, buffer_t__packet)
 {
-    using ipv4 = boost::asio::ip::address_v4;
+    using ipv4 = discnet::address_t;
     using discnet::node_identifier_t;
     using discnet::network::buffer_t;
     using namespace discnet::network::messages;
@@ -277,78 +277,6 @@ TEST(no_fixture_test, buffer_t__packet)
     EXPECT_TRUE(std::holds_alternative<data_message_t>(decoded_messages[1]));
     auto decoded_data_message = std::get<data_message_t>(decoded_messages[1]);
     EXPECT_EQ(decoded_data_message, data_message);
-}
-
-void work_handler(const std::string&, std::shared_ptr<boost::asio::io_context> io_context)
-{
-    for (;;)
-    {
-        try
-        {
-            boost::system::error_code error_code;
-            io_context->run(error_code);
-            if (error_code)
-            {
-                // log.error(fmt::format("worker thread encountered an error. message: ", error_code.message()));
-            }
-
-            break;
-        }
-        catch (std::exception&)
-        {
-            // log.warning(fmt::format("worker thread encountered an error. exception: {}.", std::string(ex.what())));
-        }
-        catch (...)
-        {
-            // log.warning("worker thread encountered an unknown exception.");
-        }
-    }
-}
-
-TEST(no_fixture_test, multicast_testing)
-{
-    using ipv4 = boost::asio::ip::address_v4;
-    using discnet::node_identifier_t;
-    using discnet::network::buffer_t;
-    using namespace discnet::network::messages;
-
-    std::vector<std::string> thread_names = { "mercury", "venus", "earth", "mars", "jupiter" };
-    const size_t worker_threads_count = thread_names.size();
-
-    auto io_context = std::make_shared<boost::asio::io_context>((int)worker_threads_count);
-    auto work = std::make_shared<boost::asio::io_context::work>(*io_context);
-    
-    boost::thread_group worker_threads;
-    for (size_t i = 0; i < worker_threads_count; ++i)
-    {
-        worker_threads.create_thread(boost::bind(&work_handler, thread_names[i], io_context));
-    }
-
-    discnet::network::multicast_info info;
-    info.m_adapter_address = discnet::address_v4_t::from_string("192.168.0.15");
-    info.m_multicast_address = discnet::address_v4_t::from_string("231.45.6.7");
-    info.m_multicast_port = discnet::port_type_t(4114);
-    discnet::network::multicast_client client(io_context, info, 12560);
-    EXPECT_TRUE(client.open());
-
-    discovery_message_t discovery_message{ .m_identifier = 1024 };
-    discovery_message.m_nodes = {
-        node_t{ 1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} }
-    };
-
-    data_message_t data_message{ .m_identifier = 1 };
-    data_message.m_buffer = { 1, 2, 3, 4, 5 };
-
-    buffer_t buffer(1024);
-    message_list_t messages = { discovery_message, data_message };
-    EXPECT_TRUE(packet_codec_t::encode(buffer, messages));
-
-    while (true)
-    {
-        std::this_thread::sleep_for(std::chrono::seconds(5));
-        client.process();
-        client.write(buffer);
-    }
 }
 
 int main(int arguments_count, char** arguments_vector) 

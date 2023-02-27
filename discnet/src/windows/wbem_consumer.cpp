@@ -7,8 +7,6 @@
 #include <codecvt>
 #include <iostream>
 #include <comdef.h>
-#include <Wbemidl.h>
-#include <iphlpapi.h>
 #include <fmt/core.h>
 #include <discnet/windows/wbem_consumer.hpp>
 #include <whatlog/logger.hpp>

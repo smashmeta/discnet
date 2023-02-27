@@ -66,7 +66,7 @@ namespace discnet::network::messages
             uint16_t node_id = network_to_native(buffer.read_uint16());
             uint32_t ip_address = network_to_native(buffer.read_uint32());
 
-            node_t node{.m_identifier = node_id, .m_address = discnet::address_v4_t(ip_address)};
+            node_t node{.m_identifier = node_id, .m_address = discnet::address_t(ip_address)};
 
             uint16_t jumps = network_to_native(buffer.read_uint16());
             for (uint16_t jump_nr = 0; jump_nr < jumps; ++jump_nr)

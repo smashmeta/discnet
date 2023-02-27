@@ -15,8 +15,8 @@ namespace discnet::network
 {
     struct multicast_info
     {
-        discnet::address_v4_t m_adapter_address;
-        discnet::address_v4_t m_multicast_address;
+        discnet::address_t m_adapter_address;
+        discnet::address_t m_multicast_address;
         discnet::port_type_t m_multicast_port;
     };
 

@@ -32,7 +32,7 @@ namespace discnet
         std::string m_name = {};
         std::string m_description = {};
         bool m_enabled = false;
-        std::list<address_mask_v4_t> m_address_list = {};
-        address_v4_t m_gateway = address_v4_t::any();
+        std::list<address_mask_t> m_address_list = {};
+        address_t m_gateway = discnet::address_t::any();
     };
 }
