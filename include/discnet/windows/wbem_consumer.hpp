@@ -5,10 +5,11 @@
 #pragma once
 
 #include <string>
+#include <Wbemidl.h>
+#include <iphlpapi.h>
+#include <discnet/discnet.hpp>
 
-class IEnumWbemClassObject;
-
-namespace discnet
+namespace discnet::windows
 {
 /*
  * WMI (Windows Management Instrumentation) consists of a set of extensions to the 
@@ -28,16 +29,16 @@ class wbem_consumer
 {
     struct impl;
 public:
-    static shared_wbem_consumer get_consumer();
     // no copies of this class allowed
     wbem_consumer(const wbem_consumer& copy) = delete;
     wbem_consumer& operator=(const wbem_consumer& copy) = delete;
 
+    static DISCNET_EXPORT shared_wbem_consumer get_consumer();
     // PS! remember to release enumerator after use.
-    IEnumWbemClassObject* exec_query(const std::wstring& query);
+    DISCNET_EXPORT IEnumWbemClassObject* exec_query(const std::wstring& query);
 private:
     wbem_consumer(impl* implementation);
-
     impl* m_impl;
 };
-} // !namespace noconn
+
+} // !namespace noconn::windows

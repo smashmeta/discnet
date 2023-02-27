@@ -4,7 +4,7 @@
 
 #include <sstream>
 #include <boost/algorithm/string.hpp>
-#include <discnet_lib/route.hpp>
+#include <discnet/route.hpp>
 
 namespace discnet
 {
