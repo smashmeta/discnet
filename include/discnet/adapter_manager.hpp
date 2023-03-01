@@ -16,12 +16,11 @@ namespace discnet
         virtual std::vector<adapter_t> get_adapters() = 0; 
     };
 
-    struct windows_adapter_fetcher : public adapter_fetcher
+    class windows_adapter_fetcher : public adapter_fetcher
     {
-        DISCNET_EXPORT windows_adapter_fetcher(discnet::windows::shared_wbem_consumer consumer);
+    public:
+        DISCNET_EXPORT windows_adapter_fetcher();
         DISCNET_EXPORT std::vector<adapter_t> get_adapters() override;
-    private:
-        discnet::windows::shared_wbem_consumer m_consumer;
     };
 
     class adapter_manager_t
@@ -40,4 +39,6 @@ namespace discnet
         std::unique_ptr<adapter_fetcher> m_fetcher;
         std::map<uuid_t, adapter_t> m_adapters;
     };
+
+    typedef std::shared_ptr<discnet::adapter_manager_t> shared_adapter_manager_t;
 } // !namespace discnet

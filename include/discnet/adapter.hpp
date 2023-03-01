@@ -9,7 +9,7 @@
 
 namespace discnet
 {
-    using adapter_identifier_t = uuid_t;
+    using adapter_identifier_t = discnet::uuid_t;
 
     /*
         guid: {154EA313-6D41-415A-B007-BBB7AD740F1F}

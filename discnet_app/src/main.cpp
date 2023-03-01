@@ -3,6 +3,7 @@
  */
 
 #include <iostream>
+#include <map>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
@@ -55,13 +56,12 @@ namespace discnet::app
 
     class multicast_handler
     {
+        typedef std::shared_ptr<discnet::network::multicast_client> shared_multicast_client_t;
+        typedef std::map<boost::uuids::uuid, shared_multicast_client_t> multicast_client_map_t;
     public:
-        multicast_handler(const discnet::app::configuration_t& configuration, discnet::shared_io_context io_context)
-            : m_configuration(configuration), m_io_context(io_context)
+        multicast_handler(shared_adapter_manager_t adapter_manager, const discnet::app::configuration_t& configuration, discnet::shared_io_context io_context)
+            : m_adapter_manager(adapter_manager), m_configuration(configuration), m_io_context(io_context)
         {
-            discnet::windows::shared_wbem_consumer consumer = discnet::windows::wbem_consumer::get_consumer();
-            auto fetcher = std::make_unique<discnet::windows_adapter_fetcher>(consumer);
-            m_adapter_manager = std::shared_ptr<discnet::adapter_manager_t>(new discnet::adapter_manager_t(std::move(fetcher)));
             m_adapter_manager->e_new.connect(std::bind(&multicast_handler::adapter_added, this, std::placeholders::_1));
             m_adapter_manager->e_changed.connect(std::bind(&multicast_handler::adapter_changed, this, std::placeholders::_1, std::placeholders::_2));
             m_adapter_manager->e_removed.connect(std::bind(&multicast_handler::adapter_removed, this, std::placeholders::_1));
@@ -87,15 +87,17 @@ namespace discnet::app
             info.m_adapter_address = adapter.m_address_list.front().first;
             info.m_multicast_address = m_configuration.m_multicast_address;
             info.m_multicast_port = m_configuration.m_multicast_port;
-            discnet::network::multicast_client client(m_io_context, info, 12560);
-            if (!client.open())
+            
+            log.info(fmt::format("new adapter detected. IP: {}. Adding adapater to our client map.", info.m_adapter_address.to_string()));
+            auto client = std::make_shared<discnet::network::multicast_client>(m_io_context, info, 12560);
+            auto [itr_client, inserted] = m_clients.insert(std::pair{adapter.m_guid, client});
+            auto [_uuid, _client] = *itr_client;
+
+            if (!inserted || !_client->open())
             {
                 log.error("failed to start multicast client");
                 return;
             }
-
-            log.info(fmt::format("new adapter detected. IP: {}", info.m_adapter_address.to_string()));
-            m_clients.emplace_back(std::move(client));
         }
 
         void adapter_changed(const adapter_t&, const adapter_t&)
@@ -129,18 +131,18 @@ namespace discnet::app
             }
 
             m_adapter_manager->update();
-            for (auto& client : m_clients)
+            for (auto& [identifier, client] : m_clients)
             {
-                client.process();
-                client.write(buffer);
+                client->process();
+                client->write(buffer);
             }
         }
 
     private:
-        std::shared_ptr<discnet::adapter_manager_t> m_adapter_manager;
-        std::vector<discnet::network::multicast_client> m_clients;
+        discnet::shared_adapter_manager_t m_adapter_manager;
         discnet::app::configuration_t m_configuration;
         discnet::shared_io_context m_io_context;
+        multicast_client_map_t m_clients;
     };
 }
 
@@ -176,7 +178,10 @@ int main(int arguments_count, const char** arguments_vector)
         worker_threads.create_thread(boost::bind(&discnet::app::work_handler, thread_names[i], io_context));
     }
 
-    discnet::app::multicast_handler multicast_handler(configuration.value(), io_context);
+    auto fetcher = std::make_unique<discnet::windows_adapter_fetcher>();
+    auto adapter_manager = discnet::shared_adapter_manager_t(new discnet::adapter_manager_t(std::move(fetcher)));
+
+    discnet::app::multicast_handler multicast_handler(adapter_manager, configuration.value(), io_context);
     while (true)
     {
         multicast_handler.update();

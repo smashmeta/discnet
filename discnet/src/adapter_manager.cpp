@@ -97,8 +97,7 @@ namespace discnet
         return {};
     }
 
-    windows_adapter_fetcher::windows_adapter_fetcher(discnet::windows::shared_wbem_consumer consumer)
-        : m_consumer(consumer)
+    windows_adapter_fetcher::windows_adapter_fetcher()
     {
         // nothing for now
     }

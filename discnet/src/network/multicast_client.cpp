@@ -15,7 +15,7 @@ namespace discnet::network
             m_service(io_service), 
             m_rcv_socket(new discnet::socket_t{*io_service.get()}),
             m_snd_socket(new discnet::socket_t{*io_service.get()}),
-            m_rcv_buffer(buffer_size),
+            m_rcv_buffer(buffer_size, '\0'),
             m_info(info)
     {
         // nothing for now
@@ -111,6 +111,7 @@ namespace discnet::network
     {
         using udp_t = boost::asio::ip::udp;
         namespace multicast = boost::asio::ip::multicast;
+        whatlog::logger log("open_multicast_snd_socket");
 
         discnet::error_code_t error;
         udp_t::endpoint multicast_endpoint{m_info.m_multicast_address, m_info.m_multicast_port};
@@ -118,10 +119,17 @@ namespace discnet::network
         m_snd_socket->open(multicast_endpoint.protocol(), error);
         if (error.failed())
         {
+            log.warning(fmt::format("failed to open socket on local address: {}, port: {}. Error: {}", 
+                multicast_endpoint.address().to_string(), multicast_endpoint.port(), error.message()));
             return false;
         }
 
         m_snd_socket->set_option(multicast::outbound_interface(m_info.m_adapter_address), error);
+        if (error.failed())
+        {
+            log.warning(fmt::format("failed to enable udp socket option: outbound_interface with address: {}. Error: {}", 
+                m_info.m_adapter_address.to_string(), error.message()));
+        }
 
         return !error.failed();
     }
@@ -137,34 +145,46 @@ namespace discnet::network
             m_info.m_multicast_port,
             m_info.m_adapter_address.to_string()));
 
-        discnet::error_code_t error;
         udp_t::endpoint multicast_endpoint{discnet::address_t::any(), m_info.m_multicast_port};
         
+        discnet::error_code_t error;
         m_rcv_socket->open(multicast_endpoint.protocol(), error);
         if (error.failed())
         {
+            log.warning(fmt::format("failed to open socket on local address: {}, port: {}. Error: {}", 
+                multicast_endpoint.address().to_string(), multicast_endpoint.port(), error.message()));
             return false;
         }
         
         m_rcv_socket->set_option(udp_t::socket::reuse_address(true), error);
         if (error.failed())
         {
+            log.warning(fmt::format("failed to enable udp socket option: reuse_address. Error: {}", error.message()));
             return false;
         }
 
         m_rcv_socket->set_option(multicast::enable_loopback(false), error);
         if (error.failed())
         {
+            log.warning(fmt::format("failed to enable udp socket option: disable_loopback. Error: {}", error.message()));
             return false;
         }
         
         m_rcv_socket->bind(multicast_endpoint, error);
         if (error.failed())
         {
+            log.warning(fmt::format("failed to bind socket on local address: {}, port: {}. Error: {}", 
+                multicast_endpoint.address().to_string(), multicast_endpoint.port(), error.message()));
             return false;
         }
 
         m_rcv_socket->set_option(multicast::join_group(m_info.m_multicast_address, m_info.m_adapter_address), error);
+        if (error.failed())
+        {
+            log.warning(fmt::format("failed to enable udp socket option: join_group. multicast-address: {}, adapter-address: {}. Error: {}", 
+                m_info.m_multicast_address.to_string(), m_info.m_adapter_address.to_string(), error.message()));
+            return false;
+        }
 
         return !error.failed();
     }
