@@ -179,6 +179,9 @@ namespace discnet::network::messages
             }
         }
 
+        size_t checksum = network_to_native(buffer.read_uint32());
+        boost::ignore_unused(checksum);
+
         return result;
     }
 } // ! namespace discnet::network::messages

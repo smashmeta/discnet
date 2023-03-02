@@ -25,7 +25,8 @@ namespace discnet::network
     class multicast_client
     {
     public:
-        boost::signals2::signal<void(const messages::packet_t&, const network_info_t&)> e_packet_received;
+        boost::signals2::signal<void(const messages::discovery_message_t&, const network_info_t&)> e_discovery_message_received;
+        boost::signals2::signal<void(const messages::data_message_t&, const network_info_t&)> e_data_message_received;
     public:
         DISCNET_EXPORT multicast_client(discnet::shared_io_service io_service, multicast_info info, size_t buffer_size);
 

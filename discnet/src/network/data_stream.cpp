@@ -19,11 +19,12 @@ namespace discnet::network
     }
 
     data_stream::data_stream(size_t buffer_size)
-        :   m_buffer(buffer_size), 
+        :   m_buffer(buffer_size, 0), 
             m_inital_receive(std::chrono::system_clock::now()),  
             m_last_received(m_inital_receive)
     {
         // nothing for now
+        m_buffer.resize(0);
     }
 
     std::vector<messages::packet_t> data_stream::process()
@@ -45,6 +46,7 @@ namespace discnet::network
                 size_t packet_size = network_to_native(buffer.read_int32());
                 if (buffer_size >= packet_size)
                 {
+                    buffer.reset_read();
                     messages::expected_packet_t packet = messages::packet_codec_t::decode(buffer);
                     if (packet.has_value())
                     {

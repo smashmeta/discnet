@@ -1,8 +1,0 @@
-{
-    "args": [
-        "--node_id", 1111,
-        "--adapter_address", "192.168.0.15",
-        "--multicast_address", "234.5.6.7",
-        "--multicast_port", 13337
-     ]
-}

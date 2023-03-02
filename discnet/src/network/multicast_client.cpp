@@ -35,10 +35,28 @@ namespace discnet::network
         info.m_sender = m_rcv_endpoint.address().to_v4();
         info.m_reception_time = std::chrono::system_clock::now();
 
-        auto packets = m_data_handler->process();
-        for (const messages::packet_t& packet : packets)
+        auto streams = m_data_handler->process();
+        for (const data_stream_packets_t& stream : streams)
         {
-            e_packet_received(packet, info);
+            for (const messages::packet_t& packet : stream.m_packets)
+            {
+                info.m_sender = stream.m_identifier.m_sender_ip;
+                info.m_receiver = stream.m_identifier.m_recipient_ip;
+
+                for (const auto& message : packet.m_messages)
+                {
+                    if (std::holds_alternative<messages::discovery_message_t>(message))
+                    {
+                        auto discovery_message = std::get<messages::discovery_message_t>(message);
+                        e_discovery_message_received(discovery_message, info);
+                    }
+                    else if (std::holds_alternative<messages::data_message_t>(message))
+                    {
+                        auto data_message = std::get<messages::data_message_t>(message);
+                        e_data_message_received(data_message, info);
+                    }
+                }
+            }
         }
     }
 

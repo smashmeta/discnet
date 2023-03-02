@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <map>
+#include <ranges>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
@@ -56,6 +57,9 @@ namespace discnet::app
 
     class multicast_handler
     {
+        typedef discnet::network::messages::discovery_message_t discovery_message_t;
+        typedef discnet::network::messages::data_message_t data_message_t;
+        typedef discnet::network::network_info_t network_info_t;
         typedef std::shared_ptr<discnet::network::multicast_client> shared_multicast_client_t;
         typedef std::map<boost::uuids::uuid, shared_multicast_client_t> multicast_client_map_t;
     public:
@@ -116,31 +120,10 @@ namespace discnet::app
 
         void update()
         {
-            using message_list_t = discnet::network::messages::message_list_t;
-            using packet_codec_t = discnet::network::messages::packet_codec_t;
-            using buffer_t = discnet::network::buffer_t;
-
             whatlog::logger log("multicast_handler::update");
-            
-            m_adapter_manager->update();
-            for (auto& [identifier, client] : m_clients)
+            for (auto& client : m_clients | std::views::values)
             {
-                auto adapter = m_adapter_manager->find_adapter(identifier);
-                if (!adapter)
-                {
-                    log.warning(fmt::format("failed to find adapter. error: {}", adapter.error()));
-                    continue;
-                }
-
-                message_list_t messages = get_messages_for_adapter(adapter.value());
-                buffer_t buffer(1024);
-                if (!packet_codec_t::encode(buffer, messages))
-                {
-                    return;
-                }
-
                 client->process();
-                client->write(buffer);
             }
         }
 
@@ -206,11 +189,11 @@ int main(int arguments_count, const char** arguments_vector)
 
     auto fetcher = std::make_unique<discnet::windows_adapter_fetcher>();
     auto adapter_manager = discnet::shared_adapter_manager_t(new discnet::adapter_manager_t(std::move(fetcher)));
-
-    discnet::app::multicast_handler multicast_handler(adapter_manager, configuration.value(), io_context);
+    auto multicast_handler = std::make_shared<discnet::app::multicast_handler>(adapter_manager, configuration.value(), io_context);
     while (true)
     {
-        multicast_handler.update();
+        adapter_manager->update();
+        multicast_handler->update();
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 

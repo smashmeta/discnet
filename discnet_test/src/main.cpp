@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <fmt/format.h>
-#include <fmt/color.h>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/uuid/random_generator.hpp>
@@ -48,7 +47,7 @@ namespace discnet::test
     typedef discnet::test::adapter_manager_callbacks_mock callback_tester_t;
 }
 
-TEST(no_fixture_test, shift_buffer_debugging_remove_later)
+TEST(main, shift_buffer_debugging_remove_later)
 {
     auto buffer = discnet::test::make_bytes(1, 2, 3, 4, 5, 6);
     std::shift_left(buffer.begin(), buffer.end(), 3);
@@ -57,13 +56,13 @@ TEST(no_fixture_test, shift_buffer_debugging_remove_later)
     EXPECT_EQ(hex_string, "04 05 06");
 }
 
-TEST(no_fixture_test, sha256_file)
+TEST(main, sha256_file)
 {
     std::string hashed_file = discnet::sha256_file("C:\\Users\\smashcomp\\Desktop\\void\\npp.8.4.9.Installer.x64.exe");
     EXPECT_EQ(hashed_file, "6b170127061feb082ffd1b14309ef6d4a783df3c0fd51999e1786067731a49f3");
 }
 
-TEST(no_fixture_test, is_direct_node)
+TEST(main, is_direct_node)
 {
     using ipv4 = discnet::address_t;
     using node_identifier_t = discnet::node_identifier_t;
@@ -83,7 +82,7 @@ TEST(no_fixture_test, is_direct_node)
     EXPECT_FALSE(discnet::is_direct_node(indirect_route));
 }
 
-TEST(no_fixture_test, routes_contains)
+TEST(main, routes_contains)
 {
     using ipv4 = discnet::address_t;
     using node_identifier_t = discnet::node_identifier_t;
@@ -103,7 +102,7 @@ TEST(no_fixture_test, routes_contains)
     EXPECT_TRUE(discnet::contains(routes, route_2));
 }
 
-TEST(no_fixture_test, bytes_to_hex_string)
+TEST(main, bytes_to_hex_string)
 {
     {	// empty list test
         std::vector<std::byte> buffer_empty = {};
@@ -136,7 +135,7 @@ TEST(no_fixture_test, bytes_to_hex_string)
     }
 }
 
-TEST(no_fixture_test, adapter_manager__update)
+TEST(main, adapter_manager__update)
 {
     using adapter_t = discnet::adapter_t;
     using adapter_manager_t = discnet::adapter_manager_t;
@@ -180,7 +179,7 @@ TEST(no_fixture_test, adapter_manager__update)
     }
 }
 
-TEST(no_fixture_test, adapter_manager__find_adapter)
+TEST(main, adapter_manager__find_adapter)
 {
     using ipv4 = discnet::address_t;
 
@@ -212,17 +211,17 @@ TEST(no_fixture_test, adapter_manager__find_adapter)
         manager.update();
 
         auto adapter_valid_10 = manager.find_adapter(ipv4::from_string("10.0.0.1"));
-        EXPECT_TRUE(adapter_valid_10.has_value());
+        ASSERT_TRUE(adapter_valid_10.has_value());
         EXPECT_EQ(adapter_valid_10.value().m_guid, adapter_2.m_guid);
         auto adapter_valid_192 = manager.find_adapter(ipv4::from_string("192.200.1.3"));
-        EXPECT_TRUE(adapter_valid_192.has_value());
+        ASSERT_TRUE(adapter_valid_192.has_value());
         EXPECT_EQ(adapter_valid_192.value().m_name, adapter_1.m_name);
         auto adapter_failed_not_contained = manager.find_adapter(ipv4::from_string("10.11.12.13"));
         EXPECT_FALSE(adapter_failed_not_contained.has_value());
     }
 }
 
-TEST(no_fixture_test, buffer_t__packet)
+TEST(main, buffer_t__packet)
 {
     using ipv4 = discnet::address_t;
     using discnet::node_identifier_t;
@@ -230,16 +229,14 @@ TEST(no_fixture_test, buffer_t__packet)
     using namespace discnet::network::messages;
 
     discovery_message_t discovery_message {.m_identifier = 1024};
-    discovery_message.m_nodes = { 
-        node_t{ 1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} } 
-    };
+    discovery_message.m_nodes = { node_t{ 1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} } };
 
     data_message_t data_message {.m_identifier = 1};
     data_message.m_buffer = {1, 2, 3, 4, 5};
 
     buffer_t buffer(1024);
     message_list_t messages = {discovery_message, data_message};
-    EXPECT_TRUE(packet_codec_t::encode(buffer, messages));
+    ASSERT_TRUE(packet_codec_t::encode(buffer, messages));
 
     std::string output = discnet::bytes_to_hex_string(buffer.data());
 
@@ -267,16 +264,16 @@ TEST(no_fixture_test, buffer_t__packet)
         "16 B0 75 F0");
 
     expected_packet_t packet = packet_codec_t::decode(buffer);
-    EXPECT_TRUE(packet.has_value()) << packet.error();
+    ASSERT_TRUE(packet.has_value()) << packet.error();
 
     const auto& decoded_messages = packet.value().m_messages;
-    EXPECT_EQ(decoded_messages.size(), 2);
+    ASSERT_EQ(decoded_messages.size(), 2);
     
-    EXPECT_TRUE(std::holds_alternative<discovery_message_t>(decoded_messages[0]));
+    ASSERT_TRUE(std::holds_alternative<discovery_message_t>(decoded_messages[0]));
     auto decoded_discovery_message = std::get<discovery_message_t>(decoded_messages[0]);
     EXPECT_EQ(decoded_discovery_message, discovery_message);
 
-    EXPECT_TRUE(std::holds_alternative<data_message_t>(decoded_messages[1]));
+    ASSERT_TRUE(std::holds_alternative<data_message_t>(decoded_messages[1]));
     auto decoded_data_message = std::get<data_message_t>(decoded_messages[1]);
     EXPECT_EQ(decoded_data_message, data_message);
 }

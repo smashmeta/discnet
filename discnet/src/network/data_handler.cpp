@@ -13,14 +13,16 @@ namespace discnet::network
         // nothing for now
     }
     
-    std::vector<messages::packet_t> data_handler::process()
+    packet_collection_t data_handler::process()
     {
         std::scoped_lock lock{ m_mutex };
-        std::vector<messages::packet_t> result;
+        std::vector<data_stream_packets_t> result;
 
         for (auto& [identifier, stream] : m_streams)
         {
-            result = stream.process();
+            data_stream_packets_t stream_packet_collection {.m_identifier = identifier };
+            stream_packet_collection.m_packets = stream.process();
+            result.push_back(stream_packet_collection);
         }
 
         return result;

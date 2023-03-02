@@ -14,20 +14,20 @@ namespace discnet::network
         discnet::address_t m_sender_ip = discnet::init_required;
         discnet::address_t m_recipient_ip = discnet::init_required;
 
-        bool operator<(const data_stream_identifier& rhs) const;
+        DISCNET_EXPORT bool operator<(const data_stream_identifier& rhs) const;
     };
 
     class data_stream
     {
     public:
-        data_stream(size_t buffer_size);
+        DISCNET_EXPORT data_stream(size_t buffer_size);
 
         data_stream() = delete;
         data_stream(const data_stream& stream) = delete;
         data_stream(data_stream&& stream) = delete;
 
-        std::vector<messages::packet_t> process();
-        void handle_receive(boost::asio::const_buffer data);
+        DISCNET_EXPORT std::vector<messages::packet_t> process();
+        DISCNET_EXPORT void handle_receive(boost::asio::const_buffer data);
         
         discnet::time_point_t m_inital_receive;
         discnet::time_point_t m_last_received;
