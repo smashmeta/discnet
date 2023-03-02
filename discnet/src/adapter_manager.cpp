@@ -2,7 +2,6 @@
  *
  */
 
-#include <expected>
 #include <winsock2.h>
 #include <NetCon.h>
 #include <comdef.h>
@@ -82,7 +81,7 @@ namespace discnet
         }
     }
 
-    adapter_t adapter_manager_t::find_adapter(const address_t& address) const
+    std::expected<adapter_t, std::string> adapter_manager_t::find_adapter(const address_t& address) const
     {
         for (const auto& adapter : m_adapters | std::views::values)
         {
@@ -94,7 +93,18 @@ namespace discnet
             }
         }
 
-        return {};
+        return std::unexpected(fmt::format("failed to find adapter by address: {}", address.to_string()));
+    }
+
+    std::expected<adapter_t, std::string> adapter_manager_t::find_adapter(const boost::uuids::uuid& uuid) const
+    {
+        auto itr_adapter = m_adapters.find(uuid);
+        if (itr_adapter != m_adapters.end())
+        {
+            return itr_adapter->second;
+        }
+
+        return std::unexpected(fmt::format("failed to find adapter by uuid: {}", boost::lexical_cast<std::string>(uuid)));
     }
 
     windows_adapter_fetcher::windows_adapter_fetcher()
@@ -438,95 +448,4 @@ namespace discnet
         free(pAddresses);
         return result;
     }
-
-    // std::vector<adapter_t> windows_adapter_fetcher::get_adapters()
-    // {
-    //     whatlog::logger log("windows_adapter_fetcher::get_adapters");
-    // 
-    //     std::vector<adapter_t> result;
-    //     std::wstring query = L"SELECT * FROM Win32_NetworkAdapter";
-    //     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    //     IEnumWbemClassObject* pEnumerator = m_consumer->exec_query(query);
-    //     if (pEnumerator != nullptr)
-    //     {
-    //         IWbemClassObject* pclsObj = NULL;
-    //         ULONG uReturn = 0;
-    // 
-    //         while (pEnumerator)
-    //         {
-    //             pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
-    //             if (0 == uReturn)
-    //             {
-    //                 break;
-    //             }
-    // 
-    //             VARIANT vtProp;
-    //             HRESULT hr_guid = pclsObj->Get(L"GUID", 0, &vtProp, 0, 0);
-    //             // only list adapters with a valid GUID
-    //             if (vtProp.pbstrVal != nullptr)
-    //             {
-    //                 std::wstring guid = vtProp.bstrVal;
-    // 
-    //                 HRESULT hr_name = pclsObj->Get(L"Name", 0, &vtProp, 0, 0);
-    //                 std::wstring name = vtProp.bstrVal;
-    // 
-    //                 HRESULT hr_desc = pclsObj->Get(L"Description", 0, &vtProp, 0, 0);
-    //                 std::wstring desc = vtProp.bstrVal;
-    // 
-    //                 HRESULT hr_adapter_type = pclsObj->Get(L"AdapterType", 0, &vtProp, 0, 0);
-    //                 std::wstring adapter_type = L"[UNAVAILABLE]";
-    //                 if (vtProp.pbstrVal != nullptr)
-    //                 {
-    //                     adapter_type = vtProp.bstrVal;
-    //                 }
-    // 
-    //                 HRESULT hr_connection_name = pclsObj->Get(L"NetConnectionID", 0, &vtProp, 0, 0);
-    //                 std::wstring connection_name = vtProp.bstrVal;
-    // 
-    //                 HRESULT hr_interface_index = pclsObj->Get(L"InterfaceIndex", 0, &vtProp, 0, 0);
-    //                 int index = vtProp.intVal;
-    // 
-    //                 HRESULT hr_enabled = pclsObj->Get(L"NetEnabled", 0, &vtProp, 0, 0);
-    //                 bool enabled = vtProp.boolVal;
-    // 
-    //                 HRESULT hr_mac_address = pclsObj->Get(L"MACAddress", 0, &vtProp, 0, 0);
-    //                 std::wstring mac_address = vtProp.bstrVal;
-    // 
-    //                 if (SUCCEEDED(hr_guid) &&
-    //                     SUCCEEDED(hr_name) &&
-    //                     SUCCEEDED(hr_desc) &&
-    //                     SUCCEEDED(hr_adapter_type) &&
-    //                     SUCCEEDED(hr_connection_name) &&
-    //                     SUCCEEDED(hr_interface_index) &&
-    //                     SUCCEEDED(hr_enabled) && 
-    //                     SUCCEEDED(hr_mac_address))
-    //                 {
-    //                     // removing start and end braces from guid
-    //                     std::wstring sanitized_guid = guid.substr(1, guid.size() - 2);
-    //                     
-    //                     adapter_t adapter;
-    //                     adapter.m_guid = boost::lexical_cast<discnet::uuid_t>(converter.to_bytes(sanitized_guid));
-    //                     adapter.m_name = converter.to_bytes(connection_name); 
-    //                     adapter.m_description = converter.to_bytes(desc); 
-    //                     adapter.m_index = static_cast<uint8_t>(index);
-    //                     adapter.m_enabled = enabled;
-    //                     adapter.m_mac_address = converter.to_bytes(mac_address);
-    // 
-    //                     result.emplace_back(std::move(adapter));
-    //                 }
-    //             }
-    // 
-    //             VariantClear(&vtProp);
-    //             pclsObj->Release();
-    //         }
-    // 
-    //         pEnumerator->Release();
-    //     }
-    //     else
-    //     {
-    //         log.error(fmt::format("failed to execute query \"{}\".", converter.to_bytes(query)));
-    //     }
-    // 
-    //     return result;
-    // }
 } // !namespace discnet

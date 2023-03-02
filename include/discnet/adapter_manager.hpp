@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <expected>
 #include <discnet/adapter.hpp>
 #include <discnet/windows/wbem_consumer.hpp>
 
@@ -34,7 +35,8 @@ namespace discnet
         DISCNET_EXPORT bool is_equal(const adapter_t& lhs, const adapter_t& rhs);
         DISCNET_EXPORT void update();
 
-        DISCNET_EXPORT adapter_t find_adapter(const address_t& address) const;
+        DISCNET_EXPORT std::expected<adapter_t, std::string> find_adapter(const address_t& address) const;
+        DISCNET_EXPORT std::expected<adapter_t, std::string> find_adapter(const boost::uuids::uuid& uuid) const;
     protected:
         std::unique_ptr<adapter_fetcher> m_fetcher;
         std::map<uuid_t, adapter_t> m_adapters;

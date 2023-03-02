@@ -212,11 +212,13 @@ TEST(no_fixture_test, adapter_manager__find_adapter)
         manager.update();
 
         auto adapter_valid_10 = manager.find_adapter(ipv4::from_string("10.0.0.1"));
-        EXPECT_EQ(adapter_valid_10.m_guid, adapter_2.m_guid);
+        EXPECT_TRUE(adapter_valid_10.has_value());
+        EXPECT_EQ(adapter_valid_10.value().m_guid, adapter_2.m_guid);
         auto adapter_valid_192 = manager.find_adapter(ipv4::from_string("192.200.1.3"));
-        EXPECT_EQ(adapter_valid_192.m_name, adapter_1.m_name);
+        EXPECT_TRUE(adapter_valid_192.has_value());
+        EXPECT_EQ(adapter_valid_192.value().m_name, adapter_1.m_name);
         auto adapter_failed_not_contained = manager.find_adapter(ipv4::from_string("10.11.12.13"));
-        EXPECT_EQ(adapter_failed_not_contained.m_guid, boost::uuids::nil_uuid());
+        EXPECT_FALSE(adapter_failed_not_contained.has_value());
     }
 }
 
@@ -252,7 +254,7 @@ TEST(no_fixture_test, buffer_t__packet)
     // data id + size :			    	{ 00 01 00 05 } = { 1, 5 }
     // buffer :							{ 01 02 03 04 05 }= { 1, 2, 3, 4, 5 }
     // checksum :
-    // checksum value :					{ CD C6 A2 8E } = 4-bytes
+    // checksum value :					{ 16 B0 75 F0 } = 4-bytes
     EXPECT_EQ(output, 
         "00 00 00 2F 00 02 "
         "00 00 00 16 00 01 "

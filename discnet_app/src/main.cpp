@@ -89,20 +89,24 @@ namespace discnet::app
             info.m_multicast_port = m_configuration.m_multicast_port;
             
             log.info(fmt::format("new adapter detected. IP: {}. Adding adapater to our client map.", info.m_adapter_address.to_string()));
-            auto client = std::make_shared<discnet::network::multicast_client>(m_io_context, info, 12560);
-            auto [itr_client, inserted] = m_clients.insert(std::pair{adapter.m_guid, client});
-            auto [_uuid, _client] = *itr_client;
+            auto shared_client = std::make_shared<discnet::network::multicast_client>(m_io_context, info, 12560);
+            auto [itr_client, inserted] = m_clients.insert(std::pair{adapter.m_guid, shared_client});
+            auto [uuid, client] = *itr_client;
 
-            if (!inserted || !_client->open())
+            if (!inserted || !client->open())
             {
                 log.error("failed to start multicast client");
                 return;
             }
         }
 
-        void adapter_changed(const adapter_t&, const adapter_t&)
+        void adapter_changed(const adapter_t& prev_adapter, const adapter_t& curr_adapter)
         {
-
+            // re-create multicast_client if any ip-address has hanged
+            if (!std::equal(prev_adapter.m_address_list.begin(), prev_adapter.m_address_list.end(), curr_adapter.m_address_list.begin()))
+            {
+                // todo: remove and re-create multicast_client
+            }
         }
 
         void adapter_removed(const adapter_t&)
@@ -112,33 +116,55 @@ namespace discnet::app
 
         void update()
         {
-            using ipv4 = boost::asio::ip::address_v4;
-            using discnet::node_identifier_t;
-            using discnet::network::buffer_t;
-            using namespace discnet::network::messages;
+            using message_list_t = discnet::network::messages::message_list_t;
+            using packet_codec_t = discnet::network::messages::packet_codec_t;
+            using buffer_t = discnet::network::buffer_t;
 
-            discovery_message_t discovery_message{ .m_identifier = m_configuration.m_node_id };
-            discovery_message.m_nodes = {
-                node_t{ 1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} }
-            };
-            data_message_t data_message{ .m_identifier = 1 };
-            data_message.m_buffer = { 1, 2, 3, 4, 5 };
-            buffer_t buffer(1024);
-            message_list_t messages = { discovery_message, data_message };
-            if (!packet_codec_t::encode(buffer, messages))
-            {
-                return;
-            }
-
+            whatlog::logger log("multicast_handler::update");
+            
             m_adapter_manager->update();
             for (auto& [identifier, client] : m_clients)
             {
+                auto adapter = m_adapter_manager->find_adapter(identifier);
+                if (!adapter)
+                {
+                    log.warning(fmt::format("failed to find adapter. error: {}", adapter.error()));
+                    continue;
+                }
+
+                message_list_t messages = get_messages_for_adapter(adapter.value());
+                buffer_t buffer(1024);
+                if (!packet_codec_t::encode(buffer, messages))
+                {
+                    return;
+                }
+
                 client->process();
                 client->write(buffer);
             }
         }
 
     private:
+        discnet::network::messages::message_list_t get_messages_for_adapter(const discnet::adapter_t& adapter)
+        {
+            using ipv4 = boost::asio::ip::address_v4;
+            using node_t = discnet::network::messages::node_t;
+            using discovery_message_t = discnet::network::messages::discovery_message_t;
+            using jumps_t = discnet::network::messages::jumps_t;
+            using data_message_t = discnet::network::messages::data_message_t;
+            using message_list_t = discnet::network::messages::message_list_t;
+
+            boost::ignore_unused(adapter);
+            
+            discovery_message_t discovery_message{ .m_identifier = m_configuration.m_node_id };
+            discovery_message.m_nodes = { node_t{ 1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} } };
+            data_message_t data_message{ .m_identifier = 1 };
+            data_message.m_buffer = { 1, 2, 3, 4, 5 };
+            message_list_t messages = { discovery_message, data_message };
+
+            return messages;
+        }
+
         discnet::shared_adapter_manager_t m_adapter_manager;
         discnet::app::configuration_t m_configuration;
         discnet::shared_io_context m_io_context;
