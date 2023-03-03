@@ -22,20 +22,29 @@ namespace discnet::network
 
     class data_handler;
 
-    class multicast_client
+    class multicast_client;
+	using shared_multicast_client = std::shared_ptr<multicast_client>;
+
+    class multicast_client : public std::enable_shared_from_this<multicast_client>
     {
     public:
         boost::signals2::signal<void(const messages::discovery_message_t&, const network_info_t&)> e_discovery_message_received;
         boost::signals2::signal<void(const messages::data_message_t&, const network_info_t&)> e_data_message_received;
     public:
-        DISCNET_EXPORT multicast_client(discnet::shared_io_service io_service, multicast_info info, size_t buffer_size);
+        [[nodiscard]] static DISCNET_EXPORT shared_multicast_client create(discnet::shared_io_service io_service, multicast_info info, size_t buffer_size);
 
         DISCNET_EXPORT void process();
         DISCNET_EXPORT bool open();
         DISCNET_EXPORT bool write(const discnet::network::buffer_t& buffer);
+        DISCNET_EXPORT void close();
+
+    private:
         DISCNET_EXPORT void handle_write(const boost::system::error_code& error, size_t bytes_transferred);
         DISCNET_EXPORT void handle_read(const boost::system::error_code& error, size_t bytes_received);
-        DISCNET_EXPORT void close();
+
+    protected:
+        multicast_client(discnet::shared_io_service io_service, multicast_info info, size_t buffer_size);
+
     private:
         bool open_multicast_snd_socket();
         bool open_multicast_rcv_socket();

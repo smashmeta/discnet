@@ -7,6 +7,7 @@
 #include <comdef.h>
 #include <Wbemidl.h>
 #include <iphlpapi.h>
+#include <Mgm.h>
 #include <vector>
 #include <locale>
 #include <codecvt>
@@ -30,17 +31,23 @@ namespace discnet
 
     bool adapter_manager_t::is_equal(const adapter_t& lhs, const adapter_t& rhs)
     {
-        return  lhs.m_guid == rhs.m_guid &&
-                lhs.m_mac_address == rhs.m_mac_address &&
-                lhs.m_name == rhs.m_name && 
-                lhs.m_index == rhs.m_index &&
-                lhs.m_description == rhs.m_description &&
-                lhs.m_enabled == rhs.m_enabled &&
-                lhs.m_address_list == rhs.m_address_list;
+        return lhs == rhs;
+        //bool guid_changed = (lhs.m_guid != rhs.m_guid); 
+        //bool mac_address_changed = (lhs.m_mac_address != rhs.m_mac_address);
+        //bool name_changed = (lhs.m_name != rhs.m_name);
+        //bool index_changed = (lhs.m_index != rhs.m_index);
+        //bool description_changed = (lhs.m_description != rhs.m_description);
+        //bool enabled_changed = (lhs.m_enabled != rhs.m_enabled);
+        //bool address_list_changed = (lhs.m_address_list != rhs.m_address_list);
+
+        //return  !(guid_changed || mac_address_changed || name_changed || 
+        //        index_changed || description_changed || enabled_changed ||
+        //        address_list_changed);
     }
 
     void adapter_manager_t::update()
     {
+        whatlog::logger log("adapter_manager_t::update");
         auto current_adapters = m_fetcher->get_adapters();
         for (const adapter_t& adapter : current_adapters)
         {
@@ -51,12 +58,15 @@ namespace discnet
                 // check for changes to adapter
                 if (!is_equal(adapter, existing_id->second))
                 {
+                    log.info("adapter changed - name: {}", adapter.m_name);
                     e_changed(existing_id->second, adapter);
+                    m_adapters.insert_or_assign(adapter.m_guid, adapter);
                 }
             }
             else
             {
                 // new adapter detected
+                log.info("new adapter detected - name: {}", adapter.m_name);
                 m_adapters.insert({adapter.m_guid, adapter});
                 e_new(adapter);
             }
@@ -71,6 +81,7 @@ namespace discnet
             if (existing_id == current_adapters.end())
             {
                 // removed adapter detected
+                log.info("adapter removed - name: {}", adapter_itr->second.m_name);
                 e_removed(adapter_itr->second);
                 adapter_itr = m_adapters.erase(adapter_itr);
             }
@@ -276,7 +287,10 @@ namespace discnet
                     if_type == IF_TYPE_PPP ||
                     if_type == IF_TYPE_IEEE80211;
 
-                if (!valid_if_type)
+                bool multicast_available = pCurrAddresses->FirstMulticastAddress != nullptr && pCurrAddresses->FirstMulticastAddress->Next != nullptr;        
+                bool virtual_adapters_filter = boost::algorithm::starts_with(adapter.m_name, "Local Area Connection*");
+
+                if (!valid_if_type || virtual_adapters_filter || !multicast_available)
                 {
                     pCurrAddresses = pCurrAddresses->Next;
                     continue;
@@ -287,12 +301,12 @@ namespace discnet
                 adapter.m_guid = boost::lexical_cast<boost::uuids::uuid>(guid_str_sanitized);
 
                 
-                // log.info(fmt::format(" - name: {}.", adapter.m_name));
-                // log.info(fmt::format(" - index: {}.", adapter.m_index));
-                // log.info(fmt::format(" - mac: {}.", adapter.m_mac_address));
-                // log.info(fmt::format(" - desc: {}.", adapter.m_description));
-                // log.info(fmt::format(" - enabled: {}.", adapter.m_enabled));
-                // log.info(fmt::format(" - guid: {}.", boost::lexical_cast<std::string>(adapter.m_guid)));
+                // log.info(" - name: {}.", adapter.m_name);
+                // log.info(" - index: {}.", adapter.m_index);
+                // log.info(" - mac: {}.", adapter.m_mac_address);
+                // log.info(" - desc: {}.", adapter.m_description);
+                // log.info(" - enabled: {}.", adapter.m_enabled);
+                // log.info(" - guid: {}.", boost::lexical_cast<std::string>(adapter.m_guid));
 
                 PIP_ADAPTER_GATEWAY_ADDRESS gateway_address = pCurrAddresses->FirstGatewayAddress;
                 for (size_t index = 0; gateway_address != nullptr; ++index)
@@ -309,7 +323,7 @@ namespace discnet
                         {
                             std::wstring address_wstr = buffer.data();
                             address = discnet::address_t::from_string(converter.to_bytes(address_wstr));
-                            // log.info(fmt::format("{} - gateway: {}.", index, address.to_string()));
+                            // log.info("{} - gateway: {}.", index, address.to_string());
                         }
                         else
                         {
@@ -324,7 +338,7 @@ namespace discnet
                     }
                     else
                     {
-                        log.warning(fmt::format("gateway_address->Address.lpSockaddr->sa_family = {}.", gateway_address->Address.lpSockaddr->sa_family));
+                        log.warning("gateway_address->Address.lpSockaddr->sa_family = {}.", gateway_address->Address.lpSockaddr->sa_family);
                     }
 
                     gateway_address = gateway_address->Next;
@@ -345,7 +359,7 @@ namespace discnet
                         {
                             std::wstring address_wstr = buffer.data();
                             address.first = discnet::address_t::from_string(converter.to_bytes(address_wstr));
-                            // log.info(fmt::format("{} - address: {}.", index, address.first.to_string()));
+                            // log.info("{} - address: {}.", index, address.first.to_string());
                         }
                         else
                         {
@@ -362,18 +376,18 @@ namespace discnet
                             inet_ntop(AF_INET, &(netmask_address.S_un.S_addr), netmask_str, INET_ADDRSTRLEN);
                             address.second = discnet::address_t::from_string(netmask_str);
 
-                            // log.info(fmt::format("{} - mask: {}.", index, address.second.to_string()));
+                            // log.info("{} - mask: {}.", index, address.second.to_string());
                         }
                         else
                         {
-                            log.error(fmt::format("failed to convert netmask length \"{}\" to ip address.", unicast_address->OnLinkPrefixLength));
+                            log.error("failed to convert netmask length \"{}\" to ip address.", unicast_address->OnLinkPrefixLength);
                             valid_ip_address = false;
                         }
 
                         if (valid_ip_address)
                         {
                             adapter.m_address_list.push_back(address);
-                            //log.info(fmt::format("{} - addr: {}, mask: {}.", index, address.first.to_string(), address.second.to_string()));
+                            //log.info("{} - addr: {}, mask: {}.", index, address.first.to_string(), address.second.to_string());
                         }
                     }
                     else if (unicast_address->Address.lpSockaddr->sa_family == AF_INET6)
@@ -382,7 +396,7 @@ namespace discnet
                     }
                     else
                     {
-                        log.warning(fmt::format("unicast_address->Address.lpSockaddr->sa_family = {}.", unicast_address->Address.lpSockaddr->sa_family));
+                        log.warning("unicast_address->Address.lpSockaddr->sa_family = {}.", unicast_address->Address.lpSockaddr->sa_family);
                     }
 
                     unicast_address = unicast_address->Next;
@@ -403,7 +417,7 @@ namespace discnet
                         {
                             std::wstring address_wstr = buffer.data();
                             address = discnet::address_t::from_string(converter.to_bytes(address_wstr));
-                            // log.info(fmt::format("{} - dns: {}.", index, address.to_string()));
+                            // log.info("{} - dns: {}.", index, address.to_string());
                         }
                         else
                         {
@@ -413,10 +427,41 @@ namespace discnet
                     }
                     else
                     {
-                        log.warning(fmt::format("dns_address->Address.lpSockaddr->sa_family = {}.", dns_address->Address.lpSockaddr->sa_family));
+                        log.warning("dns_address->Address.lpSockaddr->sa_family = {}.", dns_address->Address.lpSockaddr->sa_family);
                     }
 
                     dns_address = dns_address->Next;
+                }
+
+                PIP_ADAPTER_MULTICAST_ADDRESS multicast_address = pCurrAddresses->FirstMulticastAddress;
+                for (size_t index = 0; multicast_address != nullptr; ++index)
+                {
+                    if (multicast_address->Address.lpSockaddr->sa_family == AF_INET)
+                    {
+                        discnet::address_t address;
+                        bool valid_ip_address = true;
+
+                        ULONG buffer_size = 256;
+                        std::array<wchar_t, 256> buffer;
+                        long ip_to_string_cast_result = WSAAddressToStringW(multicast_address->Address.lpSockaddr, multicast_address->Address.iSockaddrLength, nullptr, const_cast<wchar_t*>(buffer.data()), &buffer_size);
+                        if (ip_to_string_cast_result == NO_ERROR)
+                        {
+                            std::wstring address_wstr = buffer.data();
+                            address = discnet::address_t::from_string(converter.to_bytes(address_wstr));
+                            // log.info("{} - multicast-address: {}.", index, address.to_string());
+                        }
+                        else
+                        {
+                            log.error("failed to cast dns address struct to string.");
+                            valid_ip_address = false;
+                        }
+                    }
+                    else
+                    {
+                        log.warning("multicast_address->Address.lpSockaddr->sa_family = {}.", multicast_address->Address.lpSockaddr->sa_family);
+                    }
+
+                    multicast_address = multicast_address->Next;
                 }
 
                 result.push_back(adapter);
@@ -426,7 +471,7 @@ namespace discnet
         }
         else
         {
-            log.error(fmt::format("Call to GetAdaptersAddresses failed with error: {}.", dwRetVal));
+            log.error("Call to GetAdaptersAddresses failed with error: {}.", dwRetVal);
             if (dwRetVal == ERROR_NO_DATA)
             {
                 log.error("No addresses were found for the requested parameters.");
@@ -436,7 +481,7 @@ namespace discnet
                 LPVOID lpMsgBuf = NULL;
                 if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwRetVal, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL))
                 {
-                    log.error(fmt::format("error: {}", std::string((LPTSTR)lpMsgBuf)));
+                    log.error("error: {}", std::string((LPTSTR)lpMsgBuf));
                     LocalFree(lpMsgBuf);
 
                     free(pAddresses);

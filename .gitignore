@@ -4,3 +4,4 @@ install/*
 .vs/*
 *.suo
 *.db
+.vscode/*

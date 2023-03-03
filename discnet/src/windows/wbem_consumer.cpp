@@ -42,7 +42,7 @@ namespace discnet::windows
 
             if (FAILED(hres))
             {
-                log.error(fmt::format("Failed to create IWbemLocator object. Error code = {}.", hresult_to_hex_str(hres)));
+                log.error("Failed to create IWbemLocator object. Error code = {}.", hresult_to_hex_str(hres));
                 delete result;
                 return nullptr;
             }
@@ -63,7 +63,7 @@ namespace discnet::windows
 
             if (FAILED(hres))
             {
-                log.error(fmt::format( "Could not connect. Error code = {}.", hresult_to_hex_str(hres)));
+                log.error("Could not connect. Error code = {}.", hresult_to_hex_str(hres));
 
                 result->m_wbem_location->Release();
                 delete result;
@@ -88,7 +88,7 @@ namespace discnet::windows
 
             if (FAILED(hres))
             {
-                log.error(fmt::format("Could not set proxy blanket. Error code = {}.", hresult_to_hex_str(hres)));
+                log.error("Could not set proxy blanket. Error code = {}.", hresult_to_hex_str(hres));
 
                 result->m_wbem_services->Release();
                 result->m_wbem_location->Release();
@@ -109,7 +109,7 @@ namespace discnet::windows
             HRESULT hres = CoInitializeEx(0, COINIT_APARTMENTTHREADED);
             if (FAILED(hres))
             {
-                log.error(fmt::format("Failed to initialize COM library. Error code = {}.", hresult_to_hex_str(hres)));
+                log.error("Failed to initialize COM library. Error code = {}.", hresult_to_hex_str(hres));
 
                 return false; // Program has failed.
             }
@@ -172,7 +172,7 @@ namespace discnet::windows
         {
             std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
             std::string query_str = converter.to_bytes(query);
-            log.error(fmt::format("Query {} failed. Error code = {}.", query_str, hresult_to_hex_str(hres)));
+            log.error("Query {} failed. Error code = {}.", query_str, hresult_to_hex_str(hres));
         }
 
         return pEnumerator;

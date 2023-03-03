@@ -115,14 +115,15 @@ TEST_F(data_stream_fixture, partial_read)
     discnet::network::buffer_t buffer{1024};
     ASSERT_TRUE(packet_codec_t::encode(buffer, message_list));
 
-    boost::asio::const_buffer first_buffer(buffer.data().data(), 10);
-    boost::asio::const_buffer second_buffer(buffer.data().data() + 10, buffer.bytes_left_to_read() - 10);
+    size_t half_size = buffer.data().size() / 2;
+    boost::asio::const_buffer first_half(buffer.data().data(), half_size);
+    boost::asio::const_buffer second_half(buffer.data().data() + half_size, buffer.bytes_left_to_read() - first_half.size());
 
-    stream.handle_receive(first_buffer);
+    stream.handle_receive(first_half);
     auto packets = stream.process();
     ASSERT_EQ(packets.size(), 0);
 
-    stream.handle_receive(second_buffer);
+    stream.handle_receive(second_half);
     packets = stream.process();
     ASSERT_EQ(packets.size(), 1);
 }

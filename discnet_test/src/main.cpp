@@ -58,8 +58,8 @@ TEST(main, shift_buffer_debugging_remove_later)
 
 TEST(main, sha256_file)
 {
-    std::string hashed_file = discnet::sha256_file("C:\\Users\\smashcomp\\Desktop\\void\\npp.8.4.9.Installer.x64.exe");
-    EXPECT_EQ(hashed_file, "6b170127061feb082ffd1b14309ef6d4a783df3c0fd51999e1786067731a49f3");
+    std::string hashed_file = discnet::sha256_file("C:\\windows\\system.ini");
+    EXPECT_EQ(hashed_file, "6f533ccc79227e38f18bfc63bfc961ef4d3ee0e2bf33dd097ccf3548a12b743b");
 }
 
 TEST(main, is_direct_node)

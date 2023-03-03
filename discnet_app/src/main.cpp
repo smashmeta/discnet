@@ -10,6 +10,8 @@
 #include <boost/thread.hpp>
 #include <boost/dll.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <fmt/format.h>
 #include <discnet/discnet.hpp>
 #include <whatlog/logger.hpp>
@@ -29,7 +31,7 @@ namespace discnet::app
     {
         whatlog::rename_thread(GetCurrentThread(), thread_name);
         whatlog::logger log("work_handler");
-        log.info(fmt::format("starting thread {}.", thread_name));
+        log.info("starting thread {}.", thread_name);
 
         for (;;)
         {
@@ -39,14 +41,14 @@ namespace discnet::app
                 io_context->run(error_code);
                 if (error_code)
                 {
-                    log.error(fmt::format("worker thread encountered an error. message: ", error_code.message()));
+                    log.error("worker thread encountered an error. message: ", error_code.message());
                 }
 
                 break;
             }
             catch (std::exception& ex)
             {
-                log.warning(fmt::format("worker thread encountered an error. exception: {}.", std::string(ex.what())));
+                log.warning("worker thread encountered an error. exception: {}.", std::string(ex.what()));
             }
             catch (...)
             {
@@ -73,49 +75,40 @@ namespace discnet::app
 
         void adapter_added(const adapter_t& adapter)
         {
-            whatlog::logger log("adapter_added");
-            discnet::network::multicast_info info;
-
-            if (!adapter.m_enabled)
-            {
-                log.warning("adapter disabled.");
-                return;
-            }
-
-            if (adapter.m_address_list.empty())
-            {
-                log.warning("added adapter missing valid ip4 address");
-                return;
-            }
-
-            info.m_adapter_address = adapter.m_address_list.front().first;
-            info.m_multicast_address = m_configuration.m_multicast_address;
-            info.m_multicast_port = m_configuration.m_multicast_port;
+            whatlog::logger log("multicast_handler::adapter_added");
             
-            log.info(fmt::format("new adapter detected. IP: {}. Adding adapater to our client map.", info.m_adapter_address.to_string()));
-            auto shared_client = std::make_shared<discnet::network::multicast_client>(m_io_context, info, 12560);
-            auto [itr_client, inserted] = m_clients.insert(std::pair{adapter.m_guid, shared_client});
-            auto [uuid, client] = *itr_client;
-
-            if (!inserted || !client->open())
-            {
-                log.error("failed to start multicast client");
-                return;
-            }
+            std::string adapter_guid_str = boost::lexical_cast<std::string>(adapter.m_guid);
+            log.info("new adapter detected. Name: {}, guid: {}, mac: {}.", adapter.m_name, adapter_guid_str, adapter.m_mac_address);
+            add_multicast_client(adapter);
         }
 
         void adapter_changed(const adapter_t& prev_adapter, const adapter_t& curr_adapter)
         {
-            // re-create multicast_client if any ip-address has hanged
-            if (!std::equal(prev_adapter.m_address_list.begin(), prev_adapter.m_address_list.end(), curr_adapter.m_address_list.begin()))
+            whatlog::logger log("multicast_handler::adapter_changed");
+
+            bool exist_multicast_client = m_clients.find(curr_adapter.m_guid) != m_clients.end();
+            bool enabled_changed = prev_adapter.m_enabled != curr_adapter.m_enabled;
+            bool ipv4_changed = (prev_adapter.m_address_list.size() != curr_adapter.m_address_list.size()) || 
+                !std::equal(prev_adapter.m_address_list.begin(), prev_adapter.m_address_list.end(), curr_adapter.m_address_list.begin());
+
+            // re-create multicast_client if adapter has changed in a significant way
+            if (!exist_multicast_client)
             {
-                // todo: remove and re-create multicast_client
+                log.info("unknown adapter ({}) appeared. adding multicast client.", curr_adapter.m_name);
+                add_multicast_client(curr_adapter);
+            }
+            else if (enabled_changed || ipv4_changed)
+            {
+                log.info("adapter ({}) changed. re-creating multicast client.", curr_adapter.m_name);
+                remove_multicast_client(curr_adapter);
+                add_multicast_client(curr_adapter);
             }
         }
 
-        void adapter_removed(const adapter_t&)
+        void adapter_removed(const adapter_t& adapter)
         {
-
+            whatlog::logger log("multicast_handler::adapter_removed");
+            remove_multicast_client(adapter);
         }
 
         void update()
@@ -128,6 +121,67 @@ namespace discnet::app
         }
 
     private:
+        void remove_multicast_client(const discnet::adapter_t& adapter)
+        {
+            whatlog::logger log("multicast_handler::remove_multicast_client");
+
+            auto itr_client = m_clients.find(adapter.m_guid);
+            if (itr_client != m_clients.end())
+            {
+                std::string adapter_guid_str = boost::lexical_cast<std::string>(adapter.m_guid);
+                log.info("removing adapter (name: {}, guid: {}).", adapter.m_name, adapter_guid_str);
+                itr_client->second->close();
+                m_clients.erase(itr_client);
+            }
+        }
+        void add_multicast_client(const discnet::adapter_t& adapter)
+        {
+            whatlog::logger log("multicast_handler::add_multicast_client");
+
+            if (!adapter.m_enabled)
+            {
+                log.info("skipping adapter ({}) because it is disabled.", adapter.m_name);
+                return;
+            }
+
+            if (adapter.m_address_list.empty())
+            {
+                log.info("skipping adapter ({}) because it is missing ipv4 address.", adapter.m_name);
+                return;
+            }
+
+            discnet::network::multicast_info info;
+            info.m_adapter_address = adapter.m_address_list.front().first;
+            info.m_multicast_address = m_configuration.m_multicast_address;
+            info.m_multicast_port = m_configuration.m_multicast_port;
+            
+            auto shared_client = discnet::network::multicast_client::create(m_io_context, info, 12560);
+            bool client_connected = shared_client->open();
+            size_t index = 1;
+            discnet::time_point_t start_time = std::chrono::system_clock::now();
+            discnet::time_point_t current_time = start_time;
+            discnet::time_point_t timeout = start_time + std::chrono::seconds(15); 
+            while (!client_connected && current_time < timeout)
+            {
+                log.info("retry connect #{}.", index);
+                // give the OS some time to initialize the adapter before we start listening
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                client_connected = shared_client->open();
+                current_time = std::chrono::system_clock::now();
+                ++index;
+            }
+
+            if (!client_connected)
+            {
+                log.error("failed to start multicast client. dropping multicast client on adapter.");
+                return;
+            }
+
+            log.info("Added adapater to our client map.", info.m_adapter_address.to_string());
+            auto [itr_client, inserted] = m_clients.insert(std::pair{adapter.m_guid, shared_client});
+            auto [uuid, client] = *itr_client;
+        }
+
         discnet::network::messages::message_list_t get_messages_for_adapter(const discnet::adapter_t& adapter)
         {
             using ipv4 = boost::asio::ip::address_v4;
@@ -175,6 +229,9 @@ int main(int arguments_count, const char** arguments_vector)
         return EXIT_FAILURE;
     }
 
+    log.info("configuration loaded. node_id: {}, mc-address: {}, mc-port: {}", 
+        configuration->m_node_id, configuration->m_multicast_address.to_string(), configuration->m_multicast_port);
+
     std::vector<std::string> thread_names = { "mercury", "venus" };
     const size_t worker_threads_count = thread_names.size();
 
@@ -194,7 +251,7 @@ int main(int arguments_count, const char** arguments_vector)
     {
         adapter_manager->update();
         multicast_handler->update();
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
 
     return EXIT_SUCCESS;
