@@ -18,6 +18,7 @@ namespace discnet
     typedef boost::asio::ip::port_type port_type_t;
     typedef boost::asio::ip::udp::socket socket_t;
     typedef std::chrono::system_clock::time_point time_point_t;
+    typedef std::chrono::system_clock::duration duration_t;
     typedef boost::uuids::uuid uuid_t;
     typedef std::pair<address_t, address_t> address_mask_t; 
     typedef std::shared_ptr<boost::asio::io_service> shared_io_service;

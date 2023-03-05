@@ -138,7 +138,7 @@ TEST(main, bytes_to_hex_string)
 TEST(main, adapter_manager__update)
 {
     using adapter_t = discnet::adapter_t;
-    using adapter_manager_t = discnet::adapter_manager_t;
+    using adapter_manager = discnet::adapter_manager;
 
     // setting up data
     adapter_t adapter_1;
@@ -159,7 +159,7 @@ TEST(main, adapter_manager__update)
             .WillOnce(testing::Return(adapters_changed))
             .WillOnce(testing::Return(adapters_empty));
 
-        adapter_manager_t manager { std::move(fetcher) };
+        adapter_manager manager { std::move(fetcher) };
  
         discnet::test::callback_tester_t callbacks_tester;
         manager.e_new.connect(std::bind(&discnet::test::callback_tester_t::new_adapter, &callbacks_tester, std::placeholders::_1));
@@ -207,7 +207,7 @@ TEST(main, adapter_manager__find_adapter)
     {	// making sure that the manager is destroyed (or else gtest will complain about memory leaks)
         auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
         EXPECT_CALL(*fetcher.get(), get_adapters()).Times(1).WillOnce(testing::Return(adapters));
-        discnet::adapter_manager_t manager { std::move(fetcher) };
+        discnet::adapter_manager manager { std::move(fetcher) };
         manager.update();
 
         auto adapter_valid_10 = manager.find_adapter(ipv4::from_string("10.0.0.1"));

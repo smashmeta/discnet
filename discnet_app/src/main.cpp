@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <map>
+#include <chrono>
 #include <ranges>
 #include <boost/core/ignore_unused.hpp>
 #include <boost/asio.hpp>
@@ -12,10 +13,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <fmt/format.h>
 #include <discnet/discnet.hpp>
 #include <whatlog/logger.hpp>
 #include <discnet/node.hpp>
+#include <discnet/route_manager.hpp>
 #include <discnet/network/buffer.hpp>
 #include <discnet/network/messages/data_message.hpp>
 #include <discnet/network/messages/discovery_message.hpp>
@@ -65,7 +66,11 @@ namespace discnet::app
         typedef std::shared_ptr<discnet::network::multicast_client> shared_multicast_client_t;
         typedef std::map<boost::uuids::uuid, shared_multicast_client_t> multicast_client_map_t;
     public:
-        multicast_handler(shared_adapter_manager_t adapter_manager, const discnet::app::configuration_t& configuration, discnet::shared_io_context io_context)
+        boost::signals2::signal<void(const discovery_message_t&, const network_info_t&)> e_discovery_message_received;
+        boost::signals2::signal<void(const data_message_t&, const network_info_t&)> e_data_message_received;
+    
+    public:
+        multicast_handler(shared_adapter_manager adapter_manager, const discnet::app::configuration_t& configuration, discnet::shared_io_context io_context)
             : m_adapter_manager(adapter_manager), m_configuration(configuration), m_io_context(io_context)
         {
             m_adapter_manager->e_new.connect(std::bind(&multicast_handler::adapter_added, this, std::placeholders::_1));
@@ -73,42 +78,21 @@ namespace discnet::app
             m_adapter_manager->e_removed.connect(std::bind(&multicast_handler::adapter_removed, this, std::placeholders::_1));
         }
 
-        void adapter_added(const adapter_t& adapter)
+        void transmit_multicast(const discnet::adapter_t& adapter, const discnet::network::messages::message_list_t& messages)
         {
-            whatlog::logger log("multicast_handler::adapter_added");
-            
-            std::string adapter_guid_str = boost::lexical_cast<std::string>(adapter.m_guid);
-            log.info("new adapter detected. Name: {}, guid: {}, mac: {}.", adapter.m_name, adapter_guid_str, adapter.m_mac_address);
-            add_multicast_client(adapter);
-        }
-
-        void adapter_changed(const adapter_t& prev_adapter, const adapter_t& curr_adapter)
-        {
-            whatlog::logger log("multicast_handler::adapter_changed");
-
-            bool exist_multicast_client = m_clients.find(curr_adapter.m_guid) != m_clients.end();
-            bool enabled_changed = prev_adapter.m_enabled != curr_adapter.m_enabled;
-            bool ipv4_changed = (prev_adapter.m_address_list.size() != curr_adapter.m_address_list.size()) || 
-                !std::equal(prev_adapter.m_address_list.begin(), prev_adapter.m_address_list.end(), curr_adapter.m_address_list.begin());
-
-            // re-create multicast_client if adapter has changed in a significant way
-            if (!exist_multicast_client)
+            whatlog::logger log("multicast_handler::send_multicast");
+            discnet::network::buffer_t buffer(4096);
+            auto success = discnet::network::messages::packet_codec_t::encode(buffer, messages);
+            if (!success)
             {
-                log.info("unknown adapter ({}) appeared. adding multicast client.", curr_adapter.m_name);
-                add_multicast_client(curr_adapter);
+                log.error("failed to encode messages to a valid packet.");
             }
-            else if (enabled_changed || ipv4_changed)
-            {
-                log.info("adapter ({}) changed. re-creating multicast client.", curr_adapter.m_name);
-                remove_multicast_client(curr_adapter);
-                add_multicast_client(curr_adapter);
-            }
-        }
 
-        void adapter_removed(const adapter_t& adapter)
-        {
-            whatlog::logger log("multicast_handler::adapter_removed");
-            remove_multicast_client(adapter);
+            auto itr_client = m_clients.find(adapter.m_guid);
+            if (itr_client != m_clients.end())
+            {
+                itr_client->second->write(buffer);
+            }
         }
 
         void update()
@@ -134,19 +118,20 @@ namespace discnet::app
                 m_clients.erase(itr_client);
             }
         }
+        
         void add_multicast_client(const discnet::adapter_t& adapter)
         {
             whatlog::logger log("multicast_handler::add_multicast_client");
 
             if (!adapter.m_enabled)
             {
-                log.info("skipping adapter ({}) because it is disabled.", adapter.m_name);
+                log.info("skipping adapter {} because it is disabled.", adapter.m_name);
                 return;
             }
 
             if (adapter.m_address_list.empty())
             {
-                log.info("skipping adapter ({}) because it is missing ipv4 address.", adapter.m_name);
+                log.info("skipping adapter {} because it is missing ipv4 address.", adapter.m_name);
                 return;
             }
 
@@ -171,6 +156,11 @@ namespace discnet::app
                 ++index;
             }
 
+            shared_client->e_discovery_message_received.connect(
+                std::bind(&multicast_handler::discovery_message_received, this, std::placeholders::_1, std::placeholders::_2));
+            shared_client->e_data_message_received.connect(
+                std::bind(&multicast_handler::data_message_received, this, std::placeholders::_1, std::placeholders::_2));
+
             if (!client_connected)
             {
                 log.error("failed to start multicast client. dropping multicast client on adapter.");
@@ -178,34 +168,145 @@ namespace discnet::app
             }
 
             log.info("Added adapater to our client map.", info.m_adapter_address.to_string());
-            auto [itr_client, inserted] = m_clients.insert(std::pair{adapter.m_guid, shared_client});
-            auto [uuid, client] = *itr_client;
+            m_clients.insert(std::pair{adapter.m_guid, shared_client});
         }
 
-        discnet::network::messages::message_list_t get_messages_for_adapter(const discnet::adapter_t& adapter)
+        void adapter_added(const adapter_t& adapter)
         {
-            using ipv4 = boost::asio::ip::address_v4;
-            using node_t = discnet::network::messages::node_t;
-            using discovery_message_t = discnet::network::messages::discovery_message_t;
-            using jumps_t = discnet::network::messages::jumps_t;
-            using data_message_t = discnet::network::messages::data_message_t;
-            using message_list_t = discnet::network::messages::message_list_t;
-
-            boost::ignore_unused(adapter);
+            whatlog::logger log("multicast_handler::adapter_added");
             
-            discovery_message_t discovery_message{ .m_identifier = m_configuration.m_node_id };
-            discovery_message.m_nodes = { node_t{ 1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} } };
-            data_message_t data_message{ .m_identifier = 1 };
-            data_message.m_buffer = { 1, 2, 3, 4, 5 };
-            message_list_t messages = { discovery_message, data_message };
-
-            return messages;
+            std::string adapter_guid_str = boost::lexical_cast<std::string>(adapter.m_guid);
+            log.info("new adapter detected. Name: {}, guid: {}, mac: {}.", adapter.m_name, adapter_guid_str, adapter.m_mac_address);
+            add_multicast_client(adapter);
         }
 
-        discnet::shared_adapter_manager_t m_adapter_manager;
+        void adapter_changed(const adapter_t& previous_adapter, const adapter_t& current_adapter)
+        {
+            whatlog::logger log("multicast_handler::adapter_changed");
+            
+            bool multicast_client_exist = m_clients.find(current_adapter.m_guid) != m_clients.end();
+            if (multicast_client_exist)
+            {
+                bool ip_address_changed = previous_adapter.m_address_list != current_adapter.m_address_list;
+                if (!current_adapter.m_multicast_enabled)
+                {
+                    log.info("adapter {} multicast disabled. removing multicast client.", current_adapter.m_name);
+                    remove_multicast_client(previous_adapter);
+                }
+                else if (ip_address_changed)
+                {
+                    log.info("adapter {} ip-address chaned. re-creating multicast client.", current_adapter.m_name);
+                    remove_multicast_client(previous_adapter);
+                    add_multicast_client(current_adapter);
+                }
+            }
+            else 
+            {
+                if (current_adapter.m_multicast_enabled)
+                {
+                    log.info("unknown adapter {} appeared. adding multicast client.", current_adapter.m_name);
+                    add_multicast_client(current_adapter);
+                }
+            }
+        }
+
+        void adapter_removed(const adapter_t& adapter)
+        {
+            whatlog::logger log("multicast_handler::adapter_removed");
+            remove_multicast_client(adapter);
+        }
+
+        void discovery_message_received(const discovery_message_t& message, const network_info_t& info)
+        {
+            e_discovery_message_received(message, info);
+        }
+
+        void data_message_received(const data_message_t&, const network_info_t&)
+        {
+
+        }
+        
+        discnet::shared_adapter_manager m_adapter_manager;
         discnet::app::configuration_t m_configuration;
         discnet::shared_io_context m_io_context;
         multicast_client_map_t m_clients;
+    };
+
+    typedef std::shared_ptr<multicast_handler> shared_multicast_handler;
+    
+    class discovery_message_handler
+    {
+        typedef discnet::network::messages::discovery_message_t discovery_message_t;
+        typedef discnet::network::network_info_t network_info_t;
+        typedef discnet::shared_route_manager shared_route_manager;
+    public:
+        discovery_message_handler(shared_multicast_handler multicast_handler, shared_route_manager route_manager)
+            : m_route_manager(route_manager)
+        {
+            multicast_handler->e_discovery_message_received.connect(
+                std::bind(&discovery_message_handler::handle_discovery_message, this, std::placeholders::_1, std::placeholders::_2));
+        }
+
+        void handle_discovery_message(const discovery_message_t& message, const network_info_t& info)
+        {
+            m_route_manager->process(info, message);
+        }
+    private:
+        shared_route_manager m_route_manager;
+    };
+
+    typedef std::shared_ptr<discovery_message_handler> shared_discovery_message_handler;
+
+    class transmission_handler
+    {
+        typedef discnet::shared_route_manager shared_route_manager;
+    public:
+        transmission_handler(shared_route_manager route_manager, shared_multicast_handler multicast_hndlr, shared_adapter_manager adapter_manager)
+            : m_route_manager(route_manager), m_multicast_handler(multicast_hndlr), m_adapter_manager(adapter_manager),
+                m_last_tdp(std::chrono::system_clock::from_time_t(0)), m_interval(std::chrono::seconds(20))
+        {
+            // nothing for now
+        }
+
+        void update(const discnet::time_point_t& current_time)
+        {
+            auto next_tdp_time = m_last_tdp + m_interval;
+            if (next_tdp_time < current_time)
+            {
+                transmit_tdp();
+                m_last_tdp = current_time;
+                return;
+            }
+
+            auto diff_forward = current_time - m_last_tdp;
+            if (diff_forward > m_interval)
+            {
+                // system clock has been moved forward. 
+                // we distribute tdp to correct internal timing. 
+                transmit_tdp();
+                m_last_tdp = current_time;
+            }
+        }
+    private:
+        void transmit_tdp()
+        {
+            auto adapters = m_adapter_manager->adapters();
+            for (discnet::adapter_t& adapter : adapters)
+            {
+                if (adapter.m_enabled && adapter.m_multicast_enabled)
+                {
+                    discnet::network::messages::discovery_message_t discovery {.m_identifier = 1010 };
+                    discnet::network::messages::message_list_t messages { discovery };
+                    m_multicast_handler->transmit_multicast(adapter, messages);
+                }
+            }
+        }
+
+        discnet::time_point_t m_last_tdp;
+        discnet::duration_t m_interval;
+        shared_adapter_manager m_adapter_manager;
+        shared_route_manager m_route_manager;
+        shared_multicast_handler m_multicast_handler;
     };
 }
 
@@ -244,13 +345,21 @@ int main(int arguments_count, const char** arguments_vector)
         worker_threads.create_thread(boost::bind(&discnet::app::work_handler, thread_names[i], io_context));
     }
 
+    auto route_manager = std::make_shared<discnet::route_manager>();
     auto fetcher = std::make_unique<discnet::windows_adapter_fetcher>();
-    auto adapter_manager = discnet::shared_adapter_manager_t(new discnet::adapter_manager_t(std::move(fetcher)));
+    auto adapter_manager = std::make_shared<discnet::adapter_manager>(std::move(fetcher));
     auto multicast_handler = std::make_shared<discnet::app::multicast_handler>(adapter_manager, configuration.value(), io_context);
+    auto discovery_handler = std::make_shared<discnet::app::discovery_message_handler>(multicast_handler, route_manager);
+    auto transmission_handler = std::make_shared<discnet::app::transmission_handler>(route_manager, multicast_handler, adapter_manager);
+
     while (true)
     {
+        std::chrono::time_point current_time = std::chrono::system_clock::now();
         adapter_manager->update();
         multicast_handler->update();
+        route_manager->update(current_time);
+        transmission_handler->update(current_time);
+
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
 

@@ -3,12 +3,13 @@
  */
 
 #include <ranges>
-#include <discnet/route_manager.hpp>
 #include <boost/core/ignore_unused.hpp>
+#include <whatlog/logger.hpp>
+#include <discnet/route_manager.hpp>
 
 namespace discnet
 {
-void route_manager_t::update(const time_point_t& current_time)
+void route_manager::update(const time_point_t& current_time)
 {
     boost::ignore_unused(current_time);
 
@@ -36,16 +37,10 @@ void route_manager_t::update(const time_point_t& current_time)
     }
 }
 
-bool route_manager_t::add_route(const adapter_identifier_t& adapter_id, route_t& route)
+bool route_manager::process(const network_info_t& adapter_info, const discovery_message_t& message)
 {
-    boost::ignore_unused(route);
-
-    auto itr_adapter_routes = m_adapter_routes.find(adapter_id);
-    if (itr_adapter_routes != m_adapter_routes.end())
-    {
-        
-    }
-
+    whatlog::logger log("route_manager::process");
+    log.info("received discovery message from {} on adapter {}.", message.m_identifier, adapter_info.m_adapter.to_string());
     return false; // todo: implement
 }
 } // !namespace discnet

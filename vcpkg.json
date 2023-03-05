@@ -10,6 +10,7 @@
     "boost-signals2",
     "boost-log",
     "boost-lexical-cast",
+    "boost-dll",
 	  "gtest",
     "openssl"
   ]
