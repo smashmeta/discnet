@@ -10,8 +10,7 @@
 namespace discnet
 {
     using adapter_identifier_t = boost::uuids::uuid;
-    typedef unsigned long mtu_type_t;
-
+    
     /*
         guid: {154EA313-6D41-415A-B007-BBB7AD740F1F}
         mac_address: 3C:A9:F4:3C:1F:00

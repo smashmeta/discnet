@@ -13,6 +13,7 @@
 namespace discnet
 {
     typedef uint8_t byte_t;
+    typedef unsigned long mtu_type_t;
     typedef boost::system::error_code error_code_t;
     typedef boost::asio::ip::address_v4 address_t;
     typedef boost::asio::ip::port_type port_type_t;

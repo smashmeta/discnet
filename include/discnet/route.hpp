@@ -11,6 +11,7 @@ namespace discnet
 {
     struct route_identifier
     {
+        bool operator==(const route_identifier&) const = default;
         node_identifier_t m_node = init_required;
         address_t m_adapter = init_required;
         address_t m_reporter = init_required;
@@ -22,6 +23,7 @@ namespace discnet
         bool m_persistent = false;
         bool m_silent = false;
         uint8_t m_metric = 0;
+        mtu_type_t m_mtu = 0;
     };
 
     /* 
