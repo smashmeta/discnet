@@ -1,6 +1,5 @@
 
 # adding thirdparty dependencies
-find_package(fmt CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options log)
 find_package(GTest CONFIG REQUIRED)
 find_package(whatlog REQUIRED whatlog)
@@ -15,7 +14,6 @@ source_group("src/" FILES ${SOURCE_DEFAULT_GRP})
 
 # adding thirdparty include directories
 include_directories(${Boost_INCLUDE_DIRS})
-include_directories(${fmt_INCLUDE_DIRS})
 include_directories(${discnet_INCLUDE_DIRS})
 include_directories(${whatlog_INCLUDE_DIRS})
 
@@ -28,7 +26,6 @@ add_executable(discnet_app
 # adding thirdparty library dependencies
 target_link_libraries(discnet_app PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
 target_link_libraries(discnet_app PRIVATE Boost::log Boost::log_setup Boost::program_options)
-target_link_libraries(discnet_app PRIVATE fmt::fmt)
 target_link_libraries(discnet_app PRIVATE discnet)
 target_link_libraries(discnet_app PRIVATE whatlog::whatlog)
 

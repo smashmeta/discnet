@@ -3,7 +3,6 @@
  */
 
 #include <iostream>
-#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/asio/buffer.hpp>
@@ -11,6 +10,7 @@
 #include <discnet/network/data_stream.hpp>
 
 using ipv4 = discnet::address_t;
+using jumps_t = discnet::jumps_t;
 using discnet::network::data_stream;
 using namespace discnet::network::messages;
 

@@ -3,7 +3,6 @@
  */
 
 #include <iostream>
-#include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/uuid/random_generator.hpp>
@@ -245,6 +244,7 @@ TEST(main, adapter_manager__find_adapter)
 
 TEST(main, buffer_t__packet)
 {
+    using jumps_t = discnet::jumps_t;
     using ipv4 = discnet::address_t;
     using discnet::node_identifier_t;
     using discnet::network::buffer_t;

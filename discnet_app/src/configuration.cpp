@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <strstream>
-#include <fmt/format.h>
 #include <boost/program_options.hpp>
 #include <boost/asio.hpp>
 #include <whatlog/logger.hpp>
@@ -52,7 +51,7 @@ bool initialize_console_logger()
     }
     catch (const std::exception& ex)
     {
-        std::cout << fmt::format("failed to initialize console logger. exception: {}", ex.what()) << std::endl;
+        std::cout << std::format("failed to initialize console logger. exception: {}", ex.what()) << std::endl;
         return false;
     }
     catch (...)
@@ -90,7 +89,7 @@ std::expected<configuration_t, std::string> get_configuration(int arguments_coun
     }
     catch (const std::exception& ex)
     {
-        std::string error_message = fmt::format("failed to parse command line arguments. Reason: {}", ex.what());
+        std::string error_message = std::format("failed to parse command line arguments. Reason: {}", ex.what());
         log.error(error_message);
         return std::unexpected(error_message);
     }

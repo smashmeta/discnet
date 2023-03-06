@@ -11,7 +11,6 @@
 #include <locale>
 #include <codecvt>
 #include <ranges>
-#include <fmt/format.h>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -223,7 +222,7 @@ namespace discnet
             }
         }
 
-        return std::unexpected(fmt::format("failed to find adapter by address: {}", address.to_string()));
+        return std::unexpected(std::format("failed to find adapter by address: {}", address.to_string()));
     }
 
     std::expected<adapter_t, std::string> adapter_manager::find_adapter(const boost::uuids::uuid& uuid) const
@@ -234,7 +233,7 @@ namespace discnet
             return itr_adapter->second;
         }
 
-        return std::unexpected(fmt::format("failed to find adapter by uuid: {}", boost::lexical_cast<std::string>(uuid)));
+        return std::unexpected(std::format("failed to find adapter by uuid: {}", boost::lexical_cast<std::string>(uuid)));
     }
 
     windows_adapter_fetcher::windows_adapter_fetcher()
@@ -329,7 +328,7 @@ namespace discnet
         }
         else
         {
-            result = std::unexpected(fmt::format("failed to load registry path {}", path));
+            result = std::unexpected(std::format("failed to load registry path {}", path));
         }
 
         return result;

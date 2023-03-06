@@ -2,7 +2,6 @@
  *
  */
 
-#include <fmt/format.h>
 #include <whatlog/logger.hpp>
 #include <discnet/network/data_handler.hpp>
 #include <discnet/network/multicast_client.hpp>

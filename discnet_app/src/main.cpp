@@ -297,7 +297,16 @@ namespace discnet::app
                 if (adapter.m_enabled && adapter.m_multicast_enabled)
                 {
                     log.info("sending discovery message on adapter: {}.", adapter.m_name);
+                    
                     discnet::network::messages::discovery_message_t discovery {.m_identifier = m_configuration.m_node_id };
+                    auto routes = m_route_manager->find_routes(adapter.m_guid);
+                    for (const auto& route : routes)
+                    {
+                        discnet::network::messages::node_t indirect_node {.m_identifier = route.m_identifier.m_node.m_id, .m_address = route.m_identifier.m_node.m_address};
+                        indirect_node.m_jumps = route.m_status.m_jumps;
+                        discovery.m_nodes.push_back(indirect_node);
+                    }
+                    
                     discnet::network::messages::message_list_t messages { discovery };
                     m_multicast_handler->transmit_multicast(adapter, messages);
                 }

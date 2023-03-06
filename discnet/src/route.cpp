@@ -2,12 +2,20 @@
  *
  */
 
+#include <numeric>
 #include <sstream>
 #include <boost/algorithm/string.hpp>
 #include <discnet/route.hpp>
 
 namespace discnet
 {
+	bool is_shorter_route(const route_t& lhs, const route_t& rhs)
+	{
+		auto lhs_length = std::accumulate(lhs.m_status.m_jumps.begin(), lhs.m_status.m_jumps.end(), 0);
+		auto rhs_length = std::accumulate(rhs.m_status.m_jumps.begin(), rhs.m_status.m_jumps.end(), 0);
+		return lhs_length < rhs_length;
+	}
+
     bool is_route_online(const route_t& route, const time_point_t& current_time)
 	{
 		if (route.m_status.m_persistent)

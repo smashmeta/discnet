@@ -10,8 +10,6 @@
 
 namespace discnet::network::messages
 {
-    using jumps_t = std::vector<uint16_t>;
-
     struct node_t
     {
         uint16_t m_identifier = init_required;

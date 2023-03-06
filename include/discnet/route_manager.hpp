@@ -25,8 +25,11 @@ namespace discnet
 
         DISCNET_EXPORT void update(const time_point_t& current_time);
         DISCNET_EXPORT bool process(const network_info_t& adapter_info, const discovery_message_t& route);
-    
+        
+        DISCNET_EXPORT routes_t find_routes(const adapter_identifier_t& outbound_adapter);
     private:
+        bool process_node(const adapter_t& adapter, const network_info_t& network_info, const route_identifier& identifier);
+
         shared_adapter_manager m_adapter_manager;
         adapter_routes_map_t m_adapter_routes;
     };
