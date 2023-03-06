@@ -20,7 +20,7 @@ namespace discnet::network
 
     data_stream::data_stream(size_t buffer_size)
         :   m_buffer(buffer_size, 0), 
-            m_inital_receive(std::chrono::system_clock::now()),  
+            m_inital_receive(discnet::time_point_t::clock::now()),  
             m_last_received(m_inital_receive)
     {
         // nothing for now
@@ -86,6 +86,11 @@ namespace discnet::network
                     read_more = false;
                 }
             }
+            else 
+            {
+                // done
+                read_more = false;
+            }
         }
 
         return result;
@@ -106,6 +111,6 @@ namespace discnet::network
 
         const discnet::byte_t* data_ptr = reinterpret_cast<const discnet::byte_t*>(data.data());
         std::copy(data_ptr, data_ptr + data.size() * sizeof(discnet::byte_t), std::back_inserter(m_buffer));
-        m_last_received = std::chrono::system_clock::now();
+        m_last_received = discnet::time_point_t::clock::now();
     }
 } // !namespace discnet::network

@@ -8,16 +8,15 @@
 
 namespace discnet
 {
-    bool is_route_online(const route_t& route)
+    bool is_route_online(const route_t& route, const time_point_t& current_time)
 	{
 		if (route.m_status.m_persistent)
 		{
 			return true;
 		}
 
-		auto current_time = std::chrono::system_clock::now();
 		auto timeout_limit = current_time - std::chrono::seconds(90);
-		if (route.m_last_tdp > timeout_limit ||
+		if (route.m_last_discovery > timeout_limit ||
 			route.m_last_data_message > timeout_limit)
 		{
 			return true;

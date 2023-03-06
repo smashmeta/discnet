@@ -11,13 +11,11 @@ namespace discnet
 {
 void route_manager::update(const time_point_t& current_time)
 {
-    boost::ignore_unused(current_time);
-
     for (routes_t& routes : m_adapter_routes | std::views::values)
     {
         for (route_t& route : routes)
         {
-            if (is_route_online(route))
+            if (is_route_online(route, current_time))
             {
                 if (!route.m_status.m_online)
                 {

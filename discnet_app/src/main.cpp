@@ -143,7 +143,7 @@ namespace discnet::app
             auto shared_client = discnet::network::multicast_client::create(m_io_context, info, 12560);
             bool client_connected = shared_client->open();
             size_t index = 1;
-            discnet::time_point_t start_time = std::chrono::system_clock::now();
+            discnet::time_point_t start_time = discnet::time_point_t::clock::now();
             discnet::time_point_t current_time = start_time;
             discnet::time_point_t timeout = start_time + std::chrono::seconds(15); 
             while (!client_connected && current_time < timeout)
@@ -152,7 +152,7 @@ namespace discnet::app
                 // give the OS some time to initialize the adapter before we start listening
                 std::this_thread::sleep_for(std::chrono::seconds(1));
                 client_connected = shared_client->open();
-                current_time = std::chrono::system_clock::now();
+                current_time = discnet::time_point_t::clock::now();
                 ++index;
             }
 
@@ -261,52 +261,55 @@ namespace discnet::app
     {
         typedef discnet::shared_route_manager shared_route_manager;
     public:
-        transmission_handler(shared_route_manager route_manager, shared_multicast_handler multicast_hndlr, shared_adapter_manager adapter_manager)
+        transmission_handler(shared_route_manager route_manager, shared_multicast_handler multicast_hndlr, shared_adapter_manager adapter_manager, discnet::app::configuration_t configuration)
             : m_route_manager(route_manager), m_multicast_handler(multicast_hndlr), m_adapter_manager(adapter_manager),
-                m_last_tdp(std::chrono::system_clock::from_time_t(0)), m_interval(std::chrono::seconds(20))
+                m_last_discovery(discnet::time_point_t::clock::from_time_t(0)), m_interval(std::chrono::seconds(20)), m_configuration(configuration)
         {
             // nothing for now
         }
 
         void update(const discnet::time_point_t& current_time)
         {
-            auto next_tdp_time = m_last_tdp + m_interval;
-            if (next_tdp_time < current_time)
+            auto next_discovery_time = m_last_discovery + m_interval;
+            if (next_discovery_time < current_time)
             {
-                transmit_tdp();
-                m_last_tdp = current_time;
+                transmit_discovery_message();
+                m_last_discovery = current_time;
                 return;
             }
 
-            auto diff_forward = current_time - m_last_tdp;
+            auto diff_forward = current_time - m_last_discovery;
             if (diff_forward > m_interval)
             {
                 // system clock has been moved forward. 
-                // we distribute tdp to correct internal timing. 
-                transmit_tdp();
-                m_last_tdp = current_time;
+                // we distribute discovery message to correct internal timing. 
+                transmit_discovery_message();
+                m_last_discovery = current_time;
             }
         }
     private:
-        void transmit_tdp()
+        void transmit_discovery_message()
         {
+            whatlog::logger log("transmission_handler::transmit_discovery_message");
             auto adapters = m_adapter_manager->adapters();
             for (discnet::adapter_t& adapter : adapters)
             {
                 if (adapter.m_enabled && adapter.m_multicast_enabled)
                 {
-                    discnet::network::messages::discovery_message_t discovery {.m_identifier = 1010 };
+                    log.info("sending discovery message on adapter: {}.", adapter.m_name);
+                    discnet::network::messages::discovery_message_t discovery {.m_identifier = m_configuration.m_node_id };
                     discnet::network::messages::message_list_t messages { discovery };
                     m_multicast_handler->transmit_multicast(adapter, messages);
                 }
             }
         }
 
-        discnet::time_point_t m_last_tdp;
+        discnet::time_point_t m_last_discovery;
         discnet::duration_t m_interval;
         shared_adapter_manager m_adapter_manager;
         shared_route_manager m_route_manager;
         shared_multicast_handler m_multicast_handler;
+        discnet::app::configuration_t m_configuration;
     };
 }
 
@@ -346,15 +349,14 @@ int main(int arguments_count, const char** arguments_vector)
     }
 
     auto route_manager = std::make_shared<discnet::route_manager>();
-    auto fetcher = std::make_unique<discnet::windows_adapter_fetcher>();
-    auto adapter_manager = std::make_shared<discnet::adapter_manager>(std::move(fetcher));
+    auto adapter_manager = std::make_shared<discnet::adapter_manager>(std::move(std::make_unique<discnet::windows_adapter_fetcher>()));
     auto multicast_handler = std::make_shared<discnet::app::multicast_handler>(adapter_manager, configuration.value(), io_context);
     auto discovery_handler = std::make_shared<discnet::app::discovery_message_handler>(multicast_handler, route_manager);
-    auto transmission_handler = std::make_shared<discnet::app::transmission_handler>(route_manager, multicast_handler, adapter_manager);
+    auto transmission_handler = std::make_shared<discnet::app::transmission_handler>(route_manager, multicast_handler, adapter_manager, configuration.value());
 
     while (true)
     {
-        std::chrono::time_point current_time = std::chrono::system_clock::now();
+        std::chrono::time_point current_time = discnet::time_point_t::clock::now();
         adapter_manager->update();
         multicast_handler->update();
         route_manager->update(current_time);

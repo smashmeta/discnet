@@ -51,6 +51,27 @@ protected:
     data_message_t m_msg_2 = { .m_identifier = 2, .m_buffer = { 4,5,6,7,8,9,10 } };
 };
 
+TEST_F(data_stream_fixture, no_packets)
+{
+    data_stream stream{4096};
+    auto packets = stream.process();
+    ASSERT_EQ(packets.size(), 0);
+}
+
+TEST_F(data_stream_fixture, empty_packet)
+{
+    data_stream stream{4096};
+    message_list_t message_list = {};
+    discnet::network::buffer_t buffer{1024};
+    ASSERT_TRUE(packet_codec_t::encode(buffer, message_list));
+
+    boost::asio::const_buffer cbuffer(buffer.data().data(), buffer.bytes_left_to_read());
+    stream.handle_receive(cbuffer);
+    auto packets = stream.process();
+    ASSERT_EQ(packets.size(), 1);
+    ASSERT_EQ(packets[0].m_messages.size(), 0);
+}
+
 TEST_F(data_stream_fixture, single_packet)
 {
     data_stream stream{4096};

@@ -62,6 +62,28 @@ TEST(main, sha256_file)
     EXPECT_EQ(hashed_file, "6f533ccc79227e38f18bfc63bfc961ef4d3ee0e2bf33dd097ccf3548a12b743b");
 }
 
+TEST(main, is_route_online)
+{
+    using ipv4 = discnet::address_t;
+    discnet::time_point_t time = discnet::time_point_t::clock::now();
+    discnet::node_identifier_t node = {1010, ipv4::from_string("192.200.1.3")};
+    discnet::route_identifier identifier { .m_node = node, .m_adapter = ipv4::from_string("192.200.1.2"), .m_reporter = ipv4::from_string("192.200.1.3") };
+    discnet::route_status_t status { .m_online = true };
+    discnet::route_t route { .m_identifier = identifier, .m_last_discovery = time, .m_status = status };
+
+    
+    EXPECT_EQ(discnet::is_route_online(route, time), true);
+    time += std::chrono::seconds(89);
+    EXPECT_EQ(discnet::is_route_online(route, time), true);
+    time += std::chrono::seconds(1);
+    EXPECT_EQ(discnet::is_route_online(route, time), false);
+    time += std::chrono::seconds(1);
+    EXPECT_EQ(discnet::is_route_online(route, time), false);
+
+    route.m_status.m_persistent = true;
+    EXPECT_EQ(discnet::is_route_online(route, time), true);
+}
+
 TEST(main, is_direct_node)
 {
     using ipv4 = discnet::address_t;

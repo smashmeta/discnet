@@ -38,7 +38,7 @@ namespace discnet::network
         info.m_adapter = m_info.m_adapter_address;
         info.m_receiver = m_info.m_multicast_address;
         info.m_sender = m_rcv_endpoint.address().to_v4();
-        info.m_reception_time = std::chrono::system_clock::now();
+        info.m_reception_time = discnet::time_point_t::clock::now();
 
         auto streams = m_data_handler->process();
         for (const data_stream_packets_t& stream : streams)
@@ -172,7 +172,7 @@ namespace discnet::network
         namespace multicast = boost::asio::ip::multicast;
         whatlog::logger log("open_multicast_rcv_socket");
 
-        log.info("setting up mc listening port: addr: {}, port: {}, on adapter {}.", 
+        log.info("setting up multicast listening socket - addr: {}, port: {}, on adapter {}.", 
             m_info.m_multicast_address.to_string(),
             m_info.m_multicast_port,
             m_info.m_adapter_address.to_string());
