@@ -6,7 +6,7 @@
         "request": "launch",
         "program": "${workspaceFolder}/build/discnet_app/Debug/discnet_app.exe",
         "args": [
-            "--node_id", "1111",
+            "--node_id", "1",
             "--address", "234.5.6.7",
             "--port", "13337"
         ],

@@ -357,8 +357,8 @@ int main(int arguments_count, const char** arguments_vector)
         worker_threads.create_thread(boost::bind(&discnet::app::work_handler, thread_names[i], io_context));
     }
 
-    auto route_manager = std::make_shared<discnet::route_manager>();
     auto adapter_manager = std::make_shared<discnet::adapter_manager>(std::move(std::make_unique<discnet::windows_adapter_fetcher>()));
+    auto route_manager = std::make_shared<discnet::route_manager>(adapter_manager);
     auto multicast_handler = std::make_shared<discnet::app::multicast_handler>(adapter_manager, configuration.value(), io_context);
     auto discovery_handler = std::make_shared<discnet::app::discovery_message_handler>(multicast_handler, route_manager);
     auto transmission_handler = std::make_shared<discnet::app::transmission_handler>(route_manager, multicast_handler, adapter_manager, configuration.value());

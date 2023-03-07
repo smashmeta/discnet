@@ -23,6 +23,8 @@ namespace discnet
     public:
         boost::signals2::signal<void(const route_t& curr, bool prev)> e_online_state_changed;
 
+        DISCNET_EXPORT route_manager(shared_adapter_manager adapter_manager);
+
         DISCNET_EXPORT void update(const time_point_t& current_time);
         DISCNET_EXPORT bool process(const network_info_t& adapter_info, const discovery_message_t& route);
         

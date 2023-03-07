@@ -27,6 +27,8 @@ namespace discnet
     typedef std::shared_ptr<boost::asio::ip::udp::socket> shared_udp_socket;
     using jumps_t = std::vector<uint16_t>;
 
+    DISCNET_EXPORT std::string to_string(const jumps_t& jumps);
+
     struct init_required_t 
     {
         template <class T>
