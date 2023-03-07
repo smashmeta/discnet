@@ -2,7 +2,6 @@
  *
  */
 
-#include <iostream>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/asio/buffer.hpp>
@@ -13,6 +12,7 @@ using ipv4 = discnet::address_t;
 using jumps_t = discnet::jumps_t;
 using discnet::network::data_stream;
 using namespace discnet::network::messages;
+
 
 class data_stream_fixture : public ::testing::Test
 {

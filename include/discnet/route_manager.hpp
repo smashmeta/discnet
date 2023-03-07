@@ -21,6 +21,7 @@ namespace discnet
         typedef discnet::network::messages::discovery_message_t discovery_message_t;
         typedef discnet::network::network_info_t network_info_t;
     public:
+        boost::signals2::signal<void(const route_t& route)> e_new_route;
         boost::signals2::signal<void(const route_t& curr, bool prev)> e_online_state_changed;
 
         DISCNET_EXPORT route_manager(shared_adapter_manager adapter_manager);
@@ -28,9 +29,10 @@ namespace discnet
         DISCNET_EXPORT void update(const time_point_t& current_time);
         DISCNET_EXPORT bool process(const network_info_t& adapter_info, const discovery_message_t& route);
         
-        DISCNET_EXPORT routes_t find_routes(const adapter_identifier_t& outbound_adapter);
+        DISCNET_EXPORT routes_t find_routes_for_adapter(const adapter_identifier_t& outbound_adapter);
+        DISCNET_EXPORT routes_t find_routes_on_adapter(const adapter_identifier_t& adapter);
     private:
-        bool process_node(const adapter_t& adapter, const network_info_t& network_info, const route_identifier& identifier);
+        bool process_route(const adapter_t& adapter, const network_info_t& network_info, const route_identifier& identifier, const jumps_t& jumps);
 
         shared_adapter_manager m_adapter_manager;
         adapter_routes_map_t m_adapter_routes;

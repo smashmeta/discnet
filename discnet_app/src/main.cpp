@@ -299,7 +299,7 @@ namespace discnet::app
                     log.info("sending discovery message on adapter: {}.", adapter.m_name);
                     
                     discnet::network::messages::discovery_message_t discovery {.m_identifier = m_configuration.m_node_id };
-                    auto routes = m_route_manager->find_routes(adapter.m_guid);
+                    auto routes = m_route_manager->find_routes_for_adapter(adapter.m_guid);
                     for (const auto& route : routes)
                     {
                         discnet::network::messages::node_t indirect_node {.m_identifier = route.m_identifier.m_node.m_id, .m_address = route.m_identifier.m_node.m_address};

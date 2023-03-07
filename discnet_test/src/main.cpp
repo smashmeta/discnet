@@ -7,6 +7,7 @@
 #include <gmock/gmock.h>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/thread.hpp>
+#include <whatlog/logger.hpp>
 #include <discnet/route.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/route_manager.hpp>
@@ -302,6 +303,7 @@ TEST(main, buffer_t__packet)
 
 int main(int arguments_count, char** arguments_vector) 
 {
+    whatlog::logger::disable_logging();
     testing::InitGoogleTest(&arguments_count, arguments_vector);
     return RUN_ALL_TESTS();
 }
