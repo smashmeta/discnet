@@ -54,8 +54,8 @@ void route_manager::update(const time_point_t& current_time)
 bool route_manager::process_node(const adapter_t& adapter, const network_info_t& network_info, const route_identifier& route_id)
 {
     whatlog::logger log("route_manager::process_node");
-    auto adapter_routes = m_adapter_routes.find(adapter.m_guid);
-    if (adapter_routes == m_adapter_routes.end())
+    auto itr_adapter_routes = m_adapter_routes.find(adapter.m_guid);
+    if (itr_adapter_routes == m_adapter_routes.end())
     {
         // new route detected
         route_status_t status {.m_online = true, .m_mtu = adapter.m_mtu};
@@ -70,15 +70,25 @@ bool route_manager::process_node(const adapter_t& adapter, const network_info_t&
     }
     else
     {
-        auto& [adapter_id, routes] = *adapter_routes;
-        auto route = std::find_if(routes.begin(), routes.end(), [&](const auto& val) { return val.m_identifier == route_id; });
-        if (route == routes.end())
+        auto& [adapter_id, routes] = *itr_adapter_routes;
+        auto itr_route = std::find_if(routes.begin(), routes.end(), [&](const auto& val) { return val.m_identifier == route_id; });
+        if (itr_route == routes.end())
         {
-            log.warning("failed to find route.");
-            return false;
-        }
+            // new route detected
+            route_status_t status {.m_online = true, .m_mtu = adapter.m_mtu};
+            route_t route {.m_identifier = route_id, .m_last_discovery = network_info.m_reception_time, .m_status = status};
+            route.m_status.m_jumps.push_back(256);
 
-        route->m_last_discovery = network_info.m_reception_time;
+            m_adapter_routes.try_emplace(adapter.m_guid, routes_t{route});
+
+            std::string route_info_str = std::format("(id: {}, address: {} - jumps: {})", route.m_identifier.m_node.m_id, 
+            route.m_identifier.m_node.m_address.to_string(), discnet::to_string(route.m_status.m_jumps));
+            log.info("new route {} detected.", route_info_str);
+        }
+        else
+        {
+            itr_route->m_last_discovery = network_info.m_reception_time;
+        }
     }
 
     return true;

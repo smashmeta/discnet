@@ -304,6 +304,7 @@ namespace discnet::app
                     {
                         discnet::network::messages::node_t indirect_node {.m_identifier = route.m_identifier.m_node.m_id, .m_address = route.m_identifier.m_node.m_address};
                         indirect_node.m_jumps = route.m_status.m_jumps;
+                        indirect_node.m_jumps.push_back(256); // adding self
                         discovery.m_nodes.push_back(indirect_node);
                     }
                     
