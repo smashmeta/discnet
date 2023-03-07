@@ -24,27 +24,6 @@ namespace discnet::test
     {
         return { std::byte(std::forward<Ts>(args))... };
     }
-
-    struct adapter_fetcher_mock : public discnet::adapter_fetcher
-    {
-        MOCK_METHOD(std::vector<discnet::adapter_t>, get_adapters, (), (override));
-    };
-
-    struct adapter_manager_callbacks_stub
-    {
-        virtual void new_adapter(const discnet::adapter_t& adapter) = 0;
-        virtual void changed_adapter(const discnet::adapter_t& prev, const discnet::adapter_t& curr) = 0;
-        virtual void removed_adapter(const discnet::adapter_t& adapter) = 0;
-    };
-
-    struct adapter_manager_callbacks_mock : public adapter_manager_callbacks_stub
-    {
-        MOCK_METHOD(void, new_adapter, (const discnet::adapter_t&), (override));
-        MOCK_METHOD(void, changed_adapter, (const discnet::adapter_t&, const discnet::adapter_t&), (override));
-        MOCK_METHOD(void, removed_adapter, (const discnet::adapter_t&), (override));
-    };
-
-    typedef discnet::test::adapter_manager_callbacks_mock callback_tester_t;
 }
 
 TEST(main, shift_buffer_debugging_remove_later)
@@ -60,68 +39,6 @@ TEST(main, sha256_file)
 {
     std::string hashed_file = discnet::sha256_file("C:\\windows\\system.ini");
     EXPECT_EQ(hashed_file, "6f533ccc79227e38f18bfc63bfc961ef4d3ee0e2bf33dd097ccf3548a12b743b");
-}
-
-TEST(main, is_route_online)
-{
-    using ipv4 = discnet::address_t;
-    discnet::time_point_t time = discnet::time_point_t::clock::now();
-    discnet::node_identifier_t node = {1010, ipv4::from_string("192.200.1.3")};
-    discnet::route_identifier identifier { .m_node = node, .m_adapter = ipv4::from_string("192.200.1.2"), .m_reporter = ipv4::from_string("192.200.1.3") };
-    discnet::route_status_t status { .m_online = true };
-    discnet::route_t route { .m_identifier = identifier, .m_last_discovery = time, .m_status = status };
-
-    
-    EXPECT_EQ(discnet::is_route_online(route, time), true);
-    time += std::chrono::seconds(89);
-    EXPECT_EQ(discnet::is_route_online(route, time), true);
-    time += std::chrono::seconds(1);
-    EXPECT_EQ(discnet::is_route_online(route, time), false);
-    time += std::chrono::seconds(1);
-    EXPECT_EQ(discnet::is_route_online(route, time), false);
-
-    route.m_status.m_persistent = true;
-    EXPECT_EQ(discnet::is_route_online(route, time), true);
-}
-
-TEST(main, is_direct_node)
-{
-    using ipv4 = discnet::address_t;
-    using node_identifier_t = discnet::node_identifier_t;
-
-    auto node_ip = ipv4::from_string("192.169.10.10");
-    auto adapter_ip = ipv4::from_string("192.169.10.11");
-    auto sender_ip = node_ip;
-
-    node_identifier_t node{ 1, node_ip };
-    discnet::route_identifier direct_route{ node, adapter_ip, sender_ip };
-
-    EXPECT_TRUE(discnet::is_direct_node(direct_route));
-
-    auto indirect_node_ip = ipv4::from_string("102.169.10.12");
-    discnet::route_identifier indirect_route{ node, adapter_ip, indirect_node_ip };
-
-    EXPECT_FALSE(discnet::is_direct_node(indirect_route));
-}
-
-TEST(main, routes_contains)
-{
-    using ipv4 = discnet::address_t;
-    using node_identifier_t = discnet::node_identifier_t;
-
-    auto adapter_ip = ipv4::from_string("192.169.10.11");
-    auto sender_1_ip = ipv4::from_string("192.169.10.20");
-    auto sender_2_ip = ipv4::from_string("192.169.10.30");
-    auto sender_3_ip = ipv4::from_string("192.169.10.40");
-
-    node_identifier_t node_1{ 1, ipv4::from_string("192.169.10.10") };
-    discnet::route_identifier route_1{ node_1, adapter_ip, sender_1_ip };
-    discnet::route_identifier route_2{ node_1, adapter_ip, sender_2_ip };
-    discnet::route_identifier route_3{ node_1, adapter_ip, sender_3_ip };
-    std::vector<discnet::route_identifier> routes = { route_1, route_2 };
-
-    EXPECT_FALSE(discnet::contains(routes, route_3));
-    EXPECT_TRUE(discnet::contains(routes, route_2));
 }
 
 TEST(main, bytes_to_hex_string)
@@ -154,92 +71,6 @@ TEST(main, bytes_to_hex_string)
         std::vector<std::byte> buffer = discnet::test::make_bytes(8);
         std::string hex_string = discnet::bytes_to_hex_string(buffer);
         EXPECT_EQ(hex_string, "08");
-    }
-}
-
-TEST(main, adapter_manager__update)
-{
-    using adapter_t = discnet::adapter_t;
-    using adapter_manager = discnet::adapter_manager;
-
-    // setting up data
-    adapter_t adapter_1;
-    adapter_1.m_guid = boost::uuids::random_generator()();
-    adapter_1.m_name = "test_adapter";
-    adapter_t adapter_1_changed_name = adapter_1;
-    adapter_1_changed_name.m_name = "test_adapter_changed_name";
-    
-    std::vector<adapter_t> adapters = {adapter_1};
-    std::vector<adapter_t> adapters_changed = {adapter_1_changed_name};
-    std::vector<adapter_t> adapters_empty = {};
-
-    {	// making sure that the manager is destroyed (or else gtest will complain about memory leaks)
-        auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
-        EXPECT_CALL(*fetcher.get(), get_adapters())
-            .Times(3)
-            .WillOnce(testing::Return(adapters))
-            .WillOnce(testing::Return(adapters_changed))
-            .WillOnce(testing::Return(adapters_empty));
-
-        adapter_manager manager { std::move(fetcher) };
- 
-        discnet::test::callback_tester_t callbacks_tester;
-        manager.e_new.connect(std::bind(&discnet::test::callback_tester_t::new_adapter, &callbacks_tester, std::placeholders::_1));
-        manager.e_changed.connect(std::bind(&discnet::test::callback_tester_t::changed_adapter, &callbacks_tester, std::placeholders::_1, std::placeholders::_2));
-        manager.e_removed.connect(std::bind(&discnet::test::callback_tester_t::removed_adapter, &callbacks_tester, std::placeholders::_1));
-        
-        EXPECT_CALL(callbacks_tester, new_adapter(testing::_)).Times(1);
-        EXPECT_CALL(callbacks_tester, changed_adapter(testing::_, testing::_)).Times(1);
-        EXPECT_CALL(callbacks_tester, removed_adapter(testing::_)).Times(1);
-
-        // first call to update adds test adapter (see WillOnce(test adapter list))
-        manager.update();
-        // second call to update changes the adapter name (see WillOnce(test changed adapter list))
-        manager.update();
-        // third call to update removes test adapter (see WillOnce(empty adapter list))
-        manager.update();
-    }
-}
-
-TEST(main, adapter_manager__find_adapter)
-{
-    using ipv4 = discnet::address_t;
-
-    // setting up data
-    discnet::adapter_t adapter_1;
-    adapter_1.m_guid = boost::uuids::random_generator()();
-    adapter_1.m_index = 0;
-    adapter_1.m_name = "test_adapter1";
-    adapter_1.m_description = "description_adapter_1";
-    adapter_1.m_enabled = false;
-    adapter_1.m_gateway = ipv4::from_string("0.0.0.0");
-    adapter_1.m_address_list = { {ipv4::from_string("192.200.1.3"), ipv4::from_string("255.255.255.0")},
-                                 {ipv4::from_string("192.169.40.130"), ipv4::from_string("255.255.255.0")} };
-    discnet::adapter_t adapter_2;
-    adapter_2.m_guid = boost::uuids::random_generator()();
-    adapter_2.m_index = 1;
-    adapter_2.m_name = "test_adapter_2";
-    adapter_2.m_description = "description_adapter_2";
-    adapter_2.m_gateway = ipv4::from_string("0.0.0.0");
-    adapter_1.m_enabled = true;
-    adapter_2.m_address_list = { {ipv4::from_string("10.0.0.1"), ipv4::from_string("255.255.255.0")}};
-
-    std::vector<discnet::adapter_t> adapters = {adapter_1, adapter_2};
-
-    {	// making sure that the manager is destroyed (or else gtest will complain about memory leaks)
-        auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
-        EXPECT_CALL(*fetcher.get(), get_adapters()).Times(1).WillOnce(testing::Return(adapters));
-        discnet::adapter_manager manager { std::move(fetcher) };
-        manager.update();
-
-        auto adapter_valid_10 = manager.find_adapter(ipv4::from_string("10.0.0.1"));
-        ASSERT_TRUE(adapter_valid_10.has_value());
-        EXPECT_EQ(adapter_valid_10.value().m_guid, adapter_2.m_guid);
-        auto adapter_valid_192 = manager.find_adapter(ipv4::from_string("192.200.1.3"));
-        ASSERT_TRUE(adapter_valid_192.has_value());
-        EXPECT_EQ(adapter_valid_192.value().m_name, adapter_1.m_name);
-        auto adapter_failed_not_contained = manager.find_adapter(ipv4::from_string("10.11.12.13"));
-        EXPECT_FALSE(adapter_failed_not_contained.has_value());
     }
 }
 

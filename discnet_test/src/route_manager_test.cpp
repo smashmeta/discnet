@@ -137,4 +137,71 @@ TEST_F(route_manager_fixture, route_timeout)
     ASSERT_EQ(routes.size(), 2);
     EXPECT_EQ(routes[0].m_status.m_online, false);
     EXPECT_EQ(routes[1].m_status.m_online, false);
+
+    network_info.m_reception_time = time + std::chrono::seconds(100);
+    m_route_manager->process(network_info, message);
+    m_route_manager->update(time + std::chrono::seconds(110));
+
+    routes = m_route_manager->find_routes_on_adapter(rcv_adapter.value().m_guid);
+    ASSERT_EQ(routes.size(), 2);
+    EXPECT_EQ(routes[0].m_status.m_online, true);
+    EXPECT_EQ(routes[1].m_status.m_online, true);
+}
+
+TEST(route_api, is_route_online)
+{
+    using ipv4 = discnet::address_t;
+    discnet::time_point_t time = discnet::time_point_t::clock::now();
+    discnet::node_identifier_t node = {1010, ipv4::from_string("192.200.1.3")};
+    discnet::route_identifier identifier {.m_node = node, 
+        .m_adapter = ipv4::from_string("192.200.1.2"), .m_reporter = ipv4::from_string("192.200.1.3")};
+    discnet::route_status_t status {.m_online = true };
+    discnet::route_t route {.m_identifier = identifier, .m_last_discovery = time, .m_status = status};
+
+    
+    EXPECT_EQ(discnet::is_route_online(route, time), true);
+    time += std::chrono::seconds(89);
+    EXPECT_EQ(discnet::is_route_online(route, time), true);
+    time += std::chrono::seconds(1);
+    EXPECT_EQ(discnet::is_route_online(route, time), false);
+    time += std::chrono::seconds(1);
+    EXPECT_EQ(discnet::is_route_online(route, time), false);
+
+    route.m_status.m_persistent = true;
+    EXPECT_EQ(discnet::is_route_online(route, time), true);
+}
+
+TEST(route_api, routes_contains)
+{
+    using ipv4 = discnet::address_t;
+    using node_identifier_t = discnet::node_identifier_t;
+
+    auto adapter_ip = ipv4::from_string("192.169.10.11");
+    auto sender_1_ip = ipv4::from_string("192.169.10.20");
+    auto sender_2_ip = ipv4::from_string("192.169.10.30");
+    auto sender_3_ip = ipv4::from_string("192.169.10.40");
+
+    node_identifier_t node_1{1, ipv4::from_string("192.169.10.10")};
+    discnet::route_identifier route_1{node_1, adapter_ip, sender_1_ip};
+    discnet::route_identifier route_2{node_1, adapter_ip, sender_2_ip};
+    discnet::route_identifier route_3{node_1, adapter_ip, sender_3_ip};
+    std::vector<discnet::route_identifier> routes = {route_1, route_2};
+
+    EXPECT_FALSE(discnet::contains(routes, route_3));
+    EXPECT_TRUE(discnet::contains(routes, route_2));
+}
+
+TEST(route_api, is_direct_node)
+{
+    using ipv4 = discnet::address_t;
+    using node_identifier_t = discnet::node_identifier_t;
+
+    auto adapter_ip = ipv4::from_string("192.169.10.11");
+    node_identifier_t node{1, ipv4::from_string("192.169.10.10")};
+
+    discnet::route_identifier direct_route{node, adapter_ip, ipv4::from_string("192.169.10.10")};
+    EXPECT_TRUE(discnet::is_direct_node(direct_route));
+
+    discnet::route_identifier indirect_route{node, adapter_ip, ipv4::from_string("102.169.10.12")};
+    EXPECT_FALSE(discnet::is_direct_node(indirect_route));
 }
