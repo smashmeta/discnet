@@ -14,39 +14,39 @@
 
 namespace discnet::network
 {
-    struct multicast_info_t
+    struct unicast_info_t
     {
-        discnet::address_t m_adapter_address;
-        discnet::address_t m_multicast_address;
-        discnet::port_type_t m_multicast_port;
+        discnet::address_t m_address;
+        discnet::port_type_t m_port;
     };
 
     class data_handler;
 
-    class multicast_client;
-	using shared_multicast_client = std::shared_ptr<multicast_client>;
+    class unicast_client;
+	using shared_unicast_client = std::shared_ptr<unicast_client>;
 
-    class multicast_client : public std::enable_shared_from_this<multicast_client>
+    class unicast_client : public std::enable_shared_from_this<unicast_client>
     {
     public:
-        [[nodiscard]] static DISCNET_EXPORT shared_multicast_client create(discnet::shared_io_service io_service, multicast_info_t info, shared_data_handler data_handler);
+        [[nodiscard]] static DISCNET_EXPORT shared_unicast_client create(discnet::shared_io_service io_service, unicast_info_t info, shared_data_handler data_handler);
 
         DISCNET_EXPORT bool open();
         DISCNET_EXPORT bool write(const discnet::network::buffer_t& buffer);
+        DISCNET_EXPORT bool write(const discnet::address_t& recipient, const discnet::network::buffer_t& buffer);
         DISCNET_EXPORT void close();
 
-        DISCNET_EXPORT multicast_info_t info() const;
+        DISCNET_EXPORT unicast_info_t info() const;
 
     private:
         DISCNET_EXPORT void handle_write(const boost::system::error_code& error, size_t bytes_transferred);
         DISCNET_EXPORT void handle_read(const boost::system::error_code& error, size_t bytes_received);
 
     protected:
-        multicast_client(discnet::shared_io_service io_service, multicast_info_t info, shared_data_handler data_handler);
+        unicast_client(discnet::shared_io_service io_service, unicast_info_t info, shared_data_handler data_handler);
 
     private:
-        bool open_multicast_snd_socket();
-        bool open_multicast_rcv_socket();
+        bool open_unicast_snd_socket();
+        bool open_unicast_rcv_socket();
 
         shared_data_handler m_data_handler;
         discnet::shared_io_service m_service;
@@ -54,6 +54,6 @@ namespace discnet::network
         discnet::shared_udp_socket m_snd_socket;
         std::vector<discnet::byte_t> m_rcv_buffer;
         boost::asio::ip::udp::endpoint m_rcv_endpoint;
-        multicast_info_t m_info;
+        unicast_info_t m_info;
     };
 } // !namespace discnet::network

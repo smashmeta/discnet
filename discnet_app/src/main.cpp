@@ -22,6 +22,7 @@
 #include <discnet/network/messages/discovery_message.hpp>
 #include <discnet/network/messages/packet.hpp>
 #include <discnet/network/multicast_client.hpp>
+#include <discnet/network/unicast_client.hpp>
 #include <discnet/network/data_handler.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet_app/configuration.hpp>
@@ -62,6 +63,7 @@ namespace discnet::app
     struct udp_client
     {
         discnet::network::shared_multicast_client m_multicast;
+        discnet::network::shared_unicast_client m_unicast;
         discnet::network::shared_data_handler m_data_handler;
     };
 
@@ -117,7 +119,7 @@ namespace discnet::app
             if (itr_client != m_clients.end())
             {
                 auto& [uuid, udp_client] = *itr_client;
-                udp_client.m_multicast->write(recipient, buffer);
+                udp_client.m_unicast->write(recipient, buffer);
             }
         }
 
@@ -167,7 +169,7 @@ namespace discnet::app
         }
 
     private:
-        void remove_multicast_client(const discnet::adapter_t& adapter)
+        void remove_client(const discnet::adapter_t& adapter)
         {
             whatlog::logger log("multicast_handler::remove_multicast_client");
 
@@ -182,7 +184,7 @@ namespace discnet::app
             }
         }
         
-        void add_multicast_client(const discnet::adapter_t& adapter)
+        void add_client(const discnet::adapter_t& adapter)
         {
             whatlog::logger log("multicast_handler::add_multicast_client");
 
@@ -198,14 +200,19 @@ namespace discnet::app
                 return;
             }
 
-            discnet::network::multicast_info_t info;
-            info.m_adapter_address = adapter.m_address_list.front().first;
-            info.m_multicast_address = m_configuration.m_multicast_address;
-            info.m_multicast_port = m_configuration.m_multicast_port;
+            discnet::network::multicast_info_t multicast_info;
+            multicast_info.m_adapter_address = adapter.m_address_list.front().first;
+            multicast_info.m_multicast_address = m_configuration.m_multicast_address;
+            multicast_info.m_multicast_port = m_configuration.m_multicast_port;
+
+            discnet::network::unicast_info_t unicast_info;
+            unicast_info.m_address = adapter.m_address_list.front().first;
+            unicast_info.m_port = m_configuration.m_multicast_port + 1;
 
             udp_client client;
             client.m_data_handler = std::make_shared<discnet::network::data_handler>(4095);
-            client.m_multicast = discnet::network::multicast_client::create(m_io_context, info, client.m_data_handler);
+            client.m_multicast = discnet::network::multicast_client::create(m_io_context, multicast_info, client.m_data_handler);
+            client.m_unicast = discnet::network::unicast_client::create(m_io_context, unicast_info, client.m_data_handler);
 
             bool client_connected = client.m_multicast->open();
             size_t index = 1;
@@ -228,7 +235,7 @@ namespace discnet::app
                 return;
             }
 
-            log.info("Added adapater to our client map.", info.m_adapter_address.to_string());
+            log.info("Added adapater to our client map.", multicast_info.m_adapter_address.to_string());
             m_clients.insert(std::pair{adapter.m_guid, client});
         }
 
@@ -238,7 +245,7 @@ namespace discnet::app
             
             std::string adapter_guid_str = boost::lexical_cast<std::string>(adapter.m_guid);
             log.info("new adapter detected. Name: {}, guid: {}, mac: {}.", adapter.m_name, adapter_guid_str, adapter.m_mac_address);
-            add_multicast_client(adapter);
+            add_client(adapter);
         }
 
         void adapter_changed(const adapter_t& previous_adapter, const adapter_t& current_adapter)
@@ -252,13 +259,13 @@ namespace discnet::app
                 if (!current_adapter.m_multicast_enabled)
                 {
                     log.info("adapter {} multicast disabled. removing multicast client.", current_adapter.m_name);
-                    remove_multicast_client(previous_adapter);
+                    remove_client(previous_adapter);
                 }
                 else if (ip_address_changed)
                 {
                     log.info("adapter {} ip-address chaned. re-creating multicast client.", current_adapter.m_name);
-                    remove_multicast_client(previous_adapter);
-                    add_multicast_client(current_adapter);
+                    remove_client(previous_adapter);
+                    add_client(current_adapter);
                 }
             }
             else 
@@ -266,7 +273,7 @@ namespace discnet::app
                 if (current_adapter.m_multicast_enabled)
                 {
                     log.info("unknown adapter {} appeared. adding multicast client.", current_adapter.m_name);
-                    add_multicast_client(current_adapter);
+                    add_client(current_adapter);
                 }
             }
         }
@@ -274,7 +281,7 @@ namespace discnet::app
         void adapter_removed(const adapter_t& adapter)
         {
             whatlog::logger log("multicast_handler::adapter_removed");
-            remove_multicast_client(adapter);
+            remove_client(adapter);
         }
 
         void discovery_message_received(const discovery_message_t& message, const network_info_t& network_info)

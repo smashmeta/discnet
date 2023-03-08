@@ -55,19 +55,6 @@ namespace discnet::network
         return true;
     }
 
-    bool multicast_client::write(const discnet::address_t& recipient, const discnet::network::buffer_t& buffer)
-    {
-        using udp_t = boost::asio::ip::udp;
-        
-        discnet::error_code_t error;
-        auto const_buffer = boost::asio::const_buffer(buffer.data().data(), buffer.data().size());
-        udp_t::endpoint multicast_endpoint{recipient, m_info.m_multicast_port};
-        m_snd_socket->async_send_to(const_buffer, multicast_endpoint, 
-            boost::bind(&multicast_client::handle_write, shared_from_this(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
-        
-        return true;
-    }
-
     void multicast_client::handle_write(const boost::system::error_code& error, size_t bytes_transferred)
     {
         // todo: implement
