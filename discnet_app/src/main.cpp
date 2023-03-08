@@ -214,25 +214,40 @@ namespace discnet::app
             client.m_multicast = discnet::network::multicast_client::create(m_io_context, multicast_info, client.m_data_handler);
             client.m_unicast = discnet::network::unicast_client::create(m_io_context, unicast_info, client.m_data_handler);
 
-            bool client_connected = client.m_multicast->open();
+            bool unicast_enabled = client.m_unicast->open();
+            bool multicast_enabled = client.m_multicast->open();
             size_t index = 1;
             discnet::time_point_t start_time = discnet::time_point_t::clock::now();
             discnet::time_point_t current_time = start_time;
             discnet::time_point_t timeout = start_time + std::chrono::seconds(15); 
-            while (!client_connected && current_time < timeout)
+            while ((!unicast_enabled || !multicast_enabled) && current_time < timeout)
             {
                 log.info("retry connect #{}.", index);
                 // give the OS some time to initialize the adapter before we start listening
                 std::this_thread::sleep_for(std::chrono::seconds(1));
-                client_connected = client.m_multicast->open();
+                if (!multicast_enabled)
+                {
+                    multicast_enabled = client.m_multicast->open();
+                }
+                if (!unicast_enabled)
+                {
+                    unicast_enabled = client.m_unicast->open();
+                }
+                
                 current_time = discnet::time_point_t::clock::now();
                 ++index;
             }
 
-            if (!client_connected)
+            if (!multicast_enabled)
             {
-                log.error("failed to start multicast client. dropping multicast client on adapter.");
+                log.error("failed to start multicast client. dropping client for adapter.");
                 return;
+            }
+
+            if (!unicast_enabled)
+            {
+                log.error("failed to start unicast client. dropping client for adapter");
+                return;            
             }
 
             log.info("Added adapater to our client map.", multicast_info.m_adapter_address.to_string());
