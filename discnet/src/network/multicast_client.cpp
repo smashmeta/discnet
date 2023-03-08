@@ -3,65 +3,25 @@
  */
 
 #include <whatlog/logger.hpp>
-#include <discnet/network/data_handler.hpp>
 #include <discnet/network/multicast_client.hpp>
 
 
 namespace discnet::network
 {
-    shared_multicast_client multicast_client::create(discnet::shared_io_service io_service, multicast_info info, size_t buffer_size) 
+    shared_multicast_client multicast_client::create(discnet::shared_io_service io_service, multicast_info_t info, shared_data_handler data_handler) 
     {
-        return std::shared_ptr<multicast_client>(new multicast_client{io_service, info, buffer_size});
+        return std::shared_ptr<multicast_client>(new multicast_client{io_service, info, data_handler});
     }
 
-    multicast_client::multicast_client(discnet::shared_io_service io_service, multicast_info info, size_t buffer_size)
-        :   m_data_handler(new data_handler(4095)),
+    multicast_client::multicast_client(discnet::shared_io_service io_service, multicast_info_t info, shared_data_handler data_handler)
+        :   m_data_handler(data_handler),
             m_service(io_service), 
             m_rcv_socket(new discnet::socket_t{*io_service.get()}),
             m_snd_socket(new discnet::socket_t{*io_service.get()}),
-            m_rcv_buffer(buffer_size, '\0'),
+            m_rcv_buffer(12560, '\0'),
             m_info(info)
     {
         // nothing for now
-    }
-
-    void multicast_client::process()
-    {
-        if (!m_rcv_endpoint.address().is_v4())
-        {
-            // only supporting ipv4 for now
-            return;
-        }
-
-        network_info_t info;
-        info.m_adapter = m_info.m_adapter_address;
-        info.m_receiver = m_info.m_multicast_address;
-        info.m_sender = m_rcv_endpoint.address().to_v4();
-        info.m_reception_time = discnet::time_point_t::clock::now();
-
-        auto streams = m_data_handler->process();
-        for (const data_stream_packets_t& stream : streams)
-        {
-            for (const messages::packet_t& packet : stream.m_packets)
-            {
-                info.m_sender = stream.m_identifier.m_sender_ip;
-                info.m_receiver = stream.m_identifier.m_recipient_ip;
-
-                for (const auto& message : packet.m_messages)
-                {
-                    if (std::holds_alternative<messages::discovery_message_t>(message))
-                    {
-                        auto discovery_message = std::get<messages::discovery_message_t>(message);
-                        e_discovery_message_received(discovery_message, info);
-                    }
-                    else if (std::holds_alternative<messages::data_message_t>(message))
-                    {
-                        auto data_message = std::get<messages::data_message_t>(message);
-                        e_data_message_received(data_message, info);
-                    }
-                }
-            }
-        }
     }
 
     bool multicast_client::open()
@@ -89,6 +49,19 @@ namespace discnet::network
         discnet::error_code_t error;
         auto const_buffer = boost::asio::const_buffer(buffer.data().data(), buffer.data().size());
         udp_t::endpoint multicast_endpoint{m_info.m_multicast_address, m_info.m_multicast_port};
+        m_snd_socket->async_send_to(const_buffer, multicast_endpoint, 
+            boost::bind(&multicast_client::handle_write, shared_from_this(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+        
+        return true;
+    }
+
+    bool multicast_client::write(const discnet::address_t& recipient, const discnet::network::buffer_t& buffer)
+    {
+        using udp_t = boost::asio::ip::udp;
+        
+        discnet::error_code_t error;
+        auto const_buffer = boost::asio::const_buffer(buffer.data().data(), buffer.data().size());
+        udp_t::endpoint multicast_endpoint{recipient, m_info.m_multicast_port};
         m_snd_socket->async_send_to(const_buffer, multicast_endpoint, 
             boost::bind(&multicast_client::handle_write, shared_from_this(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
         
@@ -136,6 +109,11 @@ namespace discnet::network
     {
         m_rcv_socket->close();
         m_snd_socket->close();
+    }
+
+    multicast_info_t multicast_client::info() const
+    {
+        return m_info;
     }
 
     bool multicast_client::open_multicast_snd_socket()

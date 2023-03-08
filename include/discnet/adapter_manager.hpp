@@ -41,7 +41,7 @@ namespace discnet
         DISCNET_EXPORT std::expected<adapter_t, std::string> find_adapter(const boost::uuids::uuid& uuid) const;
     protected:
         std::unique_ptr<adapter_fetcher> m_fetcher;
-        std::map<uuid_t, adapter_t> m_adapters;
+        std::map<boost::uuids::uuid, adapter_t> m_adapters;
     };
 
     typedef std::shared_ptr<discnet::adapter_manager> shared_adapter_manager;

@@ -32,4 +32,6 @@ namespace discnet::network
         size_t m_buffer_size;
         std::mutex m_mutex;
     };
+
+    typedef std::shared_ptr<data_handler> shared_data_handler;
 }

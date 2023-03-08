@@ -95,7 +95,7 @@ TEST_F(route_manager_fixture, process_single_discovery_message)
     EXPECT_EQ(routes[0].m_identifier.m_reporter, network_info.m_sender); // direct node
     EXPECT_EQ(routes[0].m_status.m_online, true);
     ASSERT_EQ(routes[0].m_status.m_jumps.size(), 1);
-    EXPECT_EQ(routes[0].m_status.m_jumps[0], 256);
+    ASSERT_THAT(routes[0].m_status.m_jumps, ::testing::ElementsAre(256));
     // second: indirect route
     EXPECT_EQ(routes[1].m_identifier.m_node.m_id, 3);
     EXPECT_EQ(routes[1].m_identifier.m_node.m_address, ipv4::from_string("192.200.10.3"));
@@ -103,8 +103,7 @@ TEST_F(route_manager_fixture, process_single_discovery_message)
     EXPECT_EQ(routes[1].m_identifier.m_reporter, network_info.m_sender);
     EXPECT_EQ(routes[1].m_status.m_online, true);
     ASSERT_EQ(routes[1].m_status.m_jumps.size(), 2);
-    EXPECT_EQ(routes[1].m_status.m_jumps[0], 256);
-    EXPECT_EQ(routes[1].m_status.m_jumps[1], 256);
+    ASSERT_THAT(routes[1].m_status.m_jumps, ::testing::ElementsAre(256, 256));
 }
 
 TEST_F(route_manager_fixture, route_timeout)

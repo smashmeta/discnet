@@ -179,7 +179,7 @@ namespace discnet
             }
         }
 
-        typedef std::map<uuid_t, adapter_t> adapters_map_t;
+        typedef std::map<boost::uuids::uuid, adapter_t> adapters_map_t;
         for (adapters_map_t::const_iterator adapter_itr = m_adapters.cbegin(); adapter_itr != m_adapters.cend();)
         {
             auto existing_id = std::find_if(current_adapters.begin(), current_adapters.end(), 

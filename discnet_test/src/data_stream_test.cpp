@@ -28,8 +28,7 @@ protected:
         ASSERT_EQ(message.m_nodes.size(), 1);
         EXPECT_EQ(message.m_nodes[0].m_address.to_string(), "192.200.1.1");
         ASSERT_EQ(message.m_nodes[0].m_jumps.size(), 2);
-        EXPECT_EQ(message.m_nodes[0].m_jumps[0], 512);
-        EXPECT_EQ(message.m_nodes[0].m_jumps[1], 256);
+        ASSERT_THAT(message.m_nodes[0].m_jumps, ::testing::ElementsAre(512, 256));
     }
 
     void verify_data_message_1(const data_message_t& message)
