@@ -25,7 +25,7 @@ add_executable(discnet_app
 
 # adding thirdparty library dependencies
 target_link_libraries(discnet_app PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
-target_link_libraries(discnet_app PRIVATE Boost::log Boost::log_setup Boost::program_options)
+#target_link_libraries(discnet_app PRIVATE Boost::log Boost::log_setup Boost::program_options)
 target_link_libraries(discnet_app PRIVATE discnet)
 target_link_libraries(discnet_app PRIVATE whatlog::whatlog)
 

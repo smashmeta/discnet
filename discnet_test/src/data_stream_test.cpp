@@ -46,8 +46,8 @@ protected:
     }
 protected:
     discovery_message_t m_discovery = { .m_identifier = 1025 };
-    data_message_t m_msg_1 = { .m_identifier = 1, .m_buffer = { 1,2,3 } };
-    data_message_t m_msg_2 = { .m_identifier = 2, .m_buffer = { 4,5,6,7,8,9,10 } };
+    data_message_t m_msg_1 = {.m_identifier = 1, .m_buffer = {1,2,3}};
+    data_message_t m_msg_2 = {.m_identifier = 2, .m_buffer = {4,5,6,7,8,9,10}};
 };
 
 TEST_F(data_stream_fixture, no_packets)
@@ -74,7 +74,7 @@ TEST_F(data_stream_fixture, empty_packet)
 TEST_F(data_stream_fixture, single_packet)
 {
     data_stream stream{4096};
-    message_list_t message_list = { m_discovery, m_msg_1 };
+    message_list_t message_list = {m_discovery, m_msg_1};
 
     discnet::network::buffer_t buffer{1024};
     ASSERT_TRUE(packet_codec_t::encode(buffer, message_list));
@@ -89,8 +89,8 @@ TEST_F(data_stream_fixture, single_packet)
 TEST_F(data_stream_fixture, multiple_packets)
 {
     data_stream stream{4096};
-    message_list_t message_list_1 = { m_discovery, m_msg_1 };
-    message_list_t message_list_2 = { m_msg_2 };
+    message_list_t message_list_1 = {m_discovery, m_msg_1};
+    message_list_t message_list_2 = {m_msg_2};
 
     discnet::network::buffer_t buffer_packet_1{1024};
     ASSERT_TRUE(packet_codec_t::encode(buffer_packet_1, message_list_1));
