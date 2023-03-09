@@ -3,7 +3,7 @@
  */
 
 #include <iostream>
-#include <strstream>
+#include <sstream>
 #include <boost/program_options.hpp>
 #include <boost/asio.hpp>
 #include <whatlog/logger.hpp>
@@ -13,10 +13,10 @@ namespace discnet::application
 {
 namespace options
 {
+    static const std::string g_help = "help";
     static const std::string g_node_id = "node_id";
     static const std::string g_multicast_address = "address";
     static const std::string g_multicast_port = "port";
-    static const std::string g_adapter = "adapter";
 
     template <typename arg_type>
     arg_type get_command_line_argument(whatlog::logger& log, const std::string& arg_name, const boost::program_options::variables_map& variables, arg_type default_value = arg_type())
@@ -63,10 +63,15 @@ bool initialize_console_logger()
     return true;
 }
 
-std::expected<configuration_t, std::string> get_configuration(int arguments_count, const char** arguments_vector)
+expected_configuration_t get_configuration(int arguments_count, const char** arguments_vector)
 {
     using ipv4 = boost::asio::ip::address_v4;
     namespace bpo = boost::program_options;
+
+    if (arguments_count <= 1)
+    {
+        return std::unexpected("arguments missing. type --help for more information.");
+    }
 
     whatlog::logger log("configuration");
     configuration_t result;
@@ -74,11 +79,12 @@ std::expected<configuration_t, std::string> get_configuration(int arguments_coun
 
     // setting up available program options
     bpo::options_description description("Allowed program options");
-    description.add_options()(discnet::application::options::g_node_id.c_str(), bpo::value<uint16_t>(),
+    description.add_options()(options::g_help.c_str(), "produces help message");
+    description.add_options()(options::g_node_id.c_str(), bpo::value<uint16_t>(),
         "node identifier");
-	description.add_options()(discnet::application::options::g_multicast_address.c_str(), bpo::value<std::string>(), 
+	description.add_options()(options::g_multicast_address.c_str(), bpo::value<std::string>(), 
         "multicast address");
-    description.add_options()(discnet::application::options::g_multicast_port.c_str(), bpo::value<uint16_t>(), 
+    description.add_options()(options::g_multicast_port.c_str(), bpo::value<uint16_t>(), 
         "multicast port");
 
     // fetching program options from command line
@@ -89,18 +95,25 @@ std::expected<configuration_t, std::string> get_configuration(int arguments_coun
     }
     catch (const std::exception& ex)
     {
-        std::string error_message = std::format("failed to parse command line arguments. Reason: {}", ex.what());
+        std::string error_message = std::format("failed to parse command line arguments. Reason: {}.", ex.what());
         log.error(error_message);
         return std::unexpected(error_message);
     }
 
     // store program options 
     bpo::notify(variable_map);		
-    
-    if (variable_map.count(discnet::application::options::g_node_id))
+
+    if (variable_map.count(options::g_help))
     {
-        result.m_node_id = discnet::application::options::get_command_line_argument<uint16_t>(
-            log, discnet::application::options::g_node_id, variable_map, 0);
+        std::stringstream description_str;
+        description_str << description;
+        return std::unexpected(description_str.str());
+    }
+    
+    if (variable_map.count(options::g_node_id))
+    {
+        result.m_node_id = options::get_command_line_argument<uint16_t>(
+            log, options::g_node_id, variable_map, 0);
 
         if (result.m_node_id <= 0)
         {
@@ -116,10 +129,10 @@ std::expected<configuration_t, std::string> get_configuration(int arguments_coun
         return std::unexpected(error_message);
     }
 
-    if (variable_map.count(discnet::application::options::g_multicast_address))
+    if (variable_map.count(options::g_multicast_address))
     {
-        std::string multicast_address = discnet::application::options::get_command_line_argument<std::string>(
-            log, discnet::application::options::g_multicast_address, variable_map, "");
+        std::string multicast_address = options::get_command_line_argument<std::string>(
+            log, options::g_multicast_address, variable_map, "");
 
         boost::system::error_code error;
         result.m_multicast_address = ipv4::from_string(multicast_address, error);
@@ -138,10 +151,10 @@ std::expected<configuration_t, std::string> get_configuration(int arguments_coun
         return std::unexpected(error_message);
     }
 
-    if (variable_map.count(discnet::application::options::g_multicast_port))
+    if (variable_map.count(options::g_multicast_port))
     {
-        int multicast_port = discnet::application::options::get_command_line_argument<uint16_t>(
-            log, discnet::application::options::g_multicast_port, variable_map, 0);
+        int multicast_port = options::get_command_line_argument<uint16_t>(
+            log, options::g_multicast_port, variable_map, 0);
 
         if (multicast_port <= 0)
         {

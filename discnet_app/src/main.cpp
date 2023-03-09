@@ -164,17 +164,17 @@ int main(int arguments_count, const char** arguments_vector)
     whatlog::logger::initialize_file_logger(executable_directory, "discnet");
     whatlog::logger log("main");
 
-    auto configuration = discnet::application::get_configuration(arguments_count, arguments_vector);
+    discnet::application::expected_configuration_t configuration = discnet::application::get_configuration(arguments_count, arguments_vector);
     if (!configuration)
     {
         log.error("failed to load configuration. terminating application.");
         return EXIT_FAILURE;
     }
 
-    log.info("configuration loaded. node_id: {}, mc-address: {}, mc-port: {}", 
+    log.info("configuration loaded. node_id: {}, mc-address: {}, mc-port: {}.", 
         configuration->m_node_id, configuration->m_multicast_address.to_string(), configuration->m_multicast_port);
 
-    std::vector<std::string> thread_names = { "mercury", "venus" };
+    std::vector<std::string> thread_names = {"mercury", "venus"};
     const size_t worker_threads_count = thread_names.size();
 
     auto io_context = std::make_shared<boost::asio::io_context>((int)worker_threads_count);

@@ -16,6 +16,8 @@
 #include <discnet/network/messages/packet.hpp>
 #include <discnet/network/messages/discovery_message.hpp>
 #include <discnet/network/multicast_client.hpp>
+#include <discnet/application/configuration.hpp>
+
 
 namespace discnet::test
 {
@@ -39,6 +41,49 @@ TEST(main, sha256_file)
 {
     std::string hashed_file = discnet::sha256_file("C:\\windows\\system.ini");
     EXPECT_EQ(hashed_file, "6f533ccc79227e38f18bfc63bfc961ef4d3ee0e2bf33dd097ccf3548a12b743b");
+}
+
+TEST(arguments_parsing, normal_usage)
+{
+    const char* arguments[] = {"c:\\my_program_path.exe", "--node_id", "1234", "--address", "234.5.6.7", "--port", "1337"};
+    auto expected_configuration = discnet::application::get_configuration(7, arguments);
+    ASSERT_TRUE(expected_configuration.has_value());
+
+    discnet::application::configuration_t configuration = expected_configuration.value();
+    EXPECT_EQ(configuration.m_node_id, 1234);
+    EXPECT_EQ(configuration.m_multicast_address, discnet::address_t::from_string("234.5.6.7"));
+    EXPECT_EQ(configuration.m_multicast_port, 1337);
+}
+
+TEST(arguments_parsing, missing_arguments)
+{
+    const char* arguments[] = {"c:\\my_program_path.exe"};
+    auto expected_configuration = discnet::application::get_configuration(1, arguments);
+    ASSERT_FALSE(expected_configuration.has_value());
+    EXPECT_EQ(expected_configuration.error(), "arguments missing. type --help for more information.");
+}
+
+TEST(arguments_parsing, help)
+{
+    const char* arguments[] = {"c:\\my_program_path.exe", "--help"};
+    auto expected_configuration = discnet::application::get_configuration(2, arguments);
+    ASSERT_FALSE(expected_configuration.has_value());
+    ASSERT_THAT(expected_configuration.error(), ::testing::StartsWith("Allowed program options:"));
+}
+
+TEST(arguments_parsing, invalid_parameters_node_id)
+{
+    const char* arguments[] = {"c:\\my_program_path.exe", "--node_id", "abcd", "--address", "234.5.6.7", "--port", "1337"};
+    auto expected_configuration = discnet::application::get_configuration(7, arguments);
+    ASSERT_FALSE(expected_configuration.has_value());
+}
+
+TEST(arguments_parsing, invalid_parameters_address)
+{
+    const char* arguments[] = {"c:\\my_program_path.exe", "--node_id", "1234", "--address", "334.33.6.7", "--port", "1337"};
+    auto expected_configuration = discnet::application::get_configuration(7, arguments);
+    ASSERT_FALSE(expected_configuration.has_value());
+    EXPECT_EQ(expected_configuration.error(), "invalid multicast_address given.");
 }
 
 TEST(main, bytes_to_hex_string)
