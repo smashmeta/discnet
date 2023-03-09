@@ -7,7 +7,6 @@
 #include <chrono>
 #include <ranges>
 #include <boost/core/ignore_unused.hpp>
-#include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include <boost/dll.hpp>
 #include <boost/filesystem.hpp>
@@ -25,42 +24,13 @@
 #include <discnet/network/data_handler.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/application/configuration.hpp>
+#include <discnet_app/asio_context.hpp>
 
 
 namespace discnet::main
 {
     using shared_network_handler = discnet::network::shared_network_handler;
 
-    void work_handler(const std::string& thread_name, discnet::shared_io_context io_context)
-    {
-        whatlog::rename_thread(GetCurrentThread(), thread_name);
-        whatlog::logger log("work_handler");
-        log.info("starting thread {}.", thread_name);
-
-        for (;;)
-        {
-            try
-            {
-                boost::system::error_code error_code;
-                io_context->run(error_code);
-                if (error_code)
-                {
-                    log.error("worker thread encountered an error. message: ", error_code.message());
-                }
-
-                break;
-            }
-            catch (std::exception& ex)
-            {
-                log.warning("worker thread encountered an error. exception: {}.", std::string(ex.what()));
-            }
-            catch (...)
-            {
-                log.warning("worker thread encountered an unknown exception.");
-            }
-        }
-    }
-    
     class discovery_message_handler
     {
         typedef discnet::network::messages::discovery_message_t discovery_message_t;
@@ -149,7 +119,16 @@ namespace discnet::main
         shared_network_handler m_multicast_handler;
         discnet::application::configuration_t m_configuration;
     };
-}
+} // ! namespace discnet::main
+
+/*
+ *  - persistent node(s)
+ *  - transmission_handler: queue
+ *  - data_message_handler: message processing
+ *  - data_message_handler: message routing
+ *  - data_message_t: destination(s)
+ *  - data_message_t: replace
+ */
 
 int main(int arguments_count, const char** arguments_vector)
 {
@@ -173,28 +152,25 @@ int main(int arguments_count, const char** arguments_vector)
 
     log.info("configuration loaded. node_id: {}, mc-address: {}, mc-port: {}.", 
         configuration->m_node_id, configuration->m_multicast_address.to_string(), configuration->m_multicast_port);
-
-    std::vector<std::string> thread_names = {"mercury", "venus"};
-    const size_t worker_threads_count = thread_names.size();
-
-    auto io_context = std::make_shared<boost::asio::io_context>((int)worker_threads_count);
-    auto work = std::make_shared<boost::asio::io_context::work>(*io_context);
     
-    boost::thread_group worker_threads;
-    for (size_t i = 0; i < worker_threads_count; ++i)
-    {
-        worker_threads.create_thread(boost::bind(&discnet::main::work_handler, thread_names[i], io_context));
-    }
-
+    log.info("setting up asio network context...");
+    auto asio_context = std::make_shared<discnet::main::asio_context_t>();
+    log.info("setting up adapter_manager...");
     auto adapter_manager = std::make_shared<discnet::adapter_manager>(std::move(std::make_unique<discnet::windows_adapter_fetcher>()));
+    log.info("setting up route_manager...");
     auto route_manager = std::make_shared<discnet::route_manager>(adapter_manager);
-    auto network_handler = std::make_shared<discnet::network::network_handler>(adapter_manager, configuration.value(), io_context);
+    log.info("setting up network_handler...");
+    auto network_handler = std::make_shared<discnet::network::network_handler>(adapter_manager, configuration.value(), asio_context->m_io_context);
+    log.info("setting up discovery_handler...");
     auto discovery_handler = std::make_shared<discnet::main::discovery_message_handler>(network_handler, route_manager, adapter_manager);
+    log.info("setting up transmission_handler...");
     auto transmission_handler = std::make_shared<discnet::main::transmission_handler>(route_manager, network_handler, adapter_manager, configuration.value());
 
+    log.info("discnet initialized and running.");
     while (true)
     {
-        std::chrono::time_point current_time = discnet::time_point_t::clock::now();
+        auto current_time = discnet::time_point_t::clock::now();
+
         adapter_manager->update();
         network_handler->update();
         route_manager->update(current_time);

@@ -128,7 +128,7 @@ TEST(main, buffer_t__packet)
     using namespace discnet::network::messages;
 
     discovery_message_t discovery_message {.m_identifier = 1024};
-    discovery_message.m_nodes = { node_t{ 1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} } };
+    discovery_message.m_nodes = {node_t{1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256}}};
 
     data_message_t data_message {.m_identifier = 1};
     data_message.m_buffer = {1, 2, 3, 4, 5};
