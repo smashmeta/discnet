@@ -125,7 +125,7 @@ namespace discnet::network::messages
         auto valid = validate_packet(buffer);
         buffer.reset_read();
 
-        if (!valid.has_value())
+        if (!valid)
         {
             return std::unexpected(valid.error());
         }
@@ -140,7 +140,7 @@ namespace discnet::network::messages
         for (size_t i = 0; i < messages; ++i)
         {
             auto header = header_codec_t::decode(buffer);
-            if (!header.has_value())
+            if (!header)
             {
                 // early exist because we do not know what to do with the
                 // rest of the buffer if we get an invalid message
@@ -154,7 +154,7 @@ namespace discnet::network::messages
                 case message_type_e::discovery_message:
                     {
                         expected_discovery_message_t message = discovery_message_codec_t::decode(buffer);
-                        if (!message.has_value())
+                        if (!message)
                         {
                             return std::unexpected(std::format("failed to parse message number {}. error: {}", i, message.error()));
                         }
@@ -165,7 +165,7 @@ namespace discnet::network::messages
                 case message_type_e::data_message:
                     {
                         expected_data_message_t message = data_message_codec_t::decode(buffer);
-                        if (!message.has_value())
+                        if (!message)
                         {
                             return std::unexpected(std::format("failed to parse message number {}. error: {}", i, message.error()));
                         }

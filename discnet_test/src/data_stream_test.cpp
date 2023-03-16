@@ -19,27 +19,37 @@ class data_stream_fixture : public ::testing::Test
 protected:
     virtual void SetUp() override
     {
-        m_discovery.m_nodes = { node_t{ 1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} } };
+        m_discovery.m_nodes = { node_t{ 1026, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} } };
     }
 
-    void verify_discovery_message(const discovery_message_t& message)
+    void verify_discovery_message(const message_variant_t& message_variant)
     {
+        ASSERT_TRUE(std::holds_alternative<discovery_message_t>(message_variant));
+        const auto& message = std::get<discovery_message_t>(message_variant);
+
         EXPECT_EQ(message.m_identifier, 1025);
         ASSERT_EQ(message.m_nodes.size(), 1);
+        EXPECT_EQ(message.m_nodes[0].m_identifier, 1026);
         EXPECT_EQ(message.m_nodes[0].m_address.to_string(), "192.200.1.1");
         ASSERT_EQ(message.m_nodes[0].m_jumps.size(), 2);
         ASSERT_THAT(message.m_nodes[0].m_jumps, ::testing::ElementsAre(512, 256));
     }
 
-    void verify_data_message_1(const data_message_t& message)
+    void verify_data_message_1(const message_variant_t& message_variant)
     {
+        ASSERT_TRUE(std::holds_alternative<data_message_t>(message_variant));
+        const auto& message = std::get<data_message_t>(message_variant);
+
         EXPECT_EQ(message.m_identifier, 1);
         std::string hex_string = discnet::bytes_to_hex_string(message.m_buffer);
         EXPECT_EQ(hex_string, "01 02 03");
     }
 
-    void verify_data_message_2(const data_message_t& message)
+    void verify_data_message_2(const message_variant_t& message_variant)
     {
+        ASSERT_TRUE(std::holds_alternative<data_message_t>(message_variant));
+        auto message = std::get<data_message_t>(message_variant); 
+
         EXPECT_EQ(message.m_identifier, 2);
         std::string hex_string = discnet::bytes_to_hex_string(message.m_buffer);
         EXPECT_EQ(hex_string, "04 05 06 07 08 09 0A");
@@ -83,7 +93,11 @@ TEST_F(data_stream_fixture, single_packet)
     stream.handle_receive(cbuffer);
     auto packets = stream.process();
     ASSERT_EQ(packets.size(), 1);
-    ASSERT_EQ(packets[0].m_messages.size(), 2);
+
+    const auto& decoded_messages_1 = packets[0].m_messages;
+    ASSERT_EQ(decoded_messages_1.size(), 2);
+    verify_discovery_message(decoded_messages_1[0]);
+    verify_data_message_1(decoded_messages_1[1]);
 }
 
 TEST_F(data_stream_fixture, multiple_packets)
@@ -105,26 +119,15 @@ TEST_F(data_stream_fixture, multiple_packets)
     auto packets = stream.process();
 
     ASSERT_EQ(packets.size(), 2);
-    EXPECT_EQ(packets[0].m_messages.size(), 2);
-    EXPECT_EQ(packets[1].m_messages.size(), 1);
 
     const auto& decoded_messages_1 = packets[0].m_messages;
     ASSERT_EQ(decoded_messages_1.size(), 2);
-
-    ASSERT_TRUE(std::holds_alternative<discovery_message_t>(decoded_messages_1[0]));
-    auto decoded_discovery_message = std::get<discovery_message_t>(decoded_messages_1[0]);
-    verify_discovery_message(decoded_discovery_message);
-
-    ASSERT_TRUE(std::holds_alternative<data_message_t>(decoded_messages_1[1]));
-    auto decoded_data_message_1 = std::get<data_message_t>(decoded_messages_1[1]);
-    verify_data_message_1(decoded_data_message_1);
+    verify_discovery_message(decoded_messages_1[0]);
+    verify_data_message_1(decoded_messages_1[1]);
 
     const auto& decoded_messages_2 = packets[1].m_messages;
     ASSERT_EQ(decoded_messages_2.size(), 1);
-
-    ASSERT_TRUE(std::holds_alternative<data_message_t>(decoded_messages_2[0]));
-    auto decoded_data_message_2 = std::get<data_message_t>(decoded_messages_2[0]);
-    verify_data_message_2(decoded_data_message_2);
+    verify_data_message_2(decoded_messages_2[0]);
 }
 
 TEST_F(data_stream_fixture, partial_read)
@@ -146,6 +149,11 @@ TEST_F(data_stream_fixture, partial_read)
     stream.handle_receive(second_half);
     packets = stream.process();
     ASSERT_EQ(packets.size(), 1);
+
+    const auto& decoded_messages_1 = packets[0].m_messages;
+    ASSERT_EQ(decoded_messages_1.size(), 2);
+    verify_discovery_message(decoded_messages_1[0]);
+    verify_data_message_1(decoded_messages_1[1]);
 }
 
 TEST_F(data_stream_fixture, partial_read_multiple_packets)
@@ -166,11 +174,21 @@ TEST_F(data_stream_fixture, partial_read_multiple_packets)
     stream.handle_receive(cbuffer_1);
     stream.handle_receive(cbuffer_2_first_part);
     auto packets = stream.process();
+
     ASSERT_EQ(packets.size(), 1);
     EXPECT_EQ(packets[0].m_messages.size(), 2);
+
+    const auto& decoded_messages_1 = packets[0].m_messages;
+    ASSERT_EQ(decoded_messages_1.size(), 2);
+    verify_discovery_message(decoded_messages_1[0]);
+    verify_data_message_1(decoded_messages_1[1]);
 
     stream.handle_receive(cbuffer_2_second_part);
     packets = stream.process();
     ASSERT_EQ(packets.size(), 1);
     EXPECT_EQ(packets[0].m_messages.size(), 1);
+
+    const auto& decoded_messages_2 = packets[0].m_messages;
+    ASSERT_EQ(decoded_messages_2.size(), 1);
+    verify_data_message_2(decoded_messages_2[0]);
 }

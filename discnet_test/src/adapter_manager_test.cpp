@@ -82,8 +82,8 @@ TEST_F(adapter_manager_fixture, find_adapter)
         auto adapter_valid_192 = manager.find_adapter(ipv4::from_string("192.200.1.3"));
         ASSERT_TRUE(adapter_valid_192.has_value());
         EXPECT_EQ(adapter_valid_192.value().m_name, m_adapter_1.m_name);
-        auto adapter_failed_not_contained = manager.find_adapter(ipv4::from_string("10.11.12.13"));
-        EXPECT_FALSE(adapter_failed_not_contained.has_value());
+        auto invalid_adapter = manager.find_adapter(ipv4::from_string("10.11.12.13"));
+        EXPECT_FALSE(invalid_adapter.has_value());
     }
 }
 

@@ -31,12 +31,6 @@ source_group("src/network/" FILES ${SOURCE_NETWORK_GRP})
 source_group("src/network/messages/" FILES ${SOURCE_NETWORK_MESSAGES_GRP})
 source_group("src/windows/" FILES ${SOURCE_WINDOWS_GRP})
 
-# adding thirdparty include directories
-include_directories(${Boost_INCLUDE_DIRS})
-include_directories(${OpenSSL_INCLUDE_DIRS})
-include_directories(${discnet_INCLUDE_DIRS})
-include_directories(${whatlog_INCLUDE_DIRS})
-
 # setting up executable
 add_library(discnet SHARED
 	${SOURCE_DEFAULT_GRP}
@@ -50,9 +44,17 @@ add_library(discnet SHARED
     ${HEADERS_WINDOWS_GRP}
 )
 
+add_library(discnet::discnet_lib ALIAS discnet)
+
+# include_directories(${discnet_INCLUDE_DIRS})
+target_include_directories(discnet PUBLIC 
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<INSTALL_INTERFACE:include>
+)
+
 # adding thirdparty library dependencies
-target_link_libraries(discnet PRIVATE bcrypt)
+target_link_libraries(discnet PUBLIC bcrypt)
 target_link_libraries(discnet PRIVATE OpenSSL::Crypto)
 target_link_libraries(discnet PRIVATE whatlog::whatlog)
 target_link_libraries(discnet PRIVATE IPHLPAPI wbemuuid)
-target_link_libraries(discnet PRIVATE Boost::log Boost::log_setup Boost::program_options)
+target_link_libraries(discnet PUBLIC Boost::log Boost::log_setup Boost::program_options)

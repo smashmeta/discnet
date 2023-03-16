@@ -24,7 +24,8 @@ namespace discnet
     typedef std::shared_ptr<boost::asio::io_service> shared_io_service;
     typedef std::shared_ptr<boost::asio::io_context> shared_io_context;
     typedef std::shared_ptr<boost::asio::ip::udp::socket> shared_udp_socket;
-    using jumps_t = std::vector<uint16_t>;
+    using metric_t = uint16_t;
+    using jumps_t = std::vector<metric_t>;
 
     DISCNET_EXPORT std::string to_string(const jumps_t& jumps);
 

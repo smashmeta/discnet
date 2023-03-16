@@ -16,11 +16,6 @@ file(GLOB SOURCE_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 source_group("header/" FILES ${HEADERS_DEFAULT_GRP})
 source_group("src/" FILES ${SOURCE_DEFAULT_GRP})
 
-# adding thirdparty include directories
-include_directories(${Boost_INCLUDE_DIRS})
-include_directories(${discnet_INCLUDE_DIRS})
-include_directories(${whatlog_INCLUDE_DIRS})
-
 # setting up executable
 add_executable(discnet_test
     ${HEADERS_DEFAULT_GRP}
@@ -31,7 +26,7 @@ add_executable(discnet_test
 target_link_libraries(discnet_test PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
 target_link_libraries(discnet_test PRIVATE Boost::log)
 target_link_libraries(discnet_test PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
-target_link_libraries(discnet_test PRIVATE discnet)
+target_link_libraries(discnet_test PRIVATE discnet::discnet_lib)
 target_link_libraries(discnet_test PRIVATE whatlog::whatlog)
 
 ############# force copy of dependencies to build folder #############

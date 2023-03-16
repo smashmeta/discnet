@@ -1,4 +1,8 @@
 
+# project definition
+set(PROJECT_NAME "discnet_app")
+project(${PROJECT_NAME} VERSION ${DISCNET_VERSION} LANGUAGES CXX)
+
 # adding thirdparty dependencies
 find_package(Boost REQUIRED COMPONENTS program_options log)
 find_package(GTest CONFIG REQUIRED)
@@ -12,11 +16,6 @@ file(GLOB SOURCE_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 source_group("header/" FILES ${HEADERS_DEFAULT_GRP})
 source_group("src/" FILES ${SOURCE_DEFAULT_GRP})
 
-# adding thirdparty include directories
-include_directories(${Boost_INCLUDE_DIRS})
-include_directories(${discnet_INCLUDE_DIRS})
-include_directories(${whatlog_INCLUDE_DIRS})
-
 # setting up executable
 add_executable(discnet_app
     ${HEADERS_DEFAULT_GRP}
@@ -25,8 +24,8 @@ add_executable(discnet_app
 
 # adding thirdparty library dependencies
 target_link_libraries(discnet_app PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
-#target_link_libraries(discnet_app PRIVATE Boost::log Boost::log_setup Boost::program_options)
-target_link_libraries(discnet_app PRIVATE discnet)
+target_link_libraries(discnet_app PUBLIC Boost::log Boost::log_setup Boost::program_options)
+target_link_libraries(discnet_app PRIVATE discnet::discnet_lib)
 target_link_libraries(discnet_app PRIVATE whatlog::whatlog)
 
 ############# force copy of dependencies to build folder #############

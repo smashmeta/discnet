@@ -46,7 +46,8 @@ namespace discnet::main
 
         void handle_discovery_message(const discovery_message_t& message, const network_info_t& network_info)
         {
-            m_route_manager->process(network_info, message);
+            whatlog::logger log("discovery_message_handler::handle_discovery_message");
+            m_route_manager->process(message, network_info);
         }
     private:
         shared_route_manager m_route_manager;
@@ -59,8 +60,8 @@ namespace discnet::main
     {
         typedef discnet::shared_route_manager shared_route_manager;
     public:
-        transmission_handler(shared_route_manager route_manager, shared_network_handler multicast_hndlr, shared_adapter_manager adapter_manager, discnet::application::configuration_t configuration)
-            : m_route_manager(route_manager), m_multicast_handler(multicast_hndlr), m_adapter_manager(adapter_manager),
+        transmission_handler(shared_route_manager route_manager, shared_network_handler multicast_handler, shared_adapter_manager adapter_manager, discnet::application::configuration_t configuration)
+            : m_route_manager(route_manager), m_multicast_handler(multicast_handler), m_adapter_manager(adapter_manager),
                 m_last_discovery(discnet::time_point_t::clock::from_time_t(0)), m_interval(std::chrono::seconds(20)), m_configuration(configuration)
         {
             // nothing for now
@@ -96,7 +97,7 @@ namespace discnet::main
                 {
                     log.info("sending discovery message on adapter: {}.", adapter.m_name);
                     
-                    discnet::network::messages::discovery_message_t discovery {.m_identifier = m_configuration.m_node_id };
+                    discnet::network::messages::discovery_message_t discovery {.m_identifier = m_configuration.m_node_id};
                     auto routes = m_route_manager->find_routes_for_adapter(adapter.m_guid);
                     for (const auto& route : routes)
                     {
@@ -106,7 +107,7 @@ namespace discnet::main
                         discovery.m_nodes.push_back(indirect_node);
                     }
                     
-                    discnet::network::messages::message_list_t messages { discovery };
+                    discnet::network::messages::message_list_t messages {discovery};
                     m_multicast_handler->transmit_multicast(adapter, messages);
                 }
             }

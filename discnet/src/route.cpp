@@ -33,7 +33,7 @@ namespace discnet
 		return false;
 	}
 
-	bool is_direct_node(const route_identifier& route)
+	bool is_direct_node(const route_identifier_t& route)
 	{
 		if (route.m_node.m_address == route.m_reporter)
 		{
@@ -43,7 +43,7 @@ namespace discnet
 		return false;
 	}
 
-	bool contains(const std::span<route_identifier>& routes, const route_identifier& val)
+	bool contains(const std::span<route_identifier_t>& routes, const route_identifier_t& val)
 	{
 		for (auto& route : routes)
 		{
@@ -59,5 +59,12 @@ namespace discnet
 		}
 
 		return false;
+	}
+
+	std::string to_string(const route_identifier_t& route)
+	{
+		std::string result = std::format("[node: <id: {}, address: {}>, adapter: {}, reporter: {}]", 
+			route.m_node.m_id, route.m_node.m_address.to_string(), route.m_adapter.to_string(), route.m_reporter.to_string());
+		return result;
 	}
 }

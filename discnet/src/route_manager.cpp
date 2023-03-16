@@ -51,9 +51,9 @@ void route_manager::update(const time_point_t& current_time)
     }
 }
 
-bool route_manager::process(const network_info_t& network_info, const discovery_message_t& message)
+bool route_manager::process(const discovery_message_t& message, const network_info_t& network_info)
 {
-    whatlog::logger log("route_manager::process");
+    whatlog::logger log("route_manager::process(discovery_message_t)");
     log.info("received discovery message from {} on adapter {}.", message.m_identifier, network_info.m_adapter.to_string());
 
     auto adapter = m_adapter_manager->find_adapter(network_info.m_adapter);
@@ -64,22 +64,63 @@ bool route_manager::process(const network_info_t& network_info, const discovery_
     }
 
     // update sender information
+    jumps_t jumps {256};
     node_identifier_t sender_id {.m_id = message.m_identifier, .m_address = network_info.m_sender};
-    route_identifier route_id {.m_node = sender_id, .m_adapter = network_info.m_adapter, .m_reporter = network_info.m_sender};
-    bool result = process_route(adapter.value(), network_info, route_id, jumps_t{});
+    route_identifier_t route_id {.m_node = sender_id, .m_adapter = network_info.m_adapter, .m_reporter = network_info.m_sender};
+    bool result = process_route(adapter.value(), network_info.m_reception_time, route_id, jumps);
     
     for (const auto& indirect_node : message.m_nodes)
     {
         node_identifier_t indirect_node_id {.m_id = indirect_node.m_identifier, .m_address = indirect_node.m_address};
-        route_identifier indirect_route_id {.m_node = indirect_node_id, .m_adapter = network_info.m_adapter, .m_reporter = network_info.m_sender};
-        jumps_t previous_jumps = indirect_node.m_jumps;
-        result &= process_route(adapter.value(), network_info, indirect_route_id, previous_jumps);
+        route_identifier_t indirect_route_id {.m_node = indirect_node_id, .m_adapter = network_info.m_adapter, .m_reporter = network_info.m_sender};
+        jumps_t indirect_jumps = jumps;
+        
+        std::ranges::copy(indirect_node.m_jumps, std::back_inserter(indirect_jumps));
+        result &= process_route(adapter.value(), network_info.m_reception_time, indirect_route_id, indirect_jumps);
     }
     
     return result;
 }
 
-bool route_manager::process_route(const adapter_t& adapter, const network_info_t& network_info, const route_identifier& route_id, const jumps_t& jumps)
+bool route_manager::process(const persistent_route_t& route, const discnet::time_point_t& time)
+{
+    whatlog::logger log("route_manager::process(persistent_node_t)");
+    log.info("received persistent_route message on adapter {}.", route.m_identifier.m_adapter.to_string());
+
+    auto adapter = m_adapter_manager->find_adapter(route.m_identifier.m_adapter);
+    if (!adapter)
+    {
+        log.warning("failed to find adapter {} in adapter manager.", route.m_identifier.m_adapter.to_string());
+        return false;
+    }
+
+    node_identifier_t node_id = route.m_identifier.m_node;
+    route_identifier_t route_id {.m_node = node_id, .m_adapter = route.m_identifier.m_adapter, .m_reporter = route.m_identifier.m_reporter};
+    
+    bool result = process_route(adapter.value(), time, route_id, {route.m_metric});
+    if (result)
+    {
+        auto itr_routes = m_adapter_routes.find(adapter->m_guid);
+        if (itr_routes == m_adapter_routes.end())
+        {
+            log.warning("failed to find adapter {} in adapter manager.", route.m_identifier.m_adapter.to_string());
+            return false;
+        }
+
+        auto& [guid, routes] = *itr_routes;
+        auto itr_route = std::find_if(routes.begin(), routes.end(), [&](const auto& val){return val.m_identifier == route_id;});
+        if (itr_route == routes.end())
+        {
+            log.warning("failed to find insertered route {} in route_manager.", discnet::to_string(route_id));
+        }
+
+        itr_route->m_status.m_persistent = route.m_enabled;
+    }
+
+    return result;
+}
+
+bool route_manager::process_route(const adapter_t& adapter, const discnet::time_point_t& time, const route_identifier_t& route_id, const jumps_t& jumps)
 {
     whatlog::logger log("route_manager::process_node");
     auto itr_adapter_routes = m_adapter_routes.find(adapter.m_guid);
@@ -87,9 +128,8 @@ bool route_manager::process_route(const adapter_t& adapter, const network_info_t
     {
         // new route detected
         route_status_t status {.m_online = true, .m_mtu = adapter.m_mtu};
-        route_t route {.m_identifier = route_id, .m_last_discovery = network_info.m_reception_time, .m_status = status};
+        route_t route {.m_identifier = route_id, .m_last_discovery = time, .m_status = status};
         route.m_status.m_jumps = jumps;
-        route.m_status.m_jumps.push_back(256);
         m_adapter_routes.try_emplace(adapter.m_guid, routes_t{route});
 
         std::string route_info_str = std::format("(id: {}, address: {} - jumps: {})", route.m_identifier.m_node.m_id, 
@@ -106,9 +146,8 @@ bool route_manager::process_route(const adapter_t& adapter, const network_info_t
         {
             // new route detected
             route_status_t status {.m_online = true, .m_mtu = adapter.m_mtu};
-            route_t route {.m_identifier = route_id, .m_last_discovery = network_info.m_reception_time, .m_status = status};
+            route_t route {.m_identifier = route_id, .m_last_discovery = time, .m_status = status};
             route.m_status.m_jumps = jumps;
-            route.m_status.m_jumps.push_back(256);
             routes.push_back(route);
             
             std::string route_info_str = std::format("(id: {}, address: {} - jumps: {})", route.m_identifier.m_node.m_id, 
@@ -119,7 +158,8 @@ bool route_manager::process_route(const adapter_t& adapter, const network_info_t
         }
         else
         {
-            itr_route->m_last_discovery = network_info.m_reception_time;
+            // updating existing route
+            itr_route->m_last_discovery = time;
         }
     }
 
