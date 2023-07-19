@@ -38,8 +38,8 @@ namespace discnet::network
         DISCNET_EXPORT unicast_info_t info() const;
 
     private:
-        DISCNET_EXPORT void handle_write(const boost::system::error_code& error, size_t bytes_transferred);
-        DISCNET_EXPORT void handle_read(const boost::system::error_code& error, size_t bytes_received);
+        void handle_write(const boost::system::error_code& error, size_t bytes_transferred);
+        void handle_read(const boost::system::error_code& error, size_t bytes_received);
 
     protected:
         unicast_client(discnet::shared_io_service io_service, unicast_info_t info, shared_data_handler data_handler);

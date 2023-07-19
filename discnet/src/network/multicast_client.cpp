@@ -147,38 +147,30 @@ namespace discnet::network
         m_rcv_socket->open(multicast_endpoint.protocol(), error);
         if (error.failed())
         {
-            log.warning("failed to open socket on local address: {}, port: {}. Error: {}.", 
-                multicast_endpoint.address().to_string(), multicast_endpoint.port(), error.message());
             return false;
         }
         
         m_rcv_socket->set_option(udp_t::socket::reuse_address(true), error);
         if (error.failed())
         {
-            log.warning("failed to enable udp socket option: reuse_address. Error: {}.", error.message());
             return false;
         }
 
         m_rcv_socket->set_option(multicast::enable_loopback(false), error);
         if (error.failed())
         {
-            log.warning("failed to enable udp socket option: disable_loopback. Error: {}.", error.message());
             return false;
         }
         
         m_rcv_socket->bind(multicast_endpoint, error);
         if (error.failed())
         {
-            log.warning("failed to bind socket on local address: {}, port: {}. Error: {}.", 
-                multicast_endpoint.address().to_string(), multicast_endpoint.port(), error.message());
             return false;
         }
 
         m_rcv_socket->set_option(multicast::join_group(m_info.m_multicast_address, m_info.m_adapter_address), error);
         if (error.failed())
         {
-            log.warning("failed to enable udp socket option: join_group. multicast-address: {}, adapter-address: {}. Error: {}.", 
-                m_info.m_multicast_address.to_string(), m_info.m_adapter_address.to_string(), error.message());
             return false;
         }
 

@@ -20,6 +20,14 @@ namespace discnet::network
     void network_handler::transmit_multicast(const discnet::adapter_t& adapter, const discnet::network::messages::message_list_t& messages)
     {
         whatlog::logger log("multicast_handler::transmit_multicast");
+        
+        auto itr_client = m_clients.find(adapter.m_guid);
+        if (itr_client == m_clients.end())
+        {
+            log.error("failed to find client for adapter {} - message(s) dropped.", adapter.m_name);
+            return;
+        }
+        
         discnet::network::buffer_t buffer(4096);
         auto success = discnet::network::messages::packet_codec_t::encode(buffer, messages);
         if (!success)
@@ -27,17 +35,21 @@ namespace discnet::network
             log.error("failed to encode messages to a valid packet.");
         }
 
-        auto itr_client = m_clients.find(adapter.m_guid);
-        if (itr_client != m_clients.end())
-        {
-            auto& [uuid, udp_client] = *itr_client;
-            udp_client.m_multicast->write(buffer);
-        }
+        auto& [uuid, udp_client] = *itr_client;
+        udp_client.m_multicast->write(buffer);
     }
 
     void network_handler::transmit_unicast(const discnet::adapter_t& adapter, const::discnet::address_t& recipient, discnet::network::messages::message_list_t& messages)
     {
         whatlog::logger log("network_handler::transmit_unicast");
+
+        auto itr_client = m_clients.find(adapter.m_guid);
+        if (itr_client == m_clients.end())
+        {
+            log.error("failed to find client for adapter {} - message(s) dropped.", adapter.m_name);
+            return;
+        }
+
         discnet::network::buffer_t buffer(4096);
         auto success = discnet::network::messages::packet_codec_t::encode(buffer, messages);
         if (!success)
@@ -45,17 +57,37 @@ namespace discnet::network
             log.error("failed to encode messages to a valid packet.");
         }
 
-        auto itr_client = m_clients.find(adapter.m_guid);
-        if (itr_client != m_clients.end())
-        {
-            auto& [uuid, udp_client] = *itr_client;
-            udp_client.m_unicast->write(recipient, buffer);
-        }
+        auto& [uuid, udp_client] = *itr_client;
+        udp_client.m_unicast->write(recipient, buffer);
     }
 
     void network_handler::update()
     {
         whatlog::logger log("network_handler::update");
+
+        if (m_adapter_init_list.size() > 0)
+        {   // see if any new clients have been established
+            std::lock_guard<std::mutex> guard {m_adapter_init_list_mutex};
+            for (auto& adapter_connect : m_adapter_init_list)
+            {
+                if (adapter_connect.valid() && adapter_connect.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
+                {
+                    auto result = adapter_connect.get();
+                    if (result)
+                    {
+                        network_client_t client = result.value();
+                        log.info("now listening for messages on adapter {}.", client.m_multicast->info().m_adapter_address.to_string());
+                        m_adapter_manager->update_multicast_present(client.m_adapter_identifier, true);
+                        m_clients.insert(std::pair{client.m_adapter_identifier, client});
+                    }
+                    else
+                    {
+                        log.error("failed to create client. message: {}.", result.error());
+                    }
+                }
+            }
+        }
+
         for (auto& client : m_clients | std::views::values)
         {
             network_info_t network_info;
@@ -105,6 +137,48 @@ namespace discnet::network
         }
     }
 
+    network_handler::network_client_result_t network_handler::process_adapter(network_client_t client)
+    {
+        whatlog::rename_thread(GetCurrentThread(), "process_adapter");
+        whatlog::logger log("network_handler::process_adapter");
+
+        bool unicast_enabled = client.m_unicast->open();
+        bool multicast_enabled = client.m_multicast->open();
+        size_t index = 1;
+        discnet::time_point_t start_time = discnet::time_point_t::clock::now();
+        discnet::time_point_t current_time = start_time;
+        discnet::time_point_t timeout = start_time + std::chrono::seconds(15); 
+        while ((!unicast_enabled || !multicast_enabled) && current_time < timeout)
+        {
+            // log.info("retry connect #{}.", index);
+            // give the OS some time to initialize the adapter before we start listening
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            if (!multicast_enabled)
+            {
+                multicast_enabled = client.m_multicast->open();
+            }
+            if (!unicast_enabled)
+            {
+                unicast_enabled = client.m_unicast->open();
+            }
+            
+            current_time = discnet::time_point_t::clock::now();
+            ++index;
+        }
+
+        if (!multicast_enabled)
+        {
+            return std::unexpected("failed to start multicast client. dropping client for adapter");
+        }
+
+        if (!unicast_enabled)
+        {
+            return std::unexpected("failed to start unicast client. dropping client for adapter");            
+        }
+
+        return client;
+    }
+
     void network_handler::add_client(const discnet::adapter_t& adapter)
     {
         whatlog::logger log("network_handler::add_client");
@@ -134,45 +208,12 @@ namespace discnet::network
         client.m_data_handler = std::make_shared<discnet::network::data_handler>(4095);
         client.m_multicast = discnet::network::multicast_client::create(m_io_context, multicast_info, client.m_data_handler);
         client.m_unicast = discnet::network::unicast_client::create(m_io_context, unicast_info, client.m_data_handler);
+        client.m_adapter_identifier = adapter.m_guid;
 
-        bool unicast_enabled = client.m_unicast->open();
-        bool multicast_enabled = client.m_multicast->open();
-        size_t index = 1;
-        discnet::time_point_t start_time = discnet::time_point_t::clock::now();
-        discnet::time_point_t current_time = start_time;
-        discnet::time_point_t timeout = start_time + std::chrono::seconds(15); 
-        while ((!unicast_enabled || !multicast_enabled) && current_time < timeout)
         {
-            log.info("retry connect #{}.", index);
-            // give the OS some time to initialize the adapter before we start listening
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            if (!multicast_enabled)
-            {
-                multicast_enabled = client.m_multicast->open();
-            }
-            if (!unicast_enabled)
-            {
-                unicast_enabled = client.m_unicast->open();
-            }
-            
-            current_time = discnet::time_point_t::clock::now();
-            ++index;
+            std::lock_guard<std::mutex> guard {m_adapter_init_list_mutex};
+            m_adapter_init_list.push_back(std::async(std::launch::async, &network_handler::process_adapter, this, client));
         }
-
-        if (!multicast_enabled)
-        {
-            log.error("failed to start multicast client. dropping client for adapter.");
-            return;
-        }
-
-        if (!unicast_enabled)
-        {
-            log.error("failed to start unicast client. dropping client for adapter");
-            return;            
-        }
-
-        log.info("now listening for messages on adapter {}.", adapter.m_name);
-        m_clients.insert(std::pair{adapter.m_guid, client});
     }
 
     void network_handler::adapter_added(const adapter_t& adapter)

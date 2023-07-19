@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <future>
+#include <mutex>
 #include <discnet/discnet.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/application/configuration.hpp>
@@ -13,8 +15,9 @@
 
 namespace discnet::network
 {
-        struct network_client_t
+    struct network_client_t
     {
+        discnet::adapter_identifier_t m_adapter_identifier;
         discnet::network::shared_multicast_client m_multicast;
         discnet::network::shared_unicast_client m_unicast;
         discnet::network::shared_data_handler m_data_handler;
@@ -31,6 +34,9 @@ namespace discnet::network
         using multicast_info_t = discnet::network::multicast_info_t;
         using message_variant_t = discnet::network::messages::message_variant_t;
         using message_list_t = discnet::network::messages::message_list_t;
+
+        using network_client_result_t = std::expected<network_client_t, std::string>;
+        using network_client_future_t = std::future<network_client_result_t>;
         
     public:
         boost::signals2::signal<void(const discovery_message_t&, const network_info_t&)> e_discovery_message_received;
@@ -47,6 +53,8 @@ namespace discnet::network
         void remove_client(const adapter_t& adapter);
         void add_client(const adapter_t& adapter);
 
+        network_client_result_t process_adapter(network_client_t client);
+
         void adapter_added(const adapter_t& adapter);
         void adapter_changed(const adapter_t& previous_adapter, const adapter_t& current_adapter);
         void adapter_removed(const adapter_t& adapter);
@@ -55,6 +63,9 @@ namespace discnet::network
         discnet::application::configuration_t m_configuration;
         discnet::shared_io_context m_io_context;
         network_client_map_t m_clients;
+
+        std::mutex m_adapter_init_list_mutex;
+        std::vector<network_client_future_t> m_adapter_init_list;
     };
 
     using shared_network_handler = std::shared_ptr<network_handler>;

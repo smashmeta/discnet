@@ -85,6 +85,7 @@ namespace discnet
             result.push_back(std::format("description: {}", adapter.m_description));
             result.push_back(std::format("adapter enabled: {}", adapter.m_enabled));
             result.push_back(std::format("multicast enabled: {}", adapter.m_multicast_enabled));
+            result.push_back(std::format("multicast present: {}", adapter.m_multicast_present));
             result.push_back(std::format("mtu: {}", adapter.m_mtu));
             result.push_back(std::format("gateway: {}", adapter.m_gateway.to_string()));
             result.push_back(std::format("ipv4: {}", ipv4_info(adapter)));
@@ -114,6 +115,9 @@ namespace discnet
 
             bool multicast_enabled_changed = (lhs.m_multicast_enabled != rhs.m_multicast_enabled);
             if (multicast_enabled_changed) result.push_back(std::format("multicast enabled: {} => {}", lhs.m_multicast_enabled, rhs.m_multicast_enabled));
+
+            bool multicast_present_changed = (lhs.m_multicast_present != rhs.m_multicast_present);
+            if (multicast_present_changed) result.push_back(std::format("multicast present: {} => {}", lhs.m_multicast_present, rhs.m_multicast_present));
 
             bool mtu_changed = (lhs.m_mtu != rhs.m_mtu);
             if (mtu_changed) result.push_back(std::format("mtu: {} => {}", lhs.m_mtu, rhs.m_mtu));
@@ -161,8 +165,11 @@ namespace discnet
                         log.info(" - {}", change);
                     }
 
-                    e_changed(existing_adapter, current_adapter);
-                    m_adapters.insert_or_assign(current_adapter.m_guid, current_adapter);
+                    // if (changes.size() == 1 && !changes[0].contains("multicast_present"))
+                    {
+                        e_changed(existing_adapter, current_adapter);
+                        m_adapters.insert_or_assign(current_adapter.m_guid, current_adapter);
+                    }
                 }
             }
             else
@@ -196,6 +203,15 @@ namespace discnet
             {
                 adapter_itr = std::next(adapter_itr);
             }
+        }
+    }
+
+    void adapter_manager::update_multicast_present(const adapter_identifier_t& uuid, bool enabled)
+    {
+        auto itr_adapter = m_adapters.find(uuid);
+        if (itr_adapter != m_adapters.end())
+        {
+            itr_adapter->second.m_multicast_enabled = enabled;
         }
     }
 

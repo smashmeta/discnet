@@ -34,6 +34,7 @@ namespace discnet
         std::string m_description = {};
         bool m_enabled = false;
         bool m_multicast_enabled = false;
+        bool m_multicast_present = true;
         std::list<address_mask_t> m_address_list = {};
         address_t m_gateway = discnet::address_t::any();
         mtu_type_t m_mtu = 0;
