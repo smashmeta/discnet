@@ -13,7 +13,7 @@ namespace discnet::network::messages
 {
     struct data_message_t
     {
-        uint16_t m_identifier = init_required;
+        uint16_t m_identifier = 0;
         std::vector<discnet::byte_t> m_buffer = {};
     };
 

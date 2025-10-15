@@ -45,21 +45,21 @@ public:
         m_adapter_1.m_description = "description_adapter_1";
         m_adapter_1.m_enabled = false;
         m_adapter_1.m_multicast_enabled = true;
-        m_adapter_1.m_gateway = ipv4::from_string("0.0.0.0");
+        m_adapter_1.m_gateway = boost::asio::ip::make_address_v4("0.0.0.0");
         m_adapter_1.m_address_list = { 
-            {ipv4::from_string("192.200.1.3"), ipv4::from_string("255.255.255.0")},
-            {ipv4::from_string("192.169.40.130"), ipv4::from_string("255.255.255.0")} 
+            {boost::asio::ip::make_address_v4("192.200.1.3"), boost::asio::ip::make_address_v4("255.255.255.0")},
+            {boost::asio::ip::make_address_v4("192.169.40.130"), boost::asio::ip::make_address_v4("255.255.255.0")} 
         };
 
         m_adapter_2.m_guid = boost::uuids::random_generator()();
         m_adapter_2.m_index = 1;
         m_adapter_2.m_name = "test_adapter_2";
         m_adapter_2.m_description = "description_adapter_2";
-        m_adapter_2.m_gateway = ipv4::from_string("0.0.0.0");
+        m_adapter_2.m_gateway = boost::asio::ip::make_address_v4("0.0.0.0");
         m_adapter_2.m_enabled = true;
         m_adapter_2.m_multicast_enabled = true;
         m_adapter_2.m_address_list = { 
-            {ipv4::from_string("10.0.0.1"), ipv4::from_string("255.255.255.0")}
+            {boost::asio::ip::make_address_v4("10.0.0.1"), boost::asio::ip::make_address_v4("255.255.255.0")}
         };
     }
 protected:
@@ -76,13 +76,13 @@ TEST_F(adapter_manager_fixture, find_adapter)
         discnet::adapter_manager manager { std::move(fetcher) };
         manager.update();
 
-        auto adapter_valid_10 = manager.find_adapter(ipv4::from_string("10.0.0.1"));
+        auto adapter_valid_10 = manager.find_adapter(boost::asio::ip::make_address_v4("10.0.0.1"));
         ASSERT_TRUE(adapter_valid_10.has_value());
         EXPECT_EQ(adapter_valid_10.value().m_guid, m_adapter_2.m_guid);
-        auto adapter_valid_192 = manager.find_adapter(ipv4::from_string("192.200.1.3"));
+        auto adapter_valid_192 = manager.find_adapter(boost::asio::ip::make_address_v4("192.200.1.3"));
         ASSERT_TRUE(adapter_valid_192.has_value());
         EXPECT_EQ(adapter_valid_192.value().m_name, m_adapter_1.m_name);
-        auto invalid_adapter = manager.find_adapter(ipv4::from_string("10.11.12.13"));
+        auto invalid_adapter = manager.find_adapter(boost::asio::ip::make_address_v4("10.11.12.13"));
         EXPECT_FALSE(invalid_adapter.has_value());
     }
 }

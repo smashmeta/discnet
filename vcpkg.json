@@ -11,6 +11,7 @@
     "boost-lexical-cast",
     "boost-dll",
 	  "gtest",
-    "openssl"
+    "openssl",
+    "spdlog"
   ]
 }

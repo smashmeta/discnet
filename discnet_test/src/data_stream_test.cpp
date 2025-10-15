@@ -19,7 +19,7 @@ class data_stream_fixture : public ::testing::Test
 protected:
     virtual void SetUp() override
     {
-        m_discovery.m_nodes = { node_t{ 1026, ipv4::from_string("192.200.1.1"), jumps_t{512, 256} } };
+        m_discovery.m_nodes = { node_t{ 1026, boost::asio::ip::make_address_v4("192.200.1.1"), jumps_t{512, 256} } };
     }
 
     void verify_discovery_message(const message_variant_t& message_variant)

@@ -1,8 +1,8 @@
 
 # adding thirdparty dependencies
-find_package(Boost REQUIRED COMPONENTS program_options log)
+find_package(Boost REQUIRED COMPONENTS program_options log log_setup)
 find_package(OpenSSL REQUIRED)
-find_package(whatlog REQUIRED whatlog)
+find_package(spdlog REQUIRED)
 
 add_compile_definitions(DISCNET_DLL)
 
@@ -37,11 +37,13 @@ add_library(discnet SHARED
     ${SOURCE_APPLICATION_GRP}
     ${SOURCE_NETWORK_GRP}
     ${SOURCE_NETWORK_MESSAGES_GRP}
-    ${SOURCE_WINDOWS_GRP}
+# if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+#     ${SOURCE_WINDOWS_GRP}
+#     ${HEADERS_WINDOWS_GRP}
+# endif()
     ${HEADERS_DEFAULT_GRP}
     ${HEADERS_NETWORK_GRP}
     ${HEADERS_NETWORK_MESSAGES_GRP}
-    ${HEADERS_WINDOWS_GRP}
 )
 
 add_library(discnet::discnet_lib ALIAS discnet)
@@ -53,8 +55,10 @@ target_include_directories(discnet PUBLIC
 )
 
 # adding thirdparty library dependencies
-target_link_libraries(discnet PUBLIC bcrypt)
 target_link_libraries(discnet PRIVATE OpenSSL::Crypto)
-target_link_libraries(discnet PRIVATE whatlog::whatlog)
-target_link_libraries(discnet PRIVATE IPHLPAPI wbemuuid)
+target_link_libraries(discnet PRIVATE spdlog::spdlog)
 target_link_libraries(discnet PUBLIC Boost::log Boost::log_setup Boost::program_options)
+# if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+#     target_link_libraries(discnet PUBLIC bcrypt)
+#     target_link_libraries(discnet PRIVATE IPHLPAPI wbemuuid)
+# endif()

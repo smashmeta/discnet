@@ -13,9 +13,9 @@ namespace discnet
     struct route_identifier_t
     {
         bool operator==(const route_identifier_t&) const = default;
-        node_identifier_t m_node = init_required;
-        address_t m_adapter = init_required;
-        address_t m_reporter = init_required;
+        node_identifier_t m_node;
+        address_t m_adapter;
+        address_t m_reporter;
     };
 
     struct route_status_t
@@ -37,7 +37,7 @@ namespace discnet
     */
     struct route_t
     {
-        route_identifier_t m_identifier = init_required;
+        route_identifier_t m_identifier;
         time_point_t m_last_discovery = time_point_t::min();
         time_point_t m_last_data_message = time_point_t::min();
         route_status_t m_status = route_status_t();

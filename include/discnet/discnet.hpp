@@ -12,10 +12,14 @@
 #include <boost/signals2.hpp>
 #include <memory>
 
-#ifdef DISCNET_DLL
-#  define DISCNET_EXPORT __declspec(dllexport)
+#if defined(_WIN32)
+    #ifdef DISCNET_DLL
+        #define DISCNET_EXPORT __declspec(dllexport)
+    #else
+        #define DISCNET_EXPORT __declspec(dllimport)
+    #endif
 #else
-#  define DISCNET_EXPORT __declspec(dllimport)
+    #define DISCNET_EXPORT
 #endif
 
 namespace discnet

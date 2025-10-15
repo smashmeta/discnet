@@ -22,7 +22,6 @@ namespace discnet
     typedef std::chrono::system_clock::duration duration_t;
     typedef std::chrono::duration<float, std::milli> duration_ms_t;
     typedef std::pair<address_t, address_t> address_mask_t; 
-    typedef std::shared_ptr<boost::asio::io_service> shared_io_service;
     typedef std::shared_ptr<boost::asio::io_context> shared_io_context;
     typedef std::shared_ptr<boost::asio::ip::udp::socket> shared_udp_socket;
     using metric_t = uint16_t;
@@ -30,11 +29,28 @@ namespace discnet
 
     DISCNET_EXPORT std::string to_string(const jumps_t& jumps);
 
+#ifdef _win32
+	#pragma warning( push )
+	#pragma warning( disable : 4996 )
+#elif defined(__GNUC__) && !defined(__clang__)
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wlanguage-extension-token"
+#else
+	#pragma clang diagnostic push
+	#pragma clang diagnostic ignored "-Wlanguage-extension-token"
+#endif
     struct init_required_t 
     {
         template <class T>
-        operator T() const { static_assert(typeof(T) == 0, "struct memeber not initialized"); }
+        operator T() const { static_assert(false, "struct memeber not initialized"); }
     } static const init_required;
+#ifdef _win32
+	#pragma warning( pop )
+#elif defined(__GNUC__) && !defined(__clang__)
+	#pragma GCC diagnostic pop
+#else
+	#pragma clang diagnostic pop
+#endif
 
     namespace network
     {

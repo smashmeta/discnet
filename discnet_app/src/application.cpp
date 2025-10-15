@@ -2,7 +2,7 @@
  *
  */
 
-#include <whatlog/logger.hpp>
+// #include <whatlog/logger.hpp>
 #include <discnet/application/configuration.hpp>
 #include <discnet_app/asio_context.hpp>
 #include <discnet/adapter_manager.hpp>
@@ -51,7 +51,7 @@ namespace discnet::main
 
         void handle_discovery_message(const discovery_message_t& message, const network_info_t& network_info)
         {
-            whatlog::logger log("discovery_message_handler::handle_discovery_message");
+            // whatlog::logger log("discovery_message_handler::handle_discovery_message");
             m_route_manager->process(message, network_info);
         }
     private:
@@ -64,8 +64,12 @@ namespace discnet::main
         typedef discnet::shared_route_manager shared_route_manager;
     public:
         transmission_handler(shared_route_manager route_manager, discnet::network::shared_network_handler multicast_handler, shared_adapter_manager adapter_manager, discnet::application::configuration_t configuration)
-            : m_route_manager(route_manager), m_network_handler(multicast_handler), m_adapter_manager(adapter_manager),
-                m_last_discovery(discnet::time_point_t::min()), m_interval(std::chrono::seconds(20)), m_configuration(configuration)
+            : m_last_discovery(discnet::time_point_t::min()),
+            m_interval(std::chrono::seconds(20)),     
+            m_adapter_manager(adapter_manager),
+            m_route_manager(route_manager), 
+            m_network_handler(multicast_handler), 
+            m_configuration(configuration)
         {
             // nothing for now
         }
@@ -102,13 +106,13 @@ namespace discnet::main
     private:
         void transmit_discovery_message()
         {
-            whatlog::logger log("transmission_handler::transmit_discovery_message");
+            // whatlog::logger log("transmission_handler::transmit_discovery_message");
             auto adapters = m_adapter_manager->adapters();
             for (discnet::adapter_t& adapter : adapters)
             {
                 if (adapter.m_enabled && adapter.m_multicast_present)
                 {
-                    log.info("sending discovery message on adapter: {}.", adapter.m_name);
+                    // log.info("sending discovery message on adapter: {}.", adapter.m_name);
                     
                     discnet::network::messages::discovery_message_t discovery {.m_identifier = m_configuration.m_node_id};
                     auto routes = m_route_manager->find_routes_for_adapter(adapter.m_guid);
@@ -182,20 +186,20 @@ namespace discnet::main
 
     bool application::initialize()
     {
-        whatlog::logger log("application::initialize");
+        // whatlog::logger log("application::initialize");
 
-        log.info("setting up asio network context...");
+        // log.info("setting up asio network context...");
         m_asio_context = std::make_shared<discnet::main::asio_context_t>();
-        log.info("setting up adapter_manager...");
-        m_adapter_manager = std::make_shared<discnet::adapter_manager>(std::move(std::make_unique<discnet::windows_adapter_fetcher>()));
-        log.info("setting up route_manager...");
-        m_route_manager = std::make_shared<discnet::route_manager>(adapter_manager);
-        log.info("setting up network_handler...");
-        m_network_handler = std::make_shared<discnet::network::network_handler>(adapter_manager, m_configuration, m_asio_context->m_io_context);
-        log.info("setting up discovery_handler...");
-        m_discovery_handler = std::make_shared<discnet::main::discovery_message_handler>(network_handler, route_manager, adapter_manager);
-        log.info("setting up transmission_handler...");
-        m_transmission_handler = std::make_shared<discnet::main::transmission_handler>(route_manager, network_handler, adapter_manager, m_configuration);
+        // log.info("setting up adapter_manager...");
+        // m_adapter_manager =  std::make_shared<discnet::adapter_manager>(std::move(std::make_unique<discnet::windows_adapter_fetcher>()));
+        // log.info("setting up route_manager...");
+        m_route_manager = std::make_shared<discnet::route_manager>(m_adapter_manager);
+        // log.info("setting up network_handler...");
+        m_network_handler = std::make_shared<discnet::network::network_handler>(m_adapter_manager, m_configuration, m_asio_context->m_io_context);
+        // log.info("setting up discovery_handler...");
+        m_discovery_message_handler = std::make_shared<discnet::main::discovery_message_handler>(m_network_handler, m_route_manager, m_adapter_manager);
+        // log.info("setting up transmission_handler...");
+        m_transmission_handler = std::make_shared<discnet::main::transmission_handler>(m_route_manager, m_network_handler, m_adapter_manager, m_configuration);
 
         return true;
     }

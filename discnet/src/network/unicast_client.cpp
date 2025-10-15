@@ -2,22 +2,22 @@
  *
  */
 
-#include <whatlog/logger.hpp>
+// #include <whatlog/logger.hpp>
 #include <discnet/network/unicast_client.hpp>
 
 
 namespace discnet::network
 {
-    shared_unicast_client unicast_client::create(discnet::shared_io_service io_service, unicast_info_t info, shared_data_handler data_handler) 
+    shared_unicast_client unicast_client::create(discnet::shared_io_context io_context, unicast_info_t info, shared_data_handler data_handler) 
     {
-        return std::shared_ptr<unicast_client>(new unicast_client{io_service, info, data_handler});
+        return std::shared_ptr<unicast_client>(new unicast_client{io_context, info, data_handler});
     }
 
-    unicast_client::unicast_client(discnet::shared_io_service io_service, unicast_info_t info, shared_data_handler data_handler)
+    unicast_client::unicast_client(discnet::shared_io_context io_context, unicast_info_t info, shared_data_handler data_handler)
         :   m_data_handler(data_handler),
-            m_service(io_service), 
-            m_rcv_socket(new discnet::socket_t{*io_service.get()}),
-            m_snd_socket(new discnet::socket_t{*io_service.get()}),
+            m_context(io_context), 
+            m_rcv_socket(new discnet::socket_t{*io_context.get()}),
+            m_snd_socket(new discnet::socket_t{*io_context.get()}),
             m_rcv_buffer(12560, '\0'),
             m_info(info)
     {
@@ -46,7 +46,6 @@ namespace discnet::network
     {
         using udp_t = boost::asio::ip::udp;
         
-        discnet::error_code_t error;
         auto const_buffer = boost::asio::const_buffer(buffer.data().data(), buffer.data().size());
         udp_t::endpoint unicast_endpoint{recipient, m_info.m_port};
         m_snd_socket->async_send_to(const_buffer, unicast_endpoint, 
@@ -64,7 +63,7 @@ namespace discnet::network
 
     void unicast_client::handle_read(const boost::system::error_code& error, size_t bytes_received)
     {
-        whatlog::logger log("unicast_client::handle_read");
+        // whatlog::logger log("unicast_client::handle_read");
         if (!error)
         {
             m_data_handler->handle_receive(
@@ -75,12 +74,12 @@ namespace discnet::network
         {
             if (error == boost::asio::error::connection_aborted)
             {
-                log.info("closing unicast connection on adapter {}.", m_info.m_address.to_string());
+                // log.info("closing unicast connection on adapter {}.", m_info.m_address.to_string());
                 close();
             }
             else
             {
-                log.warning("error reading data. id: {}, message: {}.", error.value(), error.message());
+                // log.warning("error reading data. id: {}, message: {}.", error.value(), error.message());
             }
             
             return;
@@ -106,7 +105,7 @@ namespace discnet::network
     bool unicast_client::open_unicast_snd_socket()
     {
         using udp_t = boost::asio::ip::udp;
-        whatlog::logger log("open_unicast_snd_socket");
+        // whatlog::logger log("open_unicast_snd_socket");
 
         discnet::error_code_t error;
         udp_t::endpoint unicast_endpoint{m_info.m_address, m_info.m_port};
@@ -114,8 +113,8 @@ namespace discnet::network
         m_snd_socket->open(unicast_endpoint.protocol(), error);
         if (error.failed())
         {
-            log.warning("failed to open socket on local address: {}, port: {}. Error: {}.", 
-                unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
+            // log.warning("failed to open socket on local address: {}, port: {}. Error: {}.", 
+            //    unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
             return false;
         }
 
@@ -125,11 +124,11 @@ namespace discnet::network
     bool unicast_client::open_unicast_rcv_socket()
     {
         using udp_t = boost::asio::ip::udp;
-        whatlog::logger log("open_unicast_rcv_socket");
+        // whatlog::logger log("open_unicast_rcv_socket");
 
-        log.info("setting up unicast listening socket - addr: {}, port: {}.", 
-            m_info.m_address.to_string(),
-            m_info.m_port);
+        // log.info("setting up unicast listening socket - addr: {}, port: {}.", 
+        //    m_info.m_address.to_string(),
+        //    m_info.m_port);
 
         udp_t::endpoint unicast_endpoint{m_info.m_address, m_info.m_port};
         
@@ -137,23 +136,23 @@ namespace discnet::network
         m_rcv_socket->open(unicast_endpoint.protocol(), error);
         if (error.failed())
         {
-            log.warning("failed to open socket on local address: {}, port: {}. Error: {}.", 
-                unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
+            // log.warning("failed to open socket on local address: {}, port: {}. Error: {}.", 
+            //    unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
             return false;
         }
         
         m_rcv_socket->set_option(udp_t::socket::reuse_address(true), error);
         if (error.failed())
         {
-            log.warning("failed to enable udp socket option: reuse_address. Error: {}.", error.message());
+            // log.warning("failed to enable udp socket option: reuse_address. Error: {}.", error.message());
             return false;
         }
         
         m_rcv_socket->bind(unicast_endpoint, error);
         if (error.failed())
         {
-            log.warning("failed to bind socket on local address: {}, port: {}. Error: {}.", 
-                unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
+            // log.warning("failed to bind socket on local address: {}, port: {}. Error: {}.", 
+            //    unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
             return false;
         }
 

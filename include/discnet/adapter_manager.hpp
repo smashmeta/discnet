@@ -6,7 +6,6 @@
 
 #include <expected>
 #include <discnet/adapter.hpp>
-#include <discnet/windows/wbem_consumer.hpp>
 
 namespace discnet
 {
@@ -16,14 +15,7 @@ namespace discnet
         virtual ~adapter_fetcher() {}
         virtual std::vector<adapter_t> get_adapters() = 0; 
     };
-
-    class windows_adapter_fetcher : public adapter_fetcher
-    {
-    public:
-        DISCNET_EXPORT windows_adapter_fetcher();
-        DISCNET_EXPORT std::vector<adapter_t> get_adapters() override;
-    };
-
+    
     class adapter_manager
     {
     public:

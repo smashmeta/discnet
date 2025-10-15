@@ -29,7 +29,7 @@ namespace discnet::network
     class multicast_client : public std::enable_shared_from_this<multicast_client>
     {
     public:
-        [[nodiscard]] static DISCNET_EXPORT shared_multicast_client create(discnet::shared_io_service io_service, multicast_info_t info, shared_data_handler data_handler);
+        [[nodiscard]] static DISCNET_EXPORT shared_multicast_client create(discnet::shared_io_context io_context, multicast_info_t info, shared_data_handler data_handler);
 
         DISCNET_EXPORT bool open();
         DISCNET_EXPORT bool write(const discnet::network::buffer_t& buffer);
@@ -42,14 +42,14 @@ namespace discnet::network
         void handle_read(const boost::system::error_code& error, size_t bytes_received);
 
     protected:
-        multicast_client(discnet::shared_io_service io_service, multicast_info_t info, shared_data_handler data_handler);
+        multicast_client(discnet::shared_io_context io_context, multicast_info_t info, shared_data_handler data_handler);
 
     private:
         bool open_multicast_snd_socket();
         bool open_multicast_rcv_socket();
 
         shared_data_handler m_data_handler;
-        discnet::shared_io_service m_service;
+        discnet::shared_io_context m_context;
         discnet::shared_udp_socket m_rcv_socket;
         discnet::shared_udp_socket m_snd_socket;
         std::vector<discnet::byte_t> m_rcv_buffer;

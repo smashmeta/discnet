@@ -2,7 +2,7 @@
 # adding thirdparty dependencies
 find_package(Boost REQUIRED COMPONENTS program_options log)
 find_package(GTest CONFIG REQUIRED)
-find_package(whatlog REQUIRED whatlog)
+find_package(spdlog REQUIRED)
 
 # enabling and adding google tests
 enable_testing()
@@ -23,18 +23,10 @@ add_executable(discnet_test
 )
 
 # adding thirdparty library dependencies
-target_link_libraries(discnet_test PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    target_link_libraries(discnet_test PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
+endif()
 target_link_libraries(discnet_test PRIVATE Boost::log)
 target_link_libraries(discnet_test PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
 target_link_libraries(discnet_test PRIVATE discnet::discnet_lib)
-target_link_libraries(discnet_test PRIVATE whatlog::whatlog)
-
-############# force copy of dependencies to build folder #############
-
-add_custom_command( 
-	TARGET discnet_test POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_RUNTIME_DLLS:discnet_test>
-        $<TARGET_FILE_DIR:discnet_test>
-        COMMAND_EXPAND_LISTS
-)
+target_link_libraries(discnet_test PRIVATE spdlog::spdlog)

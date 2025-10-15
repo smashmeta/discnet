@@ -31,7 +31,7 @@ namespace discnet::network::messages
     */
     struct discovery_message_t
     {
-        uint16_t m_identifier = init_required;
+        uint16_t m_identifier = 0;
         nodes_vector_t m_nodes = {};
     };
 

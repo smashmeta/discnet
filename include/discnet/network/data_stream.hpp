@@ -11,8 +11,8 @@ namespace discnet::network
 {
     struct data_stream_identifier
     {
-        discnet::address_t m_sender_ip = discnet::init_required;
-        discnet::address_t m_recipient_ip = discnet::init_required;
+        discnet::address_t m_sender_ip;
+        discnet::address_t m_recipient_ip;
 
         DISCNET_EXPORT bool operator<(const data_stream_identifier& rhs) const;
     };

@@ -19,9 +19,9 @@ namespace discnet::network
     }
 
     data_stream::data_stream(size_t buffer_size)
-        :   m_buffer(buffer_size, 0), 
-            m_inital_receive(discnet::time_point_t::clock::now()),  
-            m_last_received(m_inital_receive)
+        :   m_inital_receive(discnet::time_point_t::clock::now()),  
+            m_last_received(m_inital_receive),
+            m_buffer(buffer_size, 0)
     {
         // nothing for now
         m_buffer.resize(0);

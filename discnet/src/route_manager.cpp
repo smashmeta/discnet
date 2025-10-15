@@ -4,7 +4,7 @@
 
 #include <ranges>
 #include <boost/core/ignore_unused.hpp>
-#include <whatlog/logger.hpp>
+// #include <whatlog/logger.hpp>
 #include <discnet/route_manager.hpp>
 
 namespace discnet
@@ -17,7 +17,7 @@ route_manager::route_manager(shared_adapter_manager adapter_manager)
 
 void route_manager::update(const time_point_t& current_time)
 {
-    whatlog::logger log("route_manager::update");
+    // whatlog::logger log("route_manager::update");
 
     for (routes_t& routes : m_adapter_routes | std::views::values)
     {
@@ -28,9 +28,9 @@ void route_manager::update(const time_point_t& current_time)
                 if (!route.m_status.m_online)
                 {
                     route.m_status.m_online = true;
-                    log.info("route [id: {}, adapter: {}, reporter: {}] now online.", 
-                        route.m_identifier.m_node.m_id, route.m_identifier.m_adapter.to_string(), 
-                        route.m_identifier.m_reporter.to_string());
+                    // log.info("route [id: {}, adapter: {}, reporter: {}] now online.", 
+                    //    route.m_identifier.m_node.m_id, route.m_identifier.m_adapter.to_string(), 
+                    //    route.m_identifier.m_reporter.to_string());
                     
                     e_online_state_changed(route, false);
                 }
@@ -40,9 +40,9 @@ void route_manager::update(const time_point_t& current_time)
                 if (route.m_status.m_online)
                 {
                     route.m_status.m_online = false;
-                    log.info("route [id: {}, adapter: {}, reporter: {}] has gone offline.", 
-                        route.m_identifier.m_node.m_id, route.m_identifier.m_adapter.to_string(), 
-                        route.m_identifier.m_reporter.to_string());
+                    // log.info("route [id: {}, adapter: {}, reporter: {}] has gone offline.", 
+                    //    route.m_identifier.m_node.m_id, route.m_identifier.m_adapter.to_string(), 
+                    //    route.m_identifier.m_reporter.to_string());
                     
                     e_online_state_changed(route, true);
                 }
@@ -53,13 +53,13 @@ void route_manager::update(const time_point_t& current_time)
 
 bool route_manager::process(const discovery_message_t& message, const network_info_t& network_info)
 {
-    whatlog::logger log("route_manager::process(discovery_message_t)");
-    log.info("received discovery message from {} on adapter {}.", message.m_identifier, network_info.m_adapter.to_string());
+    // whatlog::logger log("route_manager::process(discovery_message_t)");
+    // log.info("received discovery message from {} on adapter {}.", message.m_identifier, network_info.m_adapter.to_string());
 
     auto adapter = m_adapter_manager->find_adapter(network_info.m_adapter);
     if (!adapter)
     {
-        log.warning("failed to find adapter {} in adapter manager.", network_info.m_adapter.to_string());
+        // log.warning("failed to find adapter {} in adapter manager.", network_info.m_adapter.to_string());
         return false;
     }
 
@@ -84,13 +84,13 @@ bool route_manager::process(const discovery_message_t& message, const network_in
 
 bool route_manager::process(const persistent_route_t& route, const discnet::time_point_t& time)
 {
-    whatlog::logger log("route_manager::process(persistent_node_t)");
-    log.info("received persistent_route message on adapter {}.", route.m_identifier.m_adapter.to_string());
+    // whatlog::logger log("route_manager::process(persistent_node_t)");
+    // log.info("received persistent_route message on adapter {}.", route.m_identifier.m_adapter.to_string());
 
     auto adapter = m_adapter_manager->find_adapter(route.m_identifier.m_adapter);
     if (!adapter)
     {
-        log.warning("failed to find adapter {} in adapter manager.", route.m_identifier.m_adapter.to_string());
+        // log.warning("failed to find adapter {} in adapter manager.", route.m_identifier.m_adapter.to_string());
         return false;
     }
 
@@ -103,7 +103,7 @@ bool route_manager::process(const persistent_route_t& route, const discnet::time
         auto itr_routes = m_adapter_routes.find(adapter->m_guid);
         if (itr_routes == m_adapter_routes.end())
         {
-            log.warning("failed to find adapter {} in adapter manager.", route.m_identifier.m_adapter.to_string());
+            // log.warning("failed to find adapter {} in adapter manager.", route.m_identifier.m_adapter.to_string());
             return false;
         }
 
@@ -111,7 +111,7 @@ bool route_manager::process(const persistent_route_t& route, const discnet::time
         auto itr_route = std::find_if(routes.begin(), routes.end(), [&](const auto& val){return val.m_identifier == route_id;});
         if (itr_route == routes.end())
         {
-            log.warning("failed to find insertered route {} in route_manager.", discnet::to_string(route_id));
+            // log.warning("failed to find insertered route {} in route_manager.", discnet::to_string(route_id));
         }
 
         itr_route->m_status.m_persistent = route.m_enabled;
@@ -122,7 +122,7 @@ bool route_manager::process(const persistent_route_t& route, const discnet::time
 
 bool route_manager::process_route(const adapter_t& adapter, const discnet::time_point_t& time, const route_identifier_t& route_id, const jumps_t& jumps)
 {
-    whatlog::logger log("route_manager::process_node");
+    // whatlog::logger log("route_manager::process_node");
     auto itr_adapter_routes = m_adapter_routes.find(adapter.m_guid);
     if (itr_adapter_routes == m_adapter_routes.end())
     {
@@ -134,7 +134,7 @@ bool route_manager::process_route(const adapter_t& adapter, const discnet::time_
 
         std::string route_info_str = std::format("(id: {}, address: {} - jumps: {})", route.m_identifier.m_node.m_id, 
             route.m_identifier.m_node.m_address.to_string(), discnet::to_string(route.m_status.m_jumps));
-        log.info("new route {} detected.", route_info_str);
+        // log.info("new route {} detected.", route_info_str);
 
         e_new_route(route);
     }
@@ -152,7 +152,7 @@ bool route_manager::process_route(const adapter_t& adapter, const discnet::time_
             
             std::string route_info_str = std::format("(id: {}, address: {} - jumps: {})", route.m_identifier.m_node.m_id, 
             route.m_identifier.m_node.m_address.to_string(), discnet::to_string(route.m_status.m_jumps));
-            log.info("new route {} detected.", route_info_str);
+            // log.info("new route {} detected.", route_info_str);
 
             e_new_route(route);
         }

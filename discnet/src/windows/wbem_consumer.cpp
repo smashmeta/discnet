@@ -8,7 +8,7 @@
 #include <iostream>
 #include <comdef.h>
 #include <discnet/windows/wbem_consumer.hpp>
-#include <whatlog/logger.hpp>
+// #include <whatlog/logger.hpp>
 
 namespace discnet::windows
 {
@@ -30,7 +30,7 @@ namespace discnet::windows
         static impl* create_wbem_impl()
         {
             impl* result = new impl;
-            whatlog::logger log("create_wbem_impl");
+            // whatlog::logger log("create_wbem_impl");
 
             // create the wbem locator
             HRESULT hres = CoCreateInstance(
@@ -41,7 +41,7 @@ namespace discnet::windows
 
             if (FAILED(hres))
             {
-                log.error("Failed to create IWbemLocator object. Error code = {}.", hresult_to_hex_str(hres));
+                // log.error("Failed to create IWbemLocator object. Error code = {}.", hresult_to_hex_str(hres));
                 delete result;
                 return nullptr;
             }
@@ -62,14 +62,14 @@ namespace discnet::windows
 
             if (FAILED(hres))
             {
-                log.error("Could not connect. Error code = {}.", hresult_to_hex_str(hres));
+                // log.error("Could not connect. Error code = {}.", hresult_to_hex_str(hres));
 
                 result->m_wbem_location->Release();
                 delete result;
                 return nullptr;
             }
 
-            log.info("connected to ROOT\\CIMV2 WMI namespace");
+            // log.info("connected to ROOT\\CIMV2 WMI namespace");
 
             // Step 5: --------------------------------------------------
             // Set security levels on the proxy -------------------------
@@ -87,7 +87,7 @@ namespace discnet::windows
 
             if (FAILED(hres))
             {
-                log.error("Could not set proxy blanket. Error code = {}.", hresult_to_hex_str(hres));
+                // log.error("Could not set proxy blanket. Error code = {}.", hresult_to_hex_str(hres));
 
                 result->m_wbem_services->Release();
                 result->m_wbem_location->Release();
@@ -103,12 +103,12 @@ namespace discnet::windows
     {
         bool initialize_windows_com_library_access()
         {
-            whatlog::logger log("initialize_windows_com_library_access");
+            // whatlog::logger log("initialize_windows_com_library_access");
             // initialize the COM library for use by the calling thread
             HRESULT hres = CoInitializeEx(0, COINIT_APARTMENTTHREADED);
             if (FAILED(hres))
             {
-                log.error("Failed to initialize COM library. Error code = {}.", hresult_to_hex_str(hres));
+                // log.error("Failed to initialize COM library. Error code = {}.", hresult_to_hex_str(hres));
 
                 return false; // Program has failed.
             }
@@ -129,7 +129,7 @@ namespace discnet::windows
             if (FAILED(hres))
             {
                 std::string error_message = "Failed to initialize security. Error code = " + hresult_to_hex_str(hres);
-                log.error(error_message);
+                // log.error(error_message);
 
                 CoUninitialize();
                 return false; // Program has failed.
@@ -163,7 +163,7 @@ namespace discnet::windows
 
     IEnumWbemClassObject* wbem_consumer::exec_query(const std::wstring& query)
     {
-        whatlog::logger log("wbem_consumer::exec_query");
+        // whatlog::logger log("wbem_consumer::exec_query");
         IEnumWbemClassObject* pEnumerator = nullptr;
         HRESULT hres = m_impl->m_wbem_services->ExecQuery(bstr_t("WQL"), bstr_t(query.c_str()), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
 
@@ -171,7 +171,7 @@ namespace discnet::windows
         {
             std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
             std::string query_str = converter.to_bytes(query);
-            log.error("Query {} failed. Error code = {}.", query_str, hresult_to_hex_str(hres));
+            // log.error("Query {} failed. Error code = {}.", query_str, hresult_to_hex_str(hres));
         }
 
         return pEnumerator;

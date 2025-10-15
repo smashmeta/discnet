@@ -7,7 +7,7 @@
 #include <gmock/gmock.h>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/thread.hpp>
-#include <whatlog/logger.hpp>
+// #include <whatlog/logger.hpp>
 #include <discnet/route.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/route_manager.hpp>
@@ -51,7 +51,7 @@ TEST(arguments_parsing, normal_usage)
 
     discnet::application::configuration_t configuration = expected_configuration.value();
     EXPECT_EQ(configuration.m_node_id, 1234);
-    EXPECT_EQ(configuration.m_multicast_address, discnet::address_t::from_string("234.5.6.7"));
+    EXPECT_EQ(configuration.m_multicast_address, boost::asio::ip::make_address_v4("234.5.6.7"));
     EXPECT_EQ(configuration.m_multicast_port, 1337);
 }
 
@@ -122,13 +122,12 @@ TEST(main, bytes_to_hex_string)
 TEST(main, buffer_t__packet)
 {
     using jumps_t = discnet::jumps_t;
-    using ipv4 = discnet::address_t;
     using discnet::node_identifier_t;
     using discnet::network::buffer_t;
     using namespace discnet::network::messages;
 
     discovery_message_t discovery_message {.m_identifier = 1024};
-    discovery_message.m_nodes = {node_t{1025, ipv4::from_string("192.200.1.1"), jumps_t{512, 256}}};
+    discovery_message.m_nodes = {node_t{1025, boost::asio::ip::make_address_v4("192.200.1.1"), jumps_t{512, 256}}};
 
     data_message_t data_message {.m_identifier = 1};
     data_message.m_buffer = {1, 2, 3, 4, 5};
@@ -179,7 +178,7 @@ TEST(main, buffer_t__packet)
 
 int main(int arguments_count, char** arguments_vector) 
 {
-    whatlog::logger::disable_logging();
+    // whatlog::logger::disable_logging();
     testing::InitGoogleTest(&arguments_count, arguments_vector);
     return RUN_ALL_TESTS();
 }

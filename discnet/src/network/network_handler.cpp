@@ -4,7 +4,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <whatlog/logger.hpp>
+// #include <whatlog/logger.hpp>
 #include <discnet/network/network_handler.hpp>
 
 namespace discnet::network 
@@ -19,12 +19,12 @@ namespace discnet::network
 
     void network_handler::transmit_multicast(const discnet::adapter_t& adapter, const discnet::network::messages::message_list_t& messages)
     {
-        whatlog::logger log("multicast_handler::transmit_multicast");
+        // whatlog::logger log("multicast_handler::transmit_multicast");
         
         auto itr_client = m_clients.find(adapter.m_guid);
         if (itr_client == m_clients.end())
         {
-            log.error("failed to find client for adapter {} - message(s) dropped.", adapter.m_name);
+            // log.error("failed to find client for adapter {} - message(s) dropped.", adapter.m_name);
             return;
         }
         
@@ -32,7 +32,7 @@ namespace discnet::network
         auto success = discnet::network::messages::packet_codec_t::encode(buffer, messages);
         if (!success)
         {
-            log.error("failed to encode messages to a valid packet.");
+            // log.error("failed to encode messages to a valid packet.");
         }
 
         auto& [uuid, udp_client] = *itr_client;
@@ -41,12 +41,12 @@ namespace discnet::network
 
     void network_handler::transmit_unicast(const discnet::adapter_t& adapter, const::discnet::address_t& recipient, discnet::network::messages::message_list_t& messages)
     {
-        whatlog::logger log("network_handler::transmit_unicast");
+        // whatlog::logger log("network_handler::transmit_unicast");
 
         auto itr_client = m_clients.find(adapter.m_guid);
         if (itr_client == m_clients.end())
         {
-            log.error("failed to find client for adapter {} - message(s) dropped.", adapter.m_name);
+            // log.error("failed to find client for adapter {} - message(s) dropped.", adapter.m_name);
             return;
         }
 
@@ -54,7 +54,7 @@ namespace discnet::network
         auto success = discnet::network::messages::packet_codec_t::encode(buffer, messages);
         if (!success)
         {
-            log.error("failed to encode messages to a valid packet.");
+            // log.error("failed to encode messages to a valid packet.");
         }
 
         auto& [uuid, udp_client] = *itr_client;
@@ -63,7 +63,7 @@ namespace discnet::network
 
     void network_handler::update()
     {
-        whatlog::logger log("network_handler::update");
+        // whatlog::logger log("network_handler::update");
 
         if (m_adapter_init_list.size() > 0)
         {   // see if any new clients have been established
@@ -76,13 +76,13 @@ namespace discnet::network
                     if (result)
                     {
                         network_client_t client = result.value();
-                        log.info("now listening for messages on adapter {}.", client.m_multicast->info().m_adapter_address.to_string());
+                        // log.info("now listening for messages on adapter {}.", client.m_multicast->info().m_adapter_address.to_string());
                         m_adapter_manager->update_multicast_present(client.m_adapter_identifier, true);
                         m_clients.insert(std::pair{client.m_adapter_identifier, client});
                     }
                     else
                     {
-                        log.error("failed to create client. message: {}.", result.error());
+                        // log.error("failed to create client. message: {}.", result.error());
                     }
                 }
             }
@@ -123,14 +123,14 @@ namespace discnet::network
 
     void network_handler::remove_client(const discnet::adapter_t& adapter)
     {
-        whatlog::logger log("network_handler::remove_client");
+        // whatlog::logger log("network_handler::remove_client");
 
         auto itr_client = m_clients.find(adapter.m_guid);
         if (itr_client != m_clients.end())
         {
             auto& [uuid, client] = *itr_client;
             std::string adapter_guid_str = boost::lexical_cast<std::string>(uuid);
-            log.info("removing client from adapter (name: {}, guid: {}).", adapter.m_name, adapter_guid_str);
+            // log.info("removing client from adapter (name: {}, guid: {}).", adapter.m_name, adapter_guid_str);
             client.m_multicast->close();
             client.m_unicast->close();
             m_clients.erase(itr_client);
@@ -139,18 +139,17 @@ namespace discnet::network
 
     network_handler::network_client_result_t network_handler::process_adapter(network_client_t client)
     {
-        whatlog::rename_thread(GetCurrentThread(), "process_adapter");
-        whatlog::logger log("network_handler::process_adapter");
+        // whatlog::rename_thread(GetCurrentThread(), "process_adapter");
+        // whatlog::logger log("network_handler::process_adapter");
 
         bool unicast_enabled = client.m_unicast->open();
         bool multicast_enabled = client.m_multicast->open();
-        size_t index = 1;
         discnet::time_point_t start_time = discnet::time_point_t::clock::now();
         discnet::time_point_t current_time = start_time;
         discnet::time_point_t timeout = start_time + std::chrono::seconds(15); 
         while ((!unicast_enabled || !multicast_enabled) && current_time < timeout)
         {
-            // log.info("retry connect #{}.", index);
+            // // log.info("retry connect #{}.", index);
             // give the OS some time to initialize the adapter before we start listening
             std::this_thread::sleep_for(std::chrono::seconds(1));
             if (!multicast_enabled)
@@ -163,7 +162,6 @@ namespace discnet::network
             }
             
             current_time = discnet::time_point_t::clock::now();
-            ++index;
         }
 
         if (!multicast_enabled)
@@ -181,17 +179,17 @@ namespace discnet::network
 
     void network_handler::add_client(const discnet::adapter_t& adapter)
     {
-        whatlog::logger log("network_handler::add_client");
+        // whatlog::logger log("network_handler::add_client");
 
         if (!adapter.m_enabled)
         {
-            log.info("skipping adapter {} because it is disabled.", adapter.m_name);
+            // log.info("skipping adapter {} because it is disabled.", adapter.m_name);
             return;
         }
 
         if (adapter.m_address_list.empty())
         {
-            log.info("skipping adapter {} because it is missing ipv4 address.", adapter.m_name);
+            // log.info("skipping adapter {} because it is missing ipv4 address.", adapter.m_name);
             return;
         }
 
@@ -218,16 +216,16 @@ namespace discnet::network
 
     void network_handler::adapter_added(const adapter_t& adapter)
     {
-        whatlog::logger log("network_handler::adapter_added");
+        // whatlog::logger log("network_handler::adapter_added");
         
         std::string adapter_guid_str = boost::lexical_cast<std::string>(adapter.m_guid);
-        log.info("new adapter detected. Name: {}, guid: {}, mac: {}.", adapter.m_name, adapter_guid_str, adapter.m_mac_address);
+        // log.info("new adapter detected. Name: {}, guid: {}, mac: {}.", adapter.m_name, adapter_guid_str, adapter.m_mac_address);
         add_client(adapter);
     }
 
     void network_handler::adapter_changed(const adapter_t& previous_adapter, const adapter_t& current_adapter)
     {
-        whatlog::logger log("network_handler::adapter_changed");
+        // whatlog::logger log("network_handler::adapter_changed");
         
         bool client_exists = m_clients.find(current_adapter.m_guid) != m_clients.end();
         if (client_exists)
@@ -235,12 +233,12 @@ namespace discnet::network
             bool ip_address_changed = previous_adapter.m_address_list != current_adapter.m_address_list;
             if (!current_adapter.m_multicast_enabled)
             {
-                log.info("adapter {} multicast disabled. removing client.", current_adapter.m_name);
+                // log.info("adapter {} multicast disabled. removing client.", current_adapter.m_name);
                 remove_client(previous_adapter);
             }
             else if (ip_address_changed)
             {
-                log.info("adapter {} ip-address chaned. re-creating client.", current_adapter.m_name);
+                // log.info("adapter {} ip-address chaned. re-creating client.", current_adapter.m_name);
                 remove_client(previous_adapter);
                 add_client(current_adapter);
             }
@@ -249,7 +247,7 @@ namespace discnet::network
         {
             if (current_adapter.m_multicast_enabled)
             {
-                log.info("unknown adapter {} appeared. adding client.", current_adapter.m_name);
+                // log.info("unknown adapter {} appeared. adding client.", current_adapter.m_name);
                 add_client(current_adapter);
             }
         }
@@ -257,7 +255,7 @@ namespace discnet::network
 
     void network_handler::adapter_removed(const adapter_t& adapter)
     {
-        whatlog::logger log("network_handler::adapter_removed");
+        // whatlog::logger log("network_handler::adapter_removed");
         remove_client(adapter);
     }
 } // ! namespace discnet::network
