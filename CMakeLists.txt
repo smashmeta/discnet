@@ -3,6 +3,10 @@ cmake_minimum_required(VERSION 3.20)
 # adding windows version setting
 add_definitions(-D_WIN32_WINNT=0x0600)
 
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
+endif()
+
 # CPack settings
 set(CPACK_PACKAGE_VENDOR "discnet")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "data delivery and discovery protocol.")

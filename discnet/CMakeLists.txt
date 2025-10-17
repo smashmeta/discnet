@@ -12,12 +12,14 @@ file(GLOB HEADERS_APPLICATION_GRP "${discnet_INCLUDE_DIRS}/discnet/application/*
 file(GLOB HEADERS_NETWORK_GRP "${discnet_INCLUDE_DIRS}/discnet/network/*.hpp")
 file(GLOB HEADERS_NETWORK_MESSAGES_GRP "${discnet_INCLUDE_DIRS}/discnet/network/messages/*.hpp")
 file(GLOB HEADERS_WINDOWS_GRP "${discnet_INCLUDE_DIRS}/discnet/windows/*.hpp")
+file(GLOB HEADERS_LINUX_GRP "${discnet_INCLUDE_DIRS}/discnet/linux/*.hpp")
 
 file(GLOB SOURCE_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB SOURCE_APPLICATION_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/application/*.cpp")
 file(GLOB SOURCE_NETWORK_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/network/*.cpp")
 file(GLOB SOURCE_NETWORK_MESSAGES_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/network/messages/*.cpp")
 file(GLOB SOURCE_WINDOWS_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/windows/*.cpp")
+file(GLOB SOURCE_LINUX_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/linux/*.cpp")
 
 # adding file filters to visual studio project
 source_group("header/" FILES ${HEADERS_DEFAULT_GRP})
@@ -25,11 +27,13 @@ source_group("header/application/" FILES ${HEADERS_APPLICATION_GRP})
 source_group("header/network/" FILES ${HEADERS_NETWORK_GRP})
 source_group("header/network/messages/" FILES ${HEADERS_NETWORK_MESSAGES_GRP})
 source_group("header/windows/" FILES ${HEADERS_WINDOWS_GRP})
+source_group("header/linux/" FILES ${HEADERS_LINUX_GRP})
 source_group("src/" FILES ${SOURCE_DEFAULT_GRP})
 source_group("src/application/" FILES ${SOURCE_APPLICATION_GRP})
 source_group("src/network/" FILES ${SOURCE_NETWORK_GRP})
 source_group("src/network/messages/" FILES ${SOURCE_NETWORK_MESSAGES_GRP})
 source_group("src/windows/" FILES ${SOURCE_WINDOWS_GRP})
+source_group("src/linux/" FILES ${SOURCE_LINUX_GRP})
 
 # setting up executable
 add_library(discnet SHARED
@@ -40,6 +44,9 @@ add_library(discnet SHARED
 # if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 #     ${SOURCE_WINDOWS_GRP}
 #     ${HEADERS_WINDOWS_GRP}
+# elseif()
+    ${SOURCE_LINUX_GRP}
+    ${HEADERS_LINUX_GRP}
 # endif()
     ${HEADERS_DEFAULT_GRP}
     ${HEADERS_NETWORK_GRP}
@@ -56,9 +63,12 @@ target_include_directories(discnet PUBLIC
 
 # adding thirdparty library dependencies
 target_link_libraries(discnet PRIVATE OpenSSL::Crypto)
-target_link_libraries(discnet PRIVATE spdlog::spdlog)
+target_link_libraries(discnet PRIVATE spdlog::spdlog_header_only)
 target_link_libraries(discnet PUBLIC Boost::log Boost::log_setup Boost::program_options)
 # if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 #     target_link_libraries(discnet PUBLIC bcrypt)
 #     target_link_libraries(discnet PRIVATE IPHLPAPI wbemuuid)
 # endif()
+
+install(TARGETS discnet
+        DESTINATION bin)

@@ -149,7 +149,7 @@ TEST(main, buffer_t__packet)
     // data id + size :			    	{ 00 01 00 05 } = { 1, 5 }
     // buffer :							{ 01 02 03 04 05 }= { 1, 2, 3, 4, 5 }
     // checksum :
-    // checksum value :					{ 16 B0 75 F0 } = 4-bytes
+    // checksum value :					{ F0 75 B0 16 } = 4-bytes
     EXPECT_EQ(output, 
         "00 00 00 2F 00 02 "
         "00 00 00 16 00 01 "
@@ -159,7 +159,7 @@ TEST(main, buffer_t__packet)
         "00 00 00 0F 00 02 "
         "00 01 00 05 "
         "01 02 03 04 05 "
-        "16 B0 75 F0");
+        "F0 75 B0 16");
 
     expected_packet_t packet = packet_codec_t::decode(buffer);
     ASSERT_TRUE(packet.has_value()) << packet.error();

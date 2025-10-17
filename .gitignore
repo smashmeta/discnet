@@ -5,3 +5,4 @@ install/*
 *.suo
 *.db
 .vscode/*
+.cache/*

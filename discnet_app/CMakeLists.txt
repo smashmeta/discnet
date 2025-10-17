@@ -28,4 +28,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 endif()
 target_link_libraries(discnet_app PUBLIC Boost::log Boost::log_setup Boost::program_options)
 target_link_libraries(discnet_app PRIVATE discnet::discnet_lib)
-target_link_libraries(discnet_app PRIVATE spdlog::spdlog)
+target_link_libraries(discnet_app PRIVATE spdlog::spdlog_header_only)
+
+install(TARGETS discnet_app
+        DESTINATION bin)

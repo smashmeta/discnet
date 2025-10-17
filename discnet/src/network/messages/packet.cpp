@@ -68,7 +68,8 @@ namespace discnet::network::messages
         hash.process_bytes((const void*)(complete_message.data()), complete_message.size());
         hash.get_digest(digest);
 
-        if (checksum != digest[3])
+        const uint32_t last_part_digest = *reinterpret_cast<uint32_t*>(&digest[12]);
+        if (checksum != last_part_digest)
         {
             return std::unexpected(std::format(
                 "packet checksum validation failed. encoded digest: {}, calculated digest: {}",
@@ -114,7 +115,8 @@ namespace discnet::network::messages
         hash.get_digest(digest);
 
         // only using the last 4 bytes for verification
-        buffer.append(native_to_network((uint32_t)digest[3]));
+        const uint32_t last_part_digest = *reinterpret_cast<uint32_t*>(&digest[12]);
+        buffer.append(native_to_network(last_part_digest));
 
         return true;
     }

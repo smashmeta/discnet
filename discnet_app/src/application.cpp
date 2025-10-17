@@ -9,7 +9,7 @@
 #include <discnet/route_manager.hpp>
 #include <discnet/network/network_handler.hpp>
 #include <discnet_app/application.hpp>
-
+#include <discnet/linux/adapter_fetcher.hpp>
 
 namespace discnet::main
 {
@@ -191,7 +191,7 @@ namespace discnet::main
         // log.info("setting up asio network context...");
         m_asio_context = std::make_shared<discnet::main::asio_context_t>();
         // log.info("setting up adapter_manager...");
-        // m_adapter_manager =  std::make_shared<discnet::adapter_manager>(std::move(std::make_unique<discnet::windows_adapter_fetcher>()));
+        m_adapter_manager = std::make_shared<discnet::adapter_manager>(std::make_unique<discnet::linux_adapter_fetcher>());
         // log.info("setting up route_manager...");
         m_route_manager = std::make_shared<discnet::route_manager>(m_adapter_manager);
         // log.info("setting up network_handler...");
