@@ -30,6 +30,8 @@ endif()
 
 set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
+add_compile_definitions(SPDLOG_USE_STD_FORMAT)
+
 set(discnet_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
 
 add_subdirectory(discnet)

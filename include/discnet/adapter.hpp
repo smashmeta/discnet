@@ -9,7 +9,7 @@
 
 namespace discnet
 {
-    using adapter_identifier_t = boost::uuids::uuid;
+    using adapter_identifier_t = std::string;
     
     /*
         guid: {154EA313-6D41-415A-B007-BBB7AD740F1F}
@@ -32,9 +32,8 @@ namespace discnet
         uint8_t m_index = 0;
         std::string m_name = {};
         std::string m_description = {};
+        bool m_loopback =  false;
         bool m_enabled = false;
-        bool m_multicast_enabled = false;
-        bool m_multicast_present = true;
         std::list<address_mask_t> m_address_list = {};
         address_t m_gateway = discnet::address_t::any();
         mtu_type_t m_mtu = 0;

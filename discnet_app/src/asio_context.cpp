@@ -2,8 +2,10 @@
  *
  */
 
-// #include <whatlog/logger.hpp>
+#include <chrono>
+#include <spdlog/spdlog.h>
 #include <discnet_app/asio_context.hpp>
+#include <thread>
 
 
 namespace discnet::main
@@ -21,16 +23,18 @@ namespace discnet::main
         
         for (size_t i = 0; i < worker_threads_count; ++i)
         {
-            // log.info("spawning asio worker thread - named: {}.", thread_names[i]);
+            spdlog::info("spawning asio worker thread - named: {}.", thread_names[i]);
             m_thread_group.push_back(std::jthread(std::bind(&work_handler, thread_names[i], m_io_context)));
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     void asio_context_t::work_handler(const std::string& thread_name, discnet::shared_io_context io_context)
     {
         // whatlog::rename_thread(GetCurrentThread(), thread_name);
         // whatlog::logger log("work_handler");
-        // log.info("starting thread {}.", thread_name);
+        spdlog::info("starting thread {}.", thread_name);
 
         for (;;)
         {
@@ -41,11 +45,11 @@ namespace discnet::main
             }
             catch (std::exception& ex)
             {
-                // log.warning("worker thread encountered an error. exception: {}.", std::string(ex.what()));
+                spdlog::warn("worker thread encountered an error. exception: {}.", std::string(ex.what()));
             }
             catch (...)
             {
-                // log.warning("worker thread encountered an unknown exception.");
+                spdlog::warn("worker thread encountered an unknown exception.");
             }
         }
     }

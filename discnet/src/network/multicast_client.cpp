@@ -2,6 +2,7 @@
  *
  */
 
+#include <spdlog/spdlog.h>
 // #include <whatlog/logger.hpp>
 #include <discnet/network/multicast_client.hpp>
 
@@ -74,12 +75,12 @@ namespace discnet::network
         {
             if (error == boost::asio::error::connection_aborted)
             {
-                // log.info("closing multicast connection on adapter {}.", m_info.m_adapter_address.to_string());
+                spdlog::info("closing multicast connection on adapter {}.", m_info.m_adapter_address.to_string());
                 close();
             }
             else
             {
-                // log.warning("error reading data. id: {}, message: {}.", error.value(), error.message());
+                spdlog::warn("error reading data. id: {}, message: {}.", error.value(), error.message());
             }
             
             return;
@@ -114,16 +115,16 @@ namespace discnet::network
         m_snd_socket->open(multicast_endpoint.protocol(), error);
         if (error.failed())
         {
-            // log.warning("failed to open socket on local address: {}, port: {}. Error: {}.", 
-            //    multicast_endpoint.address().to_string(), multicast_endpoint.port(), error.message());
+            spdlog::warn("failed to open socket on local address: {}, port: {}. Error: {}.", 
+               multicast_endpoint.address().to_string(), multicast_endpoint.port(), error.message());
             return false;
         }
 
         m_snd_socket->set_option(multicast::outbound_interface(m_info.m_adapter_address), error);
         if (error.failed())
         {
-            // log.warning("failed to enable udp socket option: outbound_interface with address: {}. Error: {}.", 
-            //    m_info.m_adapter_address.to_string(), error.message());
+            spdlog::warn("failed to enable udp socket option: outbound_interface with address: {}. Error: {}.", 
+               m_info.m_adapter_address.to_string(), error.message());
         }
 
         return !error.failed();
@@ -135,10 +136,10 @@ namespace discnet::network
         namespace multicast = boost::asio::ip::multicast;
         // whatlog::logger log("open_multicast_rcv_socket");
 
-        // log.info("setting up multicast listening socket - addr: {}, port: {}, on adapter {}.", 
-        //    m_info.m_multicast_address.to_string(),
-        //    m_info.m_multicast_port,
-        //    m_info.m_adapter_address.to_string());
+        spdlog::info("setting up multicast listening socket - addr: {}, port: {}, on adapter {}.", 
+           m_info.m_multicast_address.to_string(),
+           m_info.m_multicast_port,
+           m_info.m_adapter_address.to_string());
 
         udp_t::endpoint multicast_endpoint{discnet::address_t::any(), m_info.m_multicast_port};
         

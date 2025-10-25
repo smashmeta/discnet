@@ -2,6 +2,7 @@
  *
  */
 
+ #include <spdlog/spdlog.h>
 // #include <whatlog/logger.hpp>
 #include <discnet/network/unicast_client.hpp>
 
@@ -74,12 +75,12 @@ namespace discnet::network
         {
             if (error == boost::asio::error::connection_aborted)
             {
-                // log.info("closing unicast connection on adapter {}.", m_info.m_address.to_string());
+                spdlog::info("closing unicast connection on adapter {}.", m_info.m_address.to_string());
                 close();
             }
             else
             {
-                // log.warning("error reading data. id: {}, message: {}.", error.value(), error.message());
+                spdlog::warn("error reading data. id: {}, message: {}.", error.value(), error.message());
             }
             
             return;
@@ -113,8 +114,8 @@ namespace discnet::network
         m_snd_socket->open(unicast_endpoint.protocol(), error);
         if (error.failed())
         {
-            // log.warning("failed to open socket on local address: {}, port: {}. Error: {}.", 
-            //    unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
+            spdlog::warn("failed to open socket on local address: {}, port: {}. Error: {}.", 
+                unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
             return false;
         }
 
@@ -126,9 +127,9 @@ namespace discnet::network
         using udp_t = boost::asio::ip::udp;
         // whatlog::logger log("open_unicast_rcv_socket");
 
-        // log.info("setting up unicast listening socket - addr: {}, port: {}.", 
-        //    m_info.m_address.to_string(),
-        //    m_info.m_port);
+        spdlog::info("setting up unicast listening socket - addr: {}, port: {}.", 
+           m_info.m_address.to_string(),
+           m_info.m_port);
 
         udp_t::endpoint unicast_endpoint{m_info.m_address, m_info.m_port};
         
@@ -136,23 +137,23 @@ namespace discnet::network
         m_rcv_socket->open(unicast_endpoint.protocol(), error);
         if (error.failed())
         {
-            // log.warning("failed to open socket on local address: {}, port: {}. Error: {}.", 
-            //    unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
+            spdlog::warn("failed to open socket on local address: {}, port: {}. Error: {}.", 
+               unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
             return false;
         }
         
         m_rcv_socket->set_option(udp_t::socket::reuse_address(true), error);
         if (error.failed())
         {
-            // log.warning("failed to enable udp socket option: reuse_address. Error: {}.", error.message());
+            spdlog::warn("failed to enable udp socket option: reuse_address. Error: {}.", error.message());
             return false;
         }
         
         m_rcv_socket->bind(unicast_endpoint, error);
         if (error.failed())
         {
-            // log.warning("failed to bind socket on local address: {}, port: {}. Error: {}.", 
-            //    unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
+            spdlog::warn("failed to bind socket on local address: {}, port: {}. Error: {}.", 
+               unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
             return false;
         }
 

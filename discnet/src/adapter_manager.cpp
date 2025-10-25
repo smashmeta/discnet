@@ -2,6 +2,7 @@
  *
  */
 
+#include "discnet/adapter.hpp"
 #include <iostream>
 #include <vector>
 #include <locale>
@@ -12,7 +13,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <discnet/adapter_manager.hpp>
 // #include <whatlog/logger.hpp>
-
+#include <spdlog/spdlog.h>
 
 
 namespace discnet
@@ -80,8 +81,6 @@ namespace discnet
             result.push_back(std::format("index: {}", adapter.m_index));
             result.push_back(std::format("description: {}", adapter.m_description));
             result.push_back(std::format("adapter enabled: {}", adapter.m_enabled));
-            result.push_back(std::format("multicast enabled: {}", adapter.m_multicast_enabled));
-            result.push_back(std::format("multicast present: {}", adapter.m_multicast_present));
             result.push_back(std::format("mtu: {}", adapter.m_mtu));
             result.push_back(std::format("gateway: {}", adapter.m_gateway.to_string()));
             result.push_back(std::format("ipv4: {}", ipv4_info(adapter)));
@@ -108,12 +107,6 @@ namespace discnet
 
             bool enabled_changed = (lhs.m_enabled != rhs.m_enabled);
             if (enabled_changed) result.push_back(std::format("adapter enabled: {} => {}", lhs.m_enabled, rhs.m_enabled));
-
-            bool multicast_enabled_changed = (lhs.m_multicast_enabled != rhs.m_multicast_enabled);
-            if (multicast_enabled_changed) result.push_back(std::format("multicast enabled: {} => {}", lhs.m_multicast_enabled, rhs.m_multicast_enabled));
-
-            bool multicast_present_changed = (lhs.m_multicast_present != rhs.m_multicast_present);
-            if (multicast_present_changed) result.push_back(std::format("multicast present: {} => {}", lhs.m_multicast_present, rhs.m_multicast_present));
 
             bool mtu_changed = (lhs.m_mtu != rhs.m_mtu);
             if (mtu_changed) result.push_back(std::format("mtu: {} => {}", lhs.m_mtu, rhs.m_mtu));
@@ -146,7 +139,7 @@ namespace discnet
         for (const adapter_t& current_adapter : current_adapters)
         {
             // found existing entry for adapater
-            auto existing_entry = m_adapters.find(current_adapter.m_guid);
+            auto existing_entry = m_adapters.find(current_adapter.m_mac_address);
             if (existing_entry != m_adapters.end())
             {
                 auto& [existing_guid, existing_adapter] = *existing_entry;
@@ -154,45 +147,50 @@ namespace discnet
                 // check for changes to adapter
                 if (current_adapter != existing_adapter)
                 {
-                    // log.info("adapter changed - name: {}", current_adapter.m_name);
+                    spdlog::info("adapter changed - name: {}", current_adapter.m_name);
                     auto changes = adapter_diff(existing_adapter, current_adapter);
-                    // for (const auto& change : changes)
-                    // {
-                        // log.info(" - {}", change);
-                    // }
+                    for (const auto& change : changes)
+                    {
+                        spdlog::info(std::format(" - {}", change));
+                    }
 
-                    if (changes.size() == 1 && !changes[0].contains("multicast_present"))
+                    if (changes.size())
                     {
                         e_changed(existing_adapter, current_adapter);
-                        m_adapters.insert_or_assign(current_adapter.m_guid, current_adapter);
+                        m_adapters.insert_or_assign(current_adapter.m_mac_address, current_adapter);
                     }
                 }
             }
             else
             {
                 // new adapter detected
-                // log.info("new adapter detected.");
                 auto ainfo = adapter_info(current_adapter);
+                std::string parameters;
                 for (const auto& adapter_paramter : ainfo)
                 {
-                    std::cout << adapter_paramter << std::endl;
-                    // log.info(" - {}", adapter_paramter);
+                    if (!parameters.empty())
+                    {
+                        parameters += ", ";
+                    }
+                    parameters += adapter_paramter;
                 }
-                m_adapters.insert({current_adapter.m_guid, current_adapter});
+                // spdlog::info("new adapter: [{}]", parameters);
+
+                m_adapters.insert({current_adapter.m_mac_address, current_adapter});
                 e_new(current_adapter);
             }
         }
 
-        typedef std::map<boost::uuids::uuid, adapter_t> adapters_map_t;
+        typedef std::map<adapter_identifier_t, adapter_t> adapters_map_t;
         for (adapters_map_t::const_iterator adapter_itr = m_adapters.cbegin(); adapter_itr != m_adapters.cend();)
         {
             auto existing_id = std::find_if(current_adapters.begin(), current_adapters.end(), 
-                [&](const adapter_t& val){ return val.m_guid == adapter_itr->first; });
+                [&](const adapter_t& val){ return val.m_mac_address == adapter_itr->first; });
 
             if (existing_id == current_adapters.end())
             {
                 // removed adapter detected
-                // log.info("adapter removed - name: {}", adapter_itr->second.m_name);
+                spdlog::info("adapter removed - name: {}", adapter_itr->second.m_name);
                 e_removed(adapter_itr->second);
                 adapter_itr = m_adapters.erase(adapter_itr);
             }
@@ -200,15 +198,6 @@ namespace discnet
             {
                 adapter_itr = std::next(adapter_itr);
             }
-        }
-    }
-
-    void adapter_manager::update_multicast_present(const adapter_identifier_t& uuid, bool enabled)
-    {
-        auto itr_adapter = m_adapters.find(uuid);
-        if (itr_adapter != m_adapters.end())
-        {
-            itr_adapter->second.m_multicast_enabled = enabled;
         }
     }
 
@@ -238,14 +227,14 @@ namespace discnet
         return std::unexpected(std::format("failed to find adapter by address: {}", address.to_string()));
     }
 
-    std::expected<adapter_t, std::string> adapter_manager::find_adapter(const boost::uuids::uuid& uuid) const
+    std::expected<adapter_t, std::string> adapter_manager::find_adapter(const adapter_identifier_t& id) const
     {
-        auto itr_adapter = m_adapters.find(uuid);
+        auto itr_adapter = m_adapters.find(id);
         if (itr_adapter != m_adapters.end())
         {
             return itr_adapter->second;
         }
 
-        return std::unexpected(std::format("failed to find adapter by uuid: {}", boost::lexical_cast<std::string>(uuid)));
+        return std::unexpected(std::format("failed to find adapter by id: {}", boost::lexical_cast<std::string>(id)));
     }
 } // !namespace discnet

@@ -11,7 +11,7 @@
         "program": "${workspaceFolder}/build/discnet_app/discnet_app",
         "args": [
             "--node_id", "1",
-            "--address", "127.0.0.1",
+            "--address", "239.200.1.111",
             "--port", "13337"
         ],
         "stopAtEntry": false,

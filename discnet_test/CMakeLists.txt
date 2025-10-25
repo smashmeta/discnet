@@ -30,3 +30,10 @@ target_link_libraries(discnet_test PRIVATE Boost::log)
 target_link_libraries(discnet_test PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
 target_link_libraries(discnet_test PRIVATE discnet::discnet_lib)
 target_link_libraries(discnet_test PRIVATE spdlog::spdlog_header_only)
+
+# copying test resource files
+configure_file(
+        "${CMAKE_SOURCE_DIR}/resources/test/sha.file"
+        "${CMAKE_BINARY_DIR}/discnet_test/sha.file"
+        COPYONLY
+    )

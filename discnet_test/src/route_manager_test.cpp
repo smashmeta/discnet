@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <discnet/route_manager.hpp>
 
 namespace discnet::test
@@ -25,22 +26,22 @@ public:
         // setting up data
         m_adapter_1.m_index = 1;
         m_adapter_1.m_enabled = true;
-        m_adapter_1.m_multicast_enabled = true;
-        m_adapter_1.m_guid = boost::uuids::random_generator()();
+        m_adapter_1.m_guid = boost::uuids::to_string(boost::uuids::random_generator()());
+        m_adapter_1.m_mac_address = m_adapter_1.m_guid;
         m_adapter_1.m_name = "adapter_1";
         m_adapter_1.m_address_list = { {boost::asio::ip::make_address_v4("192.200.10.1"), boost::asio::ip::make_address_v4("255.255.255.0")} };
 
         m_adapter_2.m_index = 2;
         m_adapter_2.m_enabled = true;
-        m_adapter_2.m_multicast_enabled = true;
-        m_adapter_2.m_guid = boost::uuids::random_generator()();
+        m_adapter_2.m_guid = boost::uuids::to_string(boost::uuids::random_generator()());
+        m_adapter_2.m_mac_address = m_adapter_2.m_guid;
         m_adapter_2.m_name = "adapter_2";
         m_adapter_2.m_address_list = { {boost::asio::ip::make_address_v4("192.200.20.2"), boost::asio::ip::make_address_v4("255.255.255.0")} };
 
         m_adapter_3.m_index = 3;
         m_adapter_3.m_enabled = true;
-        m_adapter_3.m_multicast_enabled = true;
-        m_adapter_3.m_guid = boost::uuids::random_generator()();
+        m_adapter_3.m_guid = boost::uuids::to_string(boost::uuids::random_generator()());
+        m_adapter_3.m_mac_address = m_adapter_3.m_guid;
         m_adapter_3.m_name = "adapter_3";
         m_adapter_3.m_address_list = { {boost::asio::ip::make_address_v4("192.200.30.3"), boost::asio::ip::make_address_v4("255.255.255.0")} };
 

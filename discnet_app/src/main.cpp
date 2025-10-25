@@ -14,10 +14,8 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/endian.hpp>
 #include <discnet/discnet.hpp>
-// #include <whatlog/logger.hpp>
-
+#include <spdlog/spdlog.h>
 #include <discnet_app/application.hpp>
-
 #include <discnet/node.hpp>
 #include <discnet/route_manager.hpp>
 #include <discnet/network/buffer.hpp>
@@ -57,7 +55,7 @@ void program_yeild(const discnet::time_point_t& start_time)
     else
     {
         // yield process to not eat too much system time
-        // log.info("program execution time {} exceedes maximum frame time {}.", duration, milliseconds_per_frame);
+        spdlog::info("program execution time {} exceedes maximum frame time {}.", duration, milliseconds_per_frame);
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 }
@@ -78,27 +76,29 @@ int main(int arguments_count, const char** arguments_vector)
     discnet::application::expected_configuration_t configuration = discnet::application::get_configuration(arguments_count, arguments_vector);
     if (!configuration)
     {
-        // log.error("failed to load configuration. terminating application.");
+        spdlog::error("failed to load configuration. terminating application.");
         return EXIT_FAILURE;
     }
 
-    // log.info("configuration loaded. node_id: {}, mc-address: {}, mc-port: {}.", 
-    //    configuration->m_node_id, configuration->m_multicast_address.to_string(), configuration->m_multicast_port);
+    spdlog::info("configuration loaded. node_id: {}, mc-address: {}, mc-port: {}.", 
+        configuration->m_node_id, configuration->m_multicast_address.to_string(), configuration->m_multicast_port);
 
     discnet::main::application application(configuration.value());
     if (!application.initialize())
     {
-        // log.error("failed to initialize application.");
+        spdlog::error("failed to initialize application.");
         return EXIT_FAILURE;
     }
     
-    // log.info("discnet initialized and running.");
+    spdlog::info("discnet initialized and running.");
     while (true)
     {
         auto current_time = discnet::time_point_t::clock::now();
         application.update(current_time);   
         program_yeild(current_time);
     }
+
+    spdlog::shutdown();
 
     return EXIT_SUCCESS;
 }

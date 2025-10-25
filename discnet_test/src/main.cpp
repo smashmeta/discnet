@@ -7,7 +7,7 @@
 #include <gmock/gmock.h>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/thread.hpp>
-// #include <whatlog/logger.hpp>
+#include <spdlog/spdlog.h>
 #include <discnet/route.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/route_manager.hpp>
@@ -39,8 +39,8 @@ TEST(main, shift_buffer_debugging_remove_later)
 
 TEST(main, sha256_file)
 {
-    std::string hashed_file = discnet::sha256_file("C:\\windows\\system.ini");
-    EXPECT_EQ(hashed_file, "6f533ccc79227e38f18bfc63bfc961ef4d3ee0e2bf33dd097ccf3548a12b743b");
+    std::string hashed_file = discnet::sha256_file("sha.file");
+    EXPECT_EQ(hashed_file, "f33ae3bc9a22cd7564990a794789954409977013966fb1a8f43c35776b833a95");
 }
 
 TEST(arguments_parsing, normal_usage)
@@ -178,7 +178,7 @@ TEST(main, buffer_t__packet)
 
 int main(int arguments_count, char** arguments_vector) 
 {
-    // whatlog::logger::disable_logging();
+    spdlog::set_level(spdlog::level::off);
     testing::InitGoogleTest(&arguments_count, arguments_vector);
     return RUN_ALL_TESTS();
 }
