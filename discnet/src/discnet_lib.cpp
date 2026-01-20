@@ -14,7 +14,7 @@
 namespace discnet
 {
 
-#ifdef _win32
+#ifdef _WIN32
 	#pragma warning( push )
 	#pragma warning( disable : 4996 )
 #elif defined(__GNUC__) && !defined(__clang__)
@@ -71,7 +71,7 @@ namespace discnet
 
 		return result;
 	}
-#ifdef _win32
+#ifdef _WIN32
 	#pragma warning( pop )
 #elif defined(__GNUC__) && !defined(__clang__)
 	#pragma GCC diagnostic pop

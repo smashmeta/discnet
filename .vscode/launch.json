@@ -31,6 +31,15 @@
                 "ignoreFailures": true
             }
         ]
+    },
+    {
+      "name": "disconet_app_windows",
+      "program": "${workspaceFolder}/discnet_app/Debug",
+      "args": [
+            "--node_id", "1",
+            "--address", "10.10.10.2",
+            "--port", "13337"
+      ]
     }
     ]
 }

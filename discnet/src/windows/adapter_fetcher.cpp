@@ -8,8 +8,11 @@
 #include <comdef.h>
 #include <Wbemidl.h>
 #include <iphlpapi.h>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/lexical_cast.hpp>
+
 // #include <whatlog/logger.hpp>
-#include <discnet/windows/windows_adapter_fetcher.hpp>
+#include <discnet/windows/adapter_fetcher.hpp>
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS 
 
@@ -127,6 +130,47 @@ namespace
 
         return "";
     }
+
+    std::string wstr_to_utf8(const std::wstring& wstr)
+    {
+        if (wstr.empty()) {
+            return "";
+        }
+
+        // Calculate the required buffer size for the UTF-8 string
+        int size_needed = WideCharToMultiByte(
+            CP_UTF8,            // CodePage: use UTF-8
+            0,                  // dwFlags: none
+            wstr.c_str(),       // Input wide string
+            static_cast<int>(wstr.length()), // Input string length
+            NULL,               // Output buffer (NULL to get size)
+            0,                  // Output buffer size (0 to get size)
+            NULL,               // lpDefaultChar: not used with UTF-8
+            NULL                // lpUsedDefaultChar: not used with UTF-8
+        );
+
+        if (size_needed == 0) {
+            // Handle error (e.g., call GetLastError())
+            return "";
+        }
+
+        // Allocate the output std::string with the determined size
+        std::string str_to(size_needed, 0);
+
+        // Perform the conversion
+        WideCharToMultiByte(
+            CP_UTF8,            // CodePage: use UTF-8
+            0,                  // dwFlags: none
+            wstr.c_str(),       // Input wide string
+            static_cast<int>(wstr.length()), // Input string length
+            &str_to[0],         // Output buffer
+            size_needed,        // Output buffer size
+            NULL,               // lpDefaultChar: not used
+            NULL                // lpUsedDefaultChar: not used
+        );
+
+        return str_to;
+    }
     } // !anonymous namespace
 
     windows_adapter_fetcher::windows_adapter_fetcher()
@@ -139,7 +183,6 @@ namespace
         // whatlog::logger log("list_adapter_ip_addresses");
         ULONG  outBufLen = sizeof(IP_ADAPTER_ADDRESSES);
         PIP_ADAPTER_ADDRESSES  pAddresses = (IP_ADAPTER_ADDRESSES*)malloc(outBufLen);
-        std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
         std::vector<adapter_t> result;
 
         // default to unspecified address family (both)
@@ -176,8 +219,8 @@ namespace
                 adapter_t adapter;
                 adapter.m_mac_address = mac_address;
                 adapter.m_index = static_cast<uint8_t>(pCurrAddresses->IfIndex);
-                adapter.m_name = converter.to_bytes(std::wstring(pCurrAddresses->FriendlyName));
-                adapter.m_description = converter.to_bytes(std::wstring(pCurrAddresses->Description));
+                adapter.m_name = wstr_to_utf8(std::wstring(pCurrAddresses->FriendlyName));
+                adapter.m_description = wstr_to_utf8(std::wstring(pCurrAddresses->Description));
                 adapter.m_enabled = pCurrAddresses->OperStatus == IfOperStatusUp;
                 adapter.m_gateway = discnet::address_t::any();
                 adapter.m_mtu = pCurrAddresses->Mtu;
@@ -196,9 +239,9 @@ namespace
                     continue;
                 }
 
-                bool multicast_available = pCurrAddresses->FirstMulticastAddress != nullptr && 
-                    pCurrAddresses->FirstMulticastAddress->Next != nullptr;        
-                adapter.m_multicast_enabled = multicast_available;
+                // bool multicast_available = pCurrAddresses->FirstMulticastAddress != nullptr && 
+                //     pCurrAddresses->FirstMulticastAddress->Next != nullptr;        
+                // adapter.m_multicast_enabled = multicast_available;
 
                 std::string guid_str = get_adapter_guid(adapter.m_name);
                 if (guid_str.empty() || guid_str.size() != 38)
@@ -208,7 +251,7 @@ namespace
                 }
 
                 std::string guid_str_sanitized = guid_str.substr(1, guid_str.size() - 2);
-                adapter.m_guid = boost::lexical_cast<boost::uuids::uuid>(guid_str_sanitized);
+                adapter.m_guid = guid_str_sanitized; // boost::lexical_cast<boost::uuids::uuid>(guid_str_sanitized);
 
                 // log.info(" - name: {}.", adapter.m_name);
                 // log.info(" - index: {}.", adapter.m_index);
@@ -232,7 +275,7 @@ namespace
                         if (ip_to_string_cast_result == NO_ERROR)
                         {
                             std::wstring address_wstr = buffer.data();
-                            address = boost::asio::ip::make_address_v4(converter.to_bytes(address_wstr));
+                            address = boost::asio::ip::make_address_v4(wstr_to_utf8(address_wstr));
                             // // log.info("{} - gateway: {}.", index, address.to_string());
                         }
                         else
@@ -268,7 +311,7 @@ namespace
                         if (ip_to_string_cast_result == NO_ERROR)
                         {
                             std::wstring address_wstr = buffer.data();
-                            address.first = boost::asio::ip::make_address_v4(converter.to_bytes(address_wstr));
+                            address.first = boost::asio::ip::make_address_v4(wstr_to_utf8(address_wstr));
                             // // log.info("{} - address: {}.", index, address.first.to_string());
                         }
                         else
@@ -326,7 +369,7 @@ namespace
                         if (ip_to_string_cast_result == NO_ERROR)
                         {
                             std::wstring address_wstr = buffer.data();
-                            address = boost::asio::ip::make_address_v4(converter.to_bytes(address_wstr));
+                            address = boost::asio::ip::make_address_v4(wstr_to_utf8(address_wstr));
                             // // log.info("{} - dns: {}.", index, address.to_string());
                         }
                         else
@@ -357,7 +400,7 @@ namespace
                         if (ip_to_string_cast_result == NO_ERROR)
                         {
                             std::wstring address_wstr = buffer.data();
-                            address = boost::asio::ip::make_address_v4(converter.to_bytes(address_wstr));
+                            address = boost::asio::ip::make_address_v4(wstr_to_utf8(address_wstr));
                             // // log.info("{} - multicast-address: {}.", index, address.to_string());
                         }
                         else

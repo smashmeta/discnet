@@ -76,7 +76,7 @@ int main(int arguments_count, const char** arguments_vector)
     discnet::application::expected_configuration_t configuration = discnet::application::get_configuration(arguments_count, arguments_vector);
     if (!configuration)
     {
-        spdlog::error("failed to load configuration. terminating application.");
+        spdlog::error("failed to load configuration. terminating application. error: {}.", configuration.error());
         return EXIT_FAILURE;
     }
 

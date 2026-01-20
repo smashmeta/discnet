@@ -29,7 +29,7 @@ namespace discnet
 
     DISCNET_EXPORT std::string to_string(const jumps_t& jumps);
 
-#ifdef _win32
+#ifdef _WIN32
 	#pragma warning( push )
 	#pragma warning( disable : 4996 )
 #elif defined(__GNUC__) && !defined(__clang__)
@@ -44,7 +44,7 @@ namespace discnet
         template <class T>
         operator T() const { static_assert(false, "struct memeber not initialized"); }
     } static const init_required;
-#ifdef _win32
+#ifdef _WIN32
 	#pragma warning( pop )
 #elif defined(__GNUC__) && !defined(__clang__)
 	#pragma GCC diagnostic pop

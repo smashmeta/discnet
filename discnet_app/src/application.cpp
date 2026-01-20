@@ -9,7 +9,11 @@
 #include <discnet/route_manager.hpp>
 #include <discnet/network/network_handler.hpp>
 #include <discnet_app/application.hpp>
+#ifdef _WIN32
+#include <discnet/windows/adapter_fetcher.hpp>
+#elif defined(__GNUC__) && !defined(__clang__)
 #include <discnet/linux/adapter_fetcher.hpp>
+#endif
 
 namespace discnet::main
 {
@@ -182,7 +186,13 @@ namespace discnet::main
         spdlog::info("setting up asio network context...");
         m_asio_context = std::make_shared<discnet::main::asio_context_t>();
         spdlog::info("setting up adapter_manager...");
+
+#ifdef _WIN32
+        m_adapter_manager = std::make_shared<discnet::adapter_manager>(std::make_unique<discnet::windows_adapter_fetcher>());
+#elif defined(__GNUC__) && !defined(__clang__)
         m_adapter_manager = std::make_shared<discnet::adapter_manager>(std::make_unique<discnet::linux_adapter_fetcher>());
+#endif
+
         spdlog::info("setting up route_manager...");
         m_route_manager = std::make_shared<discnet::route_manager>(m_adapter_manager);
         spdlog::info("setting up network_handler...");

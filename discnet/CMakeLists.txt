@@ -26,32 +26,47 @@ source_group("header/" FILES ${HEADERS_DEFAULT_GRP})
 source_group("header/application/" FILES ${HEADERS_APPLICATION_GRP})
 source_group("header/network/" FILES ${HEADERS_NETWORK_GRP})
 source_group("header/network/messages/" FILES ${HEADERS_NETWORK_MESSAGES_GRP})
-source_group("header/windows/" FILES ${HEADERS_WINDOWS_GRP})
-source_group("header/linux/" FILES ${HEADERS_LINUX_GRP})
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    source_group("header/windows/" FILES ${HEADERS_WINDOWS_GRP})
+    source_group("src/windows/" FILES ${SOURCE_WINDOWS_GRP})
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    source_group("header/linux/" FILES ${HEADERS_LINUX_GRP})
+    source_group("src/linux/" FILES ${SOURCE_LINUX_GRP})
+endif()
 source_group("src/" FILES ${SOURCE_DEFAULT_GRP})
 source_group("src/application/" FILES ${SOURCE_APPLICATION_GRP})
 source_group("src/network/" FILES ${SOURCE_NETWORK_GRP})
 source_group("src/network/messages/" FILES ${SOURCE_NETWORK_MESSAGES_GRP})
-source_group("src/windows/" FILES ${SOURCE_WINDOWS_GRP})
-source_group("src/linux/" FILES ${SOURCE_LINUX_GRP})
+
+
 
 # setting up executable
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 add_library(discnet SHARED
 	${SOURCE_DEFAULT_GRP}
     ${SOURCE_APPLICATION_GRP}
     ${SOURCE_NETWORK_GRP}
     ${SOURCE_NETWORK_MESSAGES_GRP}
-# if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-#     ${SOURCE_WINDOWS_GRP}
-#     ${HEADERS_WINDOWS_GRP}
-# elseif()
-    ${SOURCE_LINUX_GRP}
-    ${HEADERS_LINUX_GRP}
-# endif()
+    ${SOURCE_WINDOWS_GRP}
+    ${HEADERS_WINDOWS_GRP}
     ${HEADERS_DEFAULT_GRP}
     ${HEADERS_NETWORK_GRP}
     ${HEADERS_NETWORK_MESSAGES_GRP}
 )
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+add_library(discnet SHARED
+	${SOURCE_DEFAULT_GRP}
+    ${SOURCE_APPLICATION_GRP}
+    ${SOURCE_NETWORK_GRP}
+    ${SOURCE_NETWORK_MESSAGES_GRP}
+    ${SOURCE_LINUX_GRP}
+    ${HEADERS_LINUX_GRP}
+    ${HEADERS_DEFAULT_GRP}
+    ${HEADERS_NETWORK_GRP}
+    ${HEADERS_NETWORK_MESSAGES_GRP}
+)
+endif()
+
 
 add_library(discnet::discnet_lib ALIAS discnet)
 
@@ -65,10 +80,10 @@ target_include_directories(discnet PUBLIC
 target_link_libraries(discnet PRIVATE OpenSSL::Crypto)
 target_link_libraries(discnet PRIVATE spdlog::spdlog_header_only)
 target_link_libraries(discnet PUBLIC Boost::log Boost::log_setup Boost::program_options)
-# if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-#     target_link_libraries(discnet PUBLIC bcrypt)
-#     target_link_libraries(discnet PRIVATE IPHLPAPI wbemuuid)
-# endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    target_link_libraries(discnet PUBLIC bcrypt)
+    target_link_libraries(discnet PRIVATE IPHLPAPI wbemuuid)
+endif()
 
 install(TARGETS discnet
         DESTINATION bin)
