@@ -12,6 +12,7 @@
     "boost-dll",
 	  "gtest",
     "openssl",
-    "spdlog"
+    "spdlog",
+    "qt5-base"
   ]
 }

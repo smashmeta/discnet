@@ -1,7 +1,4 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
     {
@@ -33,13 +30,30 @@
         ]
     },
     {
-      "name": "disconet_app_windows",
-      "program": "${workspaceFolder}/discnet_app/Debug",
+      "name": "discnet_app_windows",
+      "program": "${workspaceFolder}/build/discnet_app/Debug/discnet_app.exe",
+      "cwd": "${fileDirname}",
+      "type": "cppvsdbg",
+      "request": "launch",
+      // "stopAtEntry": true,
       "args": [
             "--node_id", "1",
             "--address", "10.10.10.2",
             "--port", "13337"
       ]
+    },
+    {
+      "name": "discnet_sim_windows",
+      "program": "${workspaceFolder}/build/discnet_sim/Debug/discnet_sim.exe",
+      "cwd": "${fileDirname}",
+      "type": "cppvsdbg",
+      "request": "launch"
+    },
+    {
+        "name": "discnet_attach_windows",
+        "type": "cppvsdbg",
+        "request": "attach",
+        "processId":"${command:pickProcess}"
     }
     ]
 }

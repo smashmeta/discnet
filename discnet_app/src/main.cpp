@@ -15,6 +15,7 @@
 #include <boost/endian.hpp>
 #include <discnet/discnet.hpp>
 #include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #include <discnet_app/application.hpp>
 #include <discnet/node.hpp>
 #include <discnet/route_manager.hpp>
@@ -70,8 +71,8 @@ int main(int arguments_count, const char** arguments_vector)
 
     boost::filesystem::path executable_directory = boost::dll::program_location().parent_path();
     std::cout << "current path is set to " << executable_directory << std::endl;
-    // whatlog::logger::initialize_file_logger(executable_directory, "discnet");
-    // whatlog::logger log("main");
+    auto file_logger = spdlog::basic_logger_mt("discnet_misc", "logs/discnet.log");
+    spdlog::set_default_logger(file_logger);
 
     discnet::application::expected_configuration_t configuration = discnet::application::get_configuration(arguments_count, arguments_vector);
     if (!configuration)

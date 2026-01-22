@@ -67,12 +67,12 @@ namespace discnet::main
     {
         typedef discnet::shared_route_manager shared_route_manager;
     public:
-        transmission_handler(shared_route_manager route_manager, discnet::network::shared_network_handler multicast_handler, shared_adapter_manager adapter_manager, discnet::application::configuration_t configuration)
+        transmission_handler(shared_route_manager route_manager, discnet::network::shared_network_handler network_handler, shared_adapter_manager adapter_manager, discnet::application::configuration_t configuration)
             : m_last_discovery(discnet::time_point_t::min()),
             m_interval(std::chrono::seconds(20)),     
             m_adapter_manager(adapter_manager),
             m_route_manager(route_manager), 
-            m_network_handler(multicast_handler), 
+            m_network_handler(network_handler), 
             m_configuration(configuration)
         {
             // nothing for now

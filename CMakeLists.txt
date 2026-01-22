@@ -15,7 +15,7 @@ set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/smashmeta/discnet")
 set(CPACK_PACKAGE_CONTACT "smashmeta")
 
 set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/install")
-set(CMAKE_TOOLCHAIN_FILE "/home/fredrhe/Programs/vcpkg/scripts/buildsystems/vcpkg.cmake")
+set(CMAKE_TOOLCHAIN_FILE "C:/vcpkg/scripts/buildsystems/vcpkg.cmake")
 
 set(DISCNET_VERSION 1.0.0)
 project(discnet VERSION ${DISCNET_VERSION} LANGUAGES CXX)
@@ -37,3 +37,4 @@ set(discnet_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
 add_subdirectory(discnet)
 add_subdirectory(discnet_test)
 add_subdirectory(discnet_app)
+add_subdirectory(discnet_sim)
