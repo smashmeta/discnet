@@ -6,6 +6,7 @@
 #include <gmock/gmock.h>
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <discnet/network/network_handler.hpp>
 #include <discnet/route_manager.hpp>
 
 namespace discnet::test
@@ -13,6 +14,12 @@ namespace discnet::test
     struct adapter_fetcher_mock : public discnet::adapter_fetcher
     {
         MOCK_METHOD(std::vector<discnet::adapter_t>, get_adapters, (), (override));
+    };
+
+    struct client_creator_mock : public discnet::network::iclient_creator
+    {
+        MOCK_METHOD(discnet::network::shared_multicast_client, create, (discnet::network::multicast_info_t info, const discnet::network::data_received_func& callback_func), (override));
+        MOCK_METHOD(discnet::network::shared_unicast_client, create, (discnet::network::unicast_info_t info, const discnet::network::data_received_func& callback_func), (override));
     };
 } // ! namespace discnet::test
 
@@ -50,8 +57,10 @@ public:
         EXPECT_CALL(*fetcher.get(), get_adapters())
             .WillRepeatedly(testing::Return(adapters));
 
+        m_configuration = discnet::application::configuration_t{.m_node_id = 1, .m_multicast_address = boost::asio::ip::make_address_v4("234.5.6.7"), .m_multicast_port = 1337 };
         m_adapter_manager = std::make_shared<discnet::adapter_manager>(std::move(fetcher));
-        m_route_manager = std::make_shared<discnet::route_manager>(m_adapter_manager);
+        m_network_handler = std::make_shared<discnet::network::network_handler>(m_adapter_manager, m_configuration, std::make_shared<discnet::test::client_creator_mock>());
+        m_route_manager = std::make_shared<discnet::route_manager>(m_adapter_manager, m_network_handler);
 
         m_adapter_manager->update();
     }
@@ -65,7 +74,9 @@ protected:
     discnet::adapter_t m_adapter_2;
     discnet::adapter_t m_adapter_3;
 
+    discnet::application::configuration_t m_configuration;
     discnet::shared_adapter_manager m_adapter_manager;
+    discnet::network::shared_network_handler m_network_handler;
     discnet::shared_route_manager m_route_manager;
 };
 
@@ -84,7 +95,7 @@ TEST_F(route_manager_fixture, process_single_discovery_message)
 
     discnet::network::messages::discovery_message_t message {.m_identifier = 2};
     message.m_nodes.push_back({.m_identifier = 3, .m_address = boost::asio::ip::make_address_v4("192.200.10.3"), .m_jumps {256}});
-    m_route_manager->process(message, network_info);
+    m_route_manager->process_discovery_message(message, network_info);
     m_route_manager->update(time);
 
     auto routes = m_route_manager->find_routes_on_adapter(rcv_adapter.value().m_guid);
@@ -119,7 +130,7 @@ TEST_F(route_manager_fixture, route_timeout)
 
     discnet::network::messages::discovery_message_t message {.m_identifier = 2};
     message.m_nodes.push_back({.m_identifier = 3, .m_address = boost::asio::ip::make_address_v4("192.200.10.3"), .m_jumps {256}});
-    m_route_manager->process(message, network_info);
+    m_route_manager->process_discovery_message(message, network_info);
     m_route_manager->update(time);
 
     auto routes = m_route_manager->find_routes_on_adapter(m_adapter_1.m_guid);
@@ -136,7 +147,7 @@ TEST_F(route_manager_fixture, route_timeout)
     EXPECT_EQ(routes[1].m_status.m_online, false);
 
     network_info.m_reception_time = time + std::chrono::seconds(100);
-    m_route_manager->process(message, network_info);
+    m_route_manager->process_discovery_message(message, network_info);
     m_route_manager->update(time + std::chrono::seconds(110));
 
     routes = m_route_manager->find_routes_on_adapter(m_adapter_1.m_guid);
@@ -154,7 +165,7 @@ TEST_F(route_manager_fixture, persistent_node)
 
     { // adding persistent route
         discnet::persistent_route_t persistent_route {.m_identifier = persistent_route_id, .m_gateway = boost::asio::ip::make_address_v4("192.200.1.1"), .m_metric = 512, .m_enabled = true};
-        m_route_manager->process(persistent_route, time);
+        m_route_manager->process_persistent_route(persistent_route, time);
     }
 
     discnet::node_identifier_t discovery_node_id {.m_id = 1002, .m_address = boost::asio::ip::make_address_v4("192.200.10.13")};
@@ -167,7 +178,7 @@ TEST_F(route_manager_fixture, persistent_node)
         network_info.m_adapter = first_ip(m_adapter_1);
         network_info.m_receiver = boost::asio::ip::make_address_v4("234.5.6.7");
         discnet::network::messages::discovery_message_t message {.m_identifier = discovery_node_id.m_id};
-        m_route_manager->process(message, network_info);
+        m_route_manager->process_discovery_message(message, network_info);
     }
     
     m_route_manager->update(time + std::chrono::seconds(10));

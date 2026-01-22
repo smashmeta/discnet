@@ -12,7 +12,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <discnet/adapter_manager.hpp>
-// #include <whatlog/logger.hpp>
 #include <spdlog/spdlog.h>
 
 
@@ -134,7 +133,6 @@ namespace discnet
 
     void adapter_manager::update()
     {
-        // whatlog::logger log("adapter_manager::update");
         auto current_adapters = m_fetcher->get_adapters();
         for (const adapter_t& current_adapter : current_adapters)
         {
@@ -174,7 +172,6 @@ namespace discnet
                     }
                     parameters += adapter_paramter;
                 }
-                // spdlog::info("new adapter: [{}]", parameters);
 
                 m_adapters.insert({current_adapter.m_mac_address, current_adapter});
                 e_new(current_adapter);

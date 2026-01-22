@@ -3,24 +3,28 @@
  */
 
  #include <spdlog/spdlog.h>
-// #include <whatlog/logger.hpp>
 #include <discnet/network/unicast_client.hpp>
 
 
 namespace discnet::network
 {
-    shared_unicast_client unicast_client::create(discnet::shared_io_context io_context, unicast_info_t info, shared_data_handler data_handler) 
+    iunicast_client::iunicast_client(unicast_info_t info, const data_received_func& func)
+        : m_info(info), m_data_received_func(func)
     {
-        return std::shared_ptr<unicast_client>(new unicast_client{io_context, info, data_handler});
+        // nothing for now
+    }
+    
+    shared_unicast_client unicast_client::create(discnet::shared_io_context io_context, unicast_info_t info, const data_received_func& callback_func) 
+    {
+        return std::shared_ptr<unicast_client>(new unicast_client{io_context, info, callback_func});
     }
 
-    unicast_client::unicast_client(discnet::shared_io_context io_context, unicast_info_t info, shared_data_handler data_handler)
-        :   m_data_handler(data_handler),
+    unicast_client::unicast_client(discnet::shared_io_context io_context, unicast_info_t info, const data_received_func& callback_func)
+        :   iunicast_client(info, callback_func),
             m_context(io_context), 
             m_rcv_socket(new discnet::socket_t{*io_context.get()}),
             m_snd_socket(new discnet::socket_t{*io_context.get()}),
-            m_rcv_buffer(12560, '\0'),
-            m_info(info)
+            m_rcv_buffer(12560, '\0')
     {
         // nothing for now
     }
@@ -64,12 +68,12 @@ namespace discnet::network
 
     void unicast_client::handle_read(const boost::system::error_code& error, size_t bytes_received)
     {
-        // whatlog::logger log("unicast_client::handle_read");
         if (!error)
         {
-            m_data_handler->handle_receive(
+            m_data_received_func(
                 boost::asio::const_buffer(m_rcv_buffer.data(), bytes_received), 
-                m_rcv_endpoint.address().to_v4(), m_info.m_address);
+                m_rcv_endpoint.address().to_v4(), m_info.m_address
+            );
         }
         else
         {
@@ -106,7 +110,6 @@ namespace discnet::network
     bool unicast_client::open_unicast_snd_socket()
     {
         using udp_t = boost::asio::ip::udp;
-        // whatlog::logger log("open_unicast_snd_socket");
 
         discnet::error_code_t error;
         udp_t::endpoint unicast_endpoint{m_info.m_address, m_info.m_port};
@@ -125,7 +128,6 @@ namespace discnet::network
     bool unicast_client::open_unicast_rcv_socket()
     {
         using udp_t = boost::asio::ip::udp;
-        // whatlog::logger log("open_unicast_rcv_socket");
 
         spdlog::info("setting up unicast listening socket - addr: {}, port: {}.", 
            m_info.m_address.to_string(),

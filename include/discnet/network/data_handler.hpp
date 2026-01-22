@@ -17,7 +17,8 @@ namespace discnet::network
         std::vector<messages::packet_t> m_packets = {};
     };
 
-    typedef std::vector<data_stream_packets_t> packet_collection_t;
+    using packet_collection_t = std::vector<data_stream_packets_t>;
+    using data_received_func = std::function<void (boost::asio::const_buffer, const discnet::address_t&, const discnet::address_t&)>;
 
     class data_handler
     {

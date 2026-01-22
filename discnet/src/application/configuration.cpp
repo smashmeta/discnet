@@ -6,7 +6,6 @@
 #include <sstream>
 #include <boost/program_options.hpp>
 #include <boost/asio.hpp>
-// #include <whatlog/logger.hpp>
 #include <discnet/application/configuration.hpp>
 
 namespace discnet::application
@@ -42,26 +41,6 @@ namespace options
         return result;
     }
 } // !namespace options
-
-bool initialize_console_logger()
-{
-    try
-    {
-        // whatlog::logger::initialize_console_logger();
-    }
-    catch (const std::exception& ex)
-    {
-        std::cout << std::format("failed to initialize console logger. exception: {}", ex.what()) << std::endl;
-        return false;
-    }
-    catch (...)
-    {
-        std::cout << "failed to initialize console logger. unknown exception! " << std::endl;
-        return false;
-    }
-
-    return true;
-}
 
 expected_configuration_t get_configuration(int arguments_count, const char** arguments_vector)
 {

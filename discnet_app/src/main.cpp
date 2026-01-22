@@ -63,12 +63,6 @@ void program_yeild(const discnet::time_point_t& start_time)
 
 int main(int arguments_count, const char** arguments_vector)
 {
-    // whatlog::rename_thread(GetCurrentThread(), "main");
-    if (!discnet::application::initialize_console_logger())
-    {
-        return EXIT_FAILURE;
-    }
-
     boost::filesystem::path executable_directory = boost::dll::program_location().parent_path();
     std::cout << "current path is set to " << executable_directory << std::endl;
     auto file_logger = spdlog::basic_logger_mt("discnet_misc", "logs/discnet.log");

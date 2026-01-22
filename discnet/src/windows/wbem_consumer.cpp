@@ -8,7 +8,6 @@
 #include <iostream>
 #include <comdef.h>
 #include <discnet/windows/wbem_consumer.hpp>
-// #include <whatlog/logger.hpp>
 
 namespace discnet::windows
 {
@@ -163,7 +162,6 @@ namespace discnet::windows
 
     IEnumWbemClassObject* wbem_consumer::exec_query(const std::wstring& query)
     {
-        // whatlog::logger log("wbem_consumer::exec_query");
         IEnumWbemClassObject* pEnumerator = nullptr;
         HRESULT hres = m_impl->m_wbem_services->ExecQuery(bstr_t("WQL"), bstr_t(query.c_str()), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
 

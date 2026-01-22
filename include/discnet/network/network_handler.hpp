@@ -24,6 +24,24 @@ namespace discnet::network
         discnet::network::shared_data_handler m_data_handler;
     };
 
+    struct iclient_creator
+    {
+        virtual shared_multicast_client create(multicast_info_t info, const data_received_func& callback_func) = 0;
+        virtual shared_unicast_client create(unicast_info_t info, const data_received_func& callback_func) = 0;
+    };
+
+    using shared_client_creator = std::shared_ptr<iclient_creator>;
+
+    struct client_creator : public iclient_creator
+    {
+        DISCNET_EXPORT client_creator(discnet::shared_io_context io_context);
+
+        DISCNET_EXPORT shared_multicast_client create(multicast_info_t info, const data_received_func& callback_func) override;
+        DISCNET_EXPORT shared_unicast_client create(unicast_info_t info, const data_received_func& callback_func) override;
+    private:
+        discnet::shared_io_context m_io_context;
+    };
+
     class network_handler
     {
         using discovery_message_t = discnet::network::messages::discovery_message_t;
@@ -44,7 +62,7 @@ namespace discnet::network
         boost::signals2::signal<void(const data_message_t&, const network_info_t&)> e_data_message_received;
     
     public:
-        DISCNET_EXPORT network_handler(shared_adapter_manager adapter_manager, const discnet::application::configuration_t& configuration, discnet::shared_io_context io_context);
+        DISCNET_EXPORT network_handler(shared_adapter_manager adapter_manager, const discnet::application::configuration_t& configuration, shared_client_creator client_creator);
 
         DISCNET_EXPORT network_clients_t clients() const;
         DISCNET_EXPORT void transmit_multicast(const adapter_t& adapter, const message_list_t& messages);
@@ -63,7 +81,7 @@ namespace discnet::network
 
         discnet::shared_adapter_manager m_adapter_manager;
         discnet::application::configuration_t m_configuration;
-        discnet::shared_io_context m_io_context;
+        shared_client_creator m_client_creator;
         network_clients_t m_clients;
 
         std::mutex m_adapter_init_list_mutex;

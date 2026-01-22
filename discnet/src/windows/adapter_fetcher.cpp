@@ -10,8 +10,6 @@
 #include <iphlpapi.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
-
-// #include <whatlog/logger.hpp>
 #include <discnet/windows/adapter_fetcher.hpp>
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS 
@@ -239,10 +237,6 @@ namespace
                     continue;
                 }
 
-                // bool multicast_available = pCurrAddresses->FirstMulticastAddress != nullptr && 
-                //     pCurrAddresses->FirstMulticastAddress->Next != nullptr;        
-                // adapter.m_multicast_enabled = multicast_available;
-
                 std::string guid_str = get_adapter_guid(adapter.m_name);
                 if (guid_str.empty() || guid_str.size() != 38)
                 {
@@ -252,14 +246,6 @@ namespace
 
                 std::string guid_str_sanitized = guid_str.substr(1, guid_str.size() - 2);
                 adapter.m_guid = guid_str_sanitized; // boost::lexical_cast<boost::uuids::uuid>(guid_str_sanitized);
-
-                // log.info(" - name: {}.", adapter.m_name);
-                // log.info(" - index: {}.", adapter.m_index);
-                // log.info(" - mac: {}.", adapter.m_mac_address);
-                // log.info(" - desc: {}.", adapter.m_description);
-                // log.info(" - enabled: {}.", adapter.m_enabled);
-                // log.info(" - multicast-enabled: {}.", adapter.m_multicast_enabled);
-                // log.info(" - guid: {}.", boost::lexical_cast<std::string>(adapter.m_guid));
 
                 PIP_ADAPTER_GATEWAY_ADDRESS gateway_address = pCurrAddresses->FirstGatewayAddress;
                 for (size_t index = 0; gateway_address != nullptr; ++index)

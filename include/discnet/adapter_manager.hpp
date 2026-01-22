@@ -15,7 +15,7 @@ namespace discnet
         virtual ~adapter_fetcher() {}
         virtual std::vector<adapter_t> get_adapters() = 0; 
     };
-    
+
     class adapter_manager
     {
     public:

@@ -60,7 +60,7 @@ TEST(arguments_parsing, missing_arguments)
     const char* arguments[] = {"c:\\my_program_path.exe"};
     auto expected_configuration = discnet::application::get_configuration(1, arguments);
     ASSERT_FALSE(expected_configuration.has_value());
-    EXPECT_EQ(expected_configuration.error(), "arguments missing. type --help for more information.");
+    EXPECT_EQ(expected_configuration.error(), "arguments missing. type --help for more information");
 }
 
 TEST(arguments_parsing, help)
@@ -83,7 +83,7 @@ TEST(arguments_parsing, invalid_parameters_address)
     const char* arguments[] = {"c:\\my_program_path.exe", "--node_id", "1234", "--address", "334.33.6.7", "--port", "1337"};
     auto expected_configuration = discnet::application::get_configuration(7, arguments);
     ASSERT_FALSE(expected_configuration.has_value());
-    EXPECT_EQ(expected_configuration.error(), "invalid multicast_address given.");
+    EXPECT_EQ(expected_configuration.error(), "invalid multicast_address given");
 }
 
 TEST(main, bytes_to_hex_string)

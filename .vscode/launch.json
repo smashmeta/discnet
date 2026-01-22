@@ -31,21 +31,28 @@
     },
     {
       "name": "discnet_app_windows",
-      "program": "${workspaceFolder}/build/discnet_app/Debug/discnet_app.exe",
-      "cwd": "${fileDirname}",
+      "program": "${workspaceFolder}/build/discnet_app/discnet_app.exe",
+      "cwd": "${workspaceFolder}/build/discnet_app",
       "type": "cppvsdbg",
       "request": "launch",
-      // "stopAtEntry": true,
+      "stopAtEntry": false,
       "args": [
             "--node_id", "1",
-            "--address", "10.10.10.2",
+            "--address", "225.225.225.110",
             "--port", "13337"
       ]
     },
     {
       "name": "discnet_sim_windows",
-      "program": "${workspaceFolder}/build/discnet_sim/Debug/discnet_sim.exe",
-      "cwd": "${fileDirname}",
+      "program": "${workspaceFolder}/build/discnet_sim/discnet_sim.exe",
+      "cwd": "${workspaceFolder}/build/discnet_sim",
+      "type": "cppvsdbg",
+      "request": "launch"
+    },
+    {
+      "name": "discnet_test_windows",
+      "program": "${workspaceFolder}/build/discnet_test/discnet_test.exe",
+      "cwd": "${workspaceFolder}/build/discnet_test",
       "type": "cppvsdbg",
       "request": "launch"
     },

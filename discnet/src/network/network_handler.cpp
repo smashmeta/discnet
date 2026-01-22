@@ -5,7 +5,6 @@
 #include "discnet/adapter.hpp"
 #include <boost/lexical_cast.hpp>
 #include <boost/uuid/uuid_io.hpp>
-// #include <whatlog/logger.hpp>
 #include <functional>
 #include <spdlog/spdlog.h>
 #include <discnet/network/network_handler.hpp>
@@ -20,8 +19,24 @@ namespace discnet::network
         }
     } // !anonymous namespace
 
-    network_handler::network_handler(shared_adapter_manager adapter_manager, const discnet::application::configuration_t& configuration, discnet::shared_io_context io_context)
-        : m_adapter_manager(adapter_manager), m_configuration(configuration), m_io_context(io_context)
+    client_creator::client_creator(discnet::shared_io_context io_context)
+        : m_io_context(io_context)
+    {
+        // nothing for now
+    }
+
+    shared_multicast_client client_creator::create(multicast_info_t info, const data_received_func& callback_func)
+    {
+        return discnet::network::multicast_client::create(m_io_context, info, callback_func);
+    }
+
+    shared_unicast_client client_creator::create(unicast_info_t info, const data_received_func& callback_func)
+    {
+        return discnet::network::unicast_client::create(m_io_context, info, callback_func);
+    }
+
+    network_handler::network_handler(shared_adapter_manager adapter_manager, const discnet::application::configuration_t& configuration, shared_client_creator client_creator)
+        : m_adapter_manager(adapter_manager), m_configuration(configuration), m_client_creator(client_creator)
     {
         m_adapter_manager->e_new.connect(std::bind(&network_handler::adapter_added, this, std::placeholders::_1));
         m_adapter_manager->e_changed.connect(std::bind(&network_handler::adapter_changed, this, std::placeholders::_1, std::placeholders::_2));
@@ -35,8 +50,6 @@ namespace discnet::network
 
     void network_handler::transmit_multicast(const discnet::adapter_t& adapter, const discnet::network::messages::message_list_t& messages)
     {
-        // whatlog::logger log("multicast_handler::transmit_multicast");
-        
         auto adapter_check_func = std::bind(&equals,std::placeholders::_1, adapter.m_mac_address);
         auto itr_client = std::find_if(m_clients.begin(), m_clients.end(), adapter_check_func);
         if (itr_client == m_clients.end())
@@ -61,8 +74,6 @@ namespace discnet::network
 
     void network_handler::transmit_unicast(const discnet::adapter_t& adapter, const::discnet::address_t& recipient, discnet::network::messages::message_list_t& messages)
     {
-        // whatlog::logger log("network_handler::transmit_unicast");
-
         auto adapter_check_func = std::bind(&equals,std::placeholders::_1, adapter.m_mac_address);
         auto itr_client = std::find_if(m_clients.begin(), m_clients.end(), adapter_check_func);
         if (itr_client == m_clients.end())
@@ -87,8 +98,6 @@ namespace discnet::network
 
     void network_handler::update()
     {
-        // whatlog::logger log("network_handler::update");
-
         if (m_adapter_init_list.size() > 0)
         {   // see if any new clients have been established
             std::lock_guard<std::mutex> guard {m_adapter_init_list_mutex};
@@ -146,8 +155,6 @@ namespace discnet::network
 
     void network_handler::remove_client(const discnet::adapter_t& adapter)
     {
-        // whatlog::logger log("network_handler::remove_client");
-
         auto adapter_check_func = std::bind(&equals,std::placeholders::_1, adapter.m_mac_address);
         auto itr_client = std::find_if(m_clients.begin(), m_clients.end(), adapter_check_func);
         if (itr_client != m_clients.end())
@@ -162,9 +169,6 @@ namespace discnet::network
 
     network_handler::network_client_result_t network_handler::process_adapter(network_client_t client)
     {
-        // whatlog::rename_thread(GetCurrentThread(), "process_adapter");
-        // whatlog::logger log("network_handler::process_adapter");
-
         bool unicast_enabled = client.m_unicast->open();
         bool multicast_enabled = client.m_multicast->open();
         size_t retry_count = 0;
@@ -205,8 +209,6 @@ namespace discnet::network
 
     void network_handler::add_client(const discnet::adapter_t& adapter)
     {
-        // whatlog::logger log("network_handler::add_client");
-
         if (!adapter.m_enabled)
         {
             spdlog::info("skipping adapter {} because it is disabled.", adapter.m_name);
@@ -235,9 +237,12 @@ namespace discnet::network
         unicast_info.m_port = m_configuration.m_multicast_port + 1;
 
         network_client_t client;
+        auto data_received_callback_func = std::bind(&discnet::network::data_handler::handle_receive, client.m_data_handler, 
+            std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
         client.m_data_handler = std::make_shared<discnet::network::data_handler>(4095);
-        client.m_multicast = discnet::network::multicast_client::create(m_io_context, multicast_info, client.m_data_handler);
-        client.m_unicast = discnet::network::unicast_client::create(m_io_context, unicast_info, client.m_data_handler);
+        client.m_multicast = m_client_creator->create(multicast_info, data_received_callback_func);
+        client.m_unicast = m_client_creator->create(unicast_info, data_received_callback_func);
         client.m_adapter_identifier = adapter.m_mac_address;
 
         {
@@ -248,8 +253,6 @@ namespace discnet::network
 
     void network_handler::adapter_added(const adapter_t& adapter)
     {
-        // whatlog::logger log("network_handler::adapter_added");
-        
         std::string adapter_guid_str = boost::lexical_cast<std::string>(adapter.m_guid);
         spdlog::info("new adapter detected. Name: {}, guid: {}, mac: {}.", adapter.m_name, adapter_guid_str, adapter.m_mac_address);
         add_client(adapter);
@@ -257,8 +260,6 @@ namespace discnet::network
 
     void network_handler::adapter_changed(const adapter_t& previous_adapter, const adapter_t& current_adapter)
     {
-        // whatlog::logger log("network_handler::adapter_changed");
-        
         auto adapter_check_func = std::bind(&equals,std::placeholders::_1, current_adapter.m_mac_address);
         auto itr_client = std::find_if(m_clients.begin(), m_clients.end(), adapter_check_func);
         if (itr_client != m_clients.end())
@@ -275,7 +276,6 @@ namespace discnet::network
 
     void network_handler::adapter_removed(const adapter_t& adapter)
     {
-        // whatlog::logger log("network_handler::adapter_removed");
         remove_client(adapter);
     }
 } // ! namespace discnet::network

@@ -3,24 +3,28 @@
  */
 
 #include <spdlog/spdlog.h>
-// #include <whatlog/logger.hpp>
 #include <discnet/network/multicast_client.hpp>
 
 
 namespace discnet::network
 {
-    shared_multicast_client multicast_client::create(discnet::shared_io_context io_context, multicast_info_t info, shared_data_handler data_handler) 
+    imulticast_client::imulticast_client(multicast_info_t info, const data_received_func& func)
+        : m_info(info), m_data_received_func(func)
     {
-        return std::shared_ptr<multicast_client>(new multicast_client{io_context, info, data_handler});
+        // nothing for now
     }
 
-    multicast_client::multicast_client(discnet::shared_io_context io_context, multicast_info_t info, shared_data_handler data_handler)
-        :   m_data_handler(data_handler),
+    shared_multicast_client multicast_client::create(discnet::shared_io_context io_context, multicast_info_t info, const data_received_func& callback_func) 
+    {
+        return std::shared_ptr<multicast_client>(new multicast_client{io_context, info, callback_func});
+    }
+
+    multicast_client::multicast_client(discnet::shared_io_context io_context, multicast_info_t info, const data_received_func& callback_func)
+        :   imulticast_client(info, callback_func),
             m_context(io_context), 
             m_rcv_socket(new discnet::socket_t{*io_context.get()}),
             m_snd_socket(new discnet::socket_t{*io_context.get()}),
-            m_rcv_buffer(12560, '\0'),
-            m_info(info)
+            m_rcv_buffer(12560, '\0')
     {
         // nothing for now
     }
@@ -64,12 +68,12 @@ namespace discnet::network
 
     void multicast_client::handle_read(const boost::system::error_code& error, size_t bytes_received)
     {
-        // whatlog::logger log("multicast_client::handle_read");
         if (!error)
         {
-            m_data_handler->handle_receive(
+            m_data_received_func(
                 boost::asio::const_buffer(m_rcv_buffer.data(), bytes_received), 
-                m_rcv_endpoint.address().to_v4(), m_info.m_multicast_address);
+                m_rcv_endpoint.address().to_v4(), m_info.m_multicast_address
+            );
         }
         else
         {
@@ -107,7 +111,6 @@ namespace discnet::network
     {
         using udp_t = boost::asio::ip::udp;
         namespace multicast = boost::asio::ip::multicast;
-        // whatlog::logger log("open_multicast_snd_socket");
 
         discnet::error_code_t error;
         udp_t::endpoint multicast_endpoint{m_info.m_multicast_address, m_info.m_multicast_port};
@@ -134,7 +137,6 @@ namespace discnet::network
     {
         using udp_t = boost::asio::ip::udp;
         namespace multicast = boost::asio::ip::multicast;
-        // whatlog::logger log("open_multicast_rcv_socket");
 
         spdlog::info("setting up multicast listening socket - addr: {}, port: {}, on adapter {}.", 
            m_info.m_multicast_address.to_string(),

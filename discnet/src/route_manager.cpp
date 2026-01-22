@@ -9,16 +9,15 @@
 
 namespace discnet
 {
-route_manager::route_manager(shared_adapter_manager adapter_manager)
-    : m_adapter_manager(adapter_manager)
+route_manager::route_manager(shared_adapter_manager adapter_manager, network::shared_network_handler network_handler)
+    : m_adapter_manager(adapter_manager), m_network_handler(network_handler)
 {
-    // nothing for now
+    network_handler->e_discovery_message_received.connect(
+                std::bind(&route_manager::process_discovery_message, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 void route_manager::update(const time_point_t& current_time)
 {
-    // whatlog::logger log("route_manager::update");
-
     for (routes_t& routes : m_adapter_routes | std::views::values)
     {
         for (route_t& route : routes)
@@ -51,7 +50,7 @@ void route_manager::update(const time_point_t& current_time)
     }
 }
 
-bool route_manager::process(const discovery_message_t& message, const network_info_t& network_info)
+bool route_manager::process_discovery_message(const discovery_message_t& message, const network_info_t& network_info)
 {
     spdlog::info("received discovery message from {} on adapter {}.", message.m_identifier, network_info.m_adapter.to_string());
 
@@ -81,7 +80,7 @@ bool route_manager::process(const discovery_message_t& message, const network_in
     return result;
 }
 
-bool route_manager::process(const persistent_route_t& route, const discnet::time_point_t& time)
+bool route_manager::process_persistent_route(const persistent_route_t& route, const discnet::time_point_t& time)
 {
     spdlog::info("received persistent_route message on adapter {}.", route.m_identifier.m_adapter.to_string());
 
