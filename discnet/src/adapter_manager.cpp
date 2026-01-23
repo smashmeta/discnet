@@ -125,8 +125,8 @@ namespace discnet
         }
     } // ! anonymous namespace
 
-    adapter_manager::adapter_manager(std::unique_ptr<adapter_fetcher> fetcher)
-        : m_fetcher{std::move(fetcher)} 
+    adapter_manager::adapter_manager(const discnet::application::shared_loggers& loggers, std::unique_ptr<adapter_fetcher> fetcher)
+        : m_loggers(loggers), m_fetcher{std::move(fetcher)} 
     {
         // nothing for now
     }
@@ -145,11 +145,11 @@ namespace discnet
                 // check for changes to adapter
                 if (current_adapter != existing_adapter)
                 {
-                    spdlog::info("adapter changed - name: {}", current_adapter.m_name);
+                    m_loggers->m_logger->info("adapter changed - name: {}", current_adapter.m_name);
                     auto changes = adapter_diff(existing_adapter, current_adapter);
                     for (const auto& change : changes)
                     {
-                        spdlog::info(std::format(" - {}", change));
+                        m_loggers->m_logger->info(std::format(" - {}", change));
                     }
 
                     if (changes.size())
@@ -187,7 +187,7 @@ namespace discnet
             if (existing_id == current_adapters.end())
             {
                 // removed adapter detected
-                spdlog::info("adapter removed - name: {}", adapter_itr->second.m_name);
+                m_loggers->m_logger->info("adapter removed - name: {}", adapter_itr->second.m_name);
                 e_removed(adapter_itr->second);
                 adapter_itr = m_adapters.erase(adapter_itr);
             }

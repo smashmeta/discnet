@@ -10,7 +10,8 @@
 
 namespace discnet::main
 {
-    asio_context_t::asio_context_t()
+    asio_context_t::asio_context_t(const discnet::application::shared_loggers& loggers)
+        : m_loggers(loggers)
     {
         // whatlog::logger log("asio_context::ctor");
 
@@ -23,18 +24,16 @@ namespace discnet::main
         
         for (size_t i = 0; i < worker_threads_count; ++i)
         {
-            spdlog::info("spawning asio worker thread - named: {}.", thread_names[i]);
-            m_thread_group.push_back(std::jthread(std::bind(&work_handler, thread_names[i], m_io_context)));
+            m_loggers->m_logger->info("spawning asio worker thread - named: {}.", thread_names[i]);
+            m_thread_group.push_back(std::jthread(std::bind(&work_handler, m_loggers, thread_names[i], m_io_context)));
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    void asio_context_t::work_handler(const std::string& thread_name, discnet::shared_io_context io_context)
+    void asio_context_t::work_handler(discnet::application::shared_loggers loggers, const std::string& thread_name, discnet::shared_io_context io_context)
     {
-        // whatlog::rename_thread(GetCurrentThread(), thread_name);
-        // whatlog::logger log("work_handler");
-        spdlog::info("starting thread {}.", thread_name);
+        loggers->m_logger->info("starting thread {}.", thread_name);
 
         for (;;)
         {
@@ -45,11 +44,11 @@ namespace discnet::main
             }
             catch (std::exception& ex)
             {
-                spdlog::warn("worker thread encountered an error. exception: {}.", std::string(ex.what()));
+                loggers->m_logger->warn("worker thread encountered an error. exception: {}.", std::string(ex.what()));
             }
             catch (...)
             {
-                spdlog::warn("worker thread encountered an unknown exception.");
+                loggers->m_logger->warn("worker thread encountered an unknown exception.");
             }
         }
     }

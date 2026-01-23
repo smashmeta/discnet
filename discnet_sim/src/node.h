@@ -7,6 +7,7 @@
 #include <memory>
 #include <discnet/typedefs.hpp>
 #include <discnet/application/configuration.hpp>
+#include <QTextEdit>
 
 namespace discnet
 {
@@ -22,8 +23,6 @@ namespace network
     using shared_network_handler = std::shared_ptr<network_handler>;
 } // !namespace network
 
-namespace main
-{
     struct asio_context_t;
     using shared_asio_context_t = std::shared_ptr<asio_context_t>;
 
@@ -33,15 +32,15 @@ namespace main
     class transmission_handler;
     using shared_transmission_handler = std::shared_ptr<transmission_handler>;
 
-    class application
+    class discnet_node
     {
     public:
-        application(discnet::application::configuration_t configuration);
+        discnet_node(const application::configuration_t& configuration, QTextEdit* text_edit);
         
         bool initialize();
-        void update(discnet::time_point_t current_time);
+        void update(time_point_t current_time);
     private:
-        discnet::application::configuration_t m_configuration;
+        application::configuration_t m_configuration;
         shared_asio_context_t m_asio_context;
         discnet::shared_adapter_manager m_adapter_manager;
         discnet::shared_route_manager m_route_manager;
@@ -50,5 +49,6 @@ namespace main
         shared_transmission_handler m_transmission_handler;
         discnet::application::shared_loggers m_loggers;
     };
-} // !namespace main
+
+    using shared_discnet_node = std::shared_ptr<discnet_node>;
 } // !namespace discnet

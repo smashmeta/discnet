@@ -64,6 +64,7 @@ public:
         };
     }
 protected:
+    discnet::application::shared_loggers m_loggers;
     discnet::adapter_t m_adapter_1;
     discnet::adapter_t m_adapter_2;
 };
@@ -74,7 +75,7 @@ TEST_F(adapter_manager_fixture, find_adapter)
     {	// making sure that the manager is destroyed (or else gtest will complain about memory leaks)
         auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
         EXPECT_CALL(*fetcher.get(), get_adapters()).Times(1).WillOnce(testing::Return(adapters));
-        discnet::adapter_manager manager { std::move(fetcher) };
+        discnet::adapter_manager manager { m_loggers, std::move(fetcher) };
         manager.update();
 
         auto adapter_valid_10 = manager.find_adapter(boost::asio::ip::make_address_v4("10.0.0.1"));
@@ -109,7 +110,7 @@ TEST_F(adapter_manager_fixture, update)
             .WillOnce(testing::Return(adapters_changed))
             .WillOnce(testing::Return(adapters_empty));
 
-        adapter_manager manager { std::move(fetcher) };
+        adapter_manager manager { m_loggers, std::move(fetcher) };
  
         discnet::test::callback_tester_t callbacks_tester;
         manager.e_new.connect(std::bind(&discnet::test::callback_tester_t::new_adapter, &callbacks_tester, std::placeholders::_1));

@@ -3,20 +3,15 @@
  */
 
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/qt_sinks.h>
 #include <discnet/application/configuration.hpp>
 #include <discnet_app/asio_context.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/route_manager.hpp>
 #include <discnet/network/network_handler.hpp>
-#include <discnet_app/application.hpp>
-#ifdef _WIN32
-#include <discnet/windows/adapter_fetcher.hpp>
-#elif defined(__GNUC__) && !defined(__clang__)
-#include <discnet/linux/adapter_fetcher.hpp>
-#endif
+#include "node.h"
 
-namespace discnet::main
+namespace discnet
 {
     using message_t = discnet::network::messages::data_message_t;
 
@@ -169,39 +164,35 @@ namespace discnet::main
         discnet::application::configuration_t m_configuration;
         message_queue_t m_queue;
     };
-}
 
-namespace discnet::main
-{
-    application::application(discnet::application::configuration_t configuration)
-        : m_configuration(configuration), m_loggers(std::make_shared<discnet::application::loggers_t>())
+    static int instance_id = 0;
+    discnet_node::discnet_node(const application::configuration_t& configuration, QTextEdit* text_edit)
+        : m_configuration(configuration)
     {
-        m_loggers->m_logger = spdlog::stdout_color_mt("console");
+        // nothing for now
+        m_loggers = std::make_shared<discnet::application::loggers_t>();
+        m_loggers->m_logger = spdlog::qt_logger_mt(std::format("qt_{}", instance_id++), text_edit);
     }
 
-    bool application::initialize()
+    bool discnet_node::initialize()
     {
-        m_loggers->m_logger->info("setting up asio network context...");
-        m_asio_context = std::make_shared<discnet::main::asio_context_t>(m_loggers);
-        m_loggers->m_logger->info("setting up adapter_manager...");
+        m_loggers->m_logger->info(std::format("discnet - node id: {}, multicast: [addr: {}, port: {}].", 
+            m_configuration.m_node_id, m_configuration.m_multicast_address.to_string(), m_configuration.m_multicast_port));
 
-#ifdef _WIN32
-        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, std::make_unique<discnet::windows_adapter_fetcher>());
-#elif defined(__GNUC__) && !defined(__clang__)
-        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, std::make_unique<discnet::linux_adapter_fetcher>());
-#endif
+        m_loggers->m_logger->info("setting up adapter_manager...");
+        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, std::make_unique<discnet::simulator_adapter_fetcher>());
 
         m_loggers->m_logger->info("setting up network_handler...");
-        m_network_handler = std::make_shared<discnet::network::network_handler>(m_loggers, m_adapter_manager, m_configuration, std::make_shared<network::client_creator>(m_loggers, m_asio_context->m_io_context));
+        m_network_handler = std::make_shared<discnet::network::network_handler>(m_loggers, m_adapter_manager, m_configuration, std::make_shared<network::simulator_client_creator>(m_loggers));
         m_loggers->m_logger->info("setting up route_manager...");
         m_route_manager = std::make_shared<discnet::route_manager>(m_loggers, m_adapter_manager, m_network_handler);
         m_loggers->m_logger->info("setting up transmission_handler...");
-        m_transmission_handler = std::make_shared<discnet::main::transmission_handler>(m_loggers, m_route_manager, m_network_handler, m_adapter_manager, m_configuration);
+        m_transmission_handler = std::make_shared<transmission_handler>(m_loggers, m_route_manager, m_network_handler, m_adapter_manager, m_configuration);
 
         return true;
     }
 
-    void application::update(discnet::time_point_t current_time)
+    void discnet_node::update(discnet::time_point_t current_time)
     {
         m_adapter_manager->update();
         m_network_handler->update();

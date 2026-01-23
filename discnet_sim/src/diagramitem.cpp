@@ -14,7 +14,19 @@ DiagramItem::DiagramItem(DiagramType diagramType, QMenu *contextMenu,
                          QGraphicsItem *parent)
     : QGraphicsPolygonItem(parent), myDiagramType(diagramType)
     , myContextMenu(contextMenu)
+    , m_dialog(new NodeDialog(nullptr))
 {
+
+    static uint16_t s_node_id = 0;
+    discnet::application::configuration_t configuration{
+        .m_node_id = ++s_node_id, 
+        .m_multicast_address = boost::asio::ip::make_address_v4("234.5.6.7"), 
+        .m_multicast_port = 1337 
+    };
+    m_node = std::make_shared<discnet::discnet_node>(configuration, m_dialog->log());
+    m_node->initialize();
+    m_node->update(discnet::sys_clock_t::now());
+
     QPainterPath path;
     switch (myDiagramType) {
         case StartEnd:
@@ -48,6 +60,11 @@ DiagramItem::DiagramItem(DiagramType diagramType, QMenu *contextMenu,
     setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
 }
 //! [0]
+
+DiagramItem::~DiagramItem()
+{
+    delete m_dialog;
+}
 
 //! [1]
 void DiagramItem::removeArrow(Arrow *arrow)
@@ -98,6 +115,8 @@ void DiagramItem::contextMenuEvent(QGraphicsSceneContextMenuEvent *event)
     scene()->clearSelection();
     setSelected(true);
     myContextMenu->popup(event->screenPos());
+
+    m_dialog->show();
 }
 //! [5]
 

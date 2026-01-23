@@ -58,9 +58,9 @@ public:
             .WillRepeatedly(testing::Return(adapters));
 
         m_configuration = discnet::application::configuration_t{.m_node_id = 1, .m_multicast_address = boost::asio::ip::make_address_v4("234.5.6.7"), .m_multicast_port = 1337 };
-        m_adapter_manager = std::make_shared<discnet::adapter_manager>(std::move(fetcher));
-        m_network_handler = std::make_shared<discnet::network::network_handler>(m_adapter_manager, m_configuration, std::make_shared<discnet::test::client_creator_mock>());
-        m_route_manager = std::make_shared<discnet::route_manager>(m_adapter_manager, m_network_handler);
+        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, std::move(fetcher));
+        m_network_handler = std::make_shared<discnet::network::network_handler>(m_loggers, m_adapter_manager, m_configuration, std::make_shared<discnet::test::client_creator_mock>());
+        m_route_manager = std::make_shared<discnet::route_manager>(m_loggers, m_adapter_manager, m_network_handler);
 
         m_adapter_manager->update();
     }
@@ -74,6 +74,7 @@ protected:
     discnet::adapter_t m_adapter_2;
     discnet::adapter_t m_adapter_3;
 
+    discnet::application::shared_loggers m_loggers;
     discnet::application::configuration_t m_configuration;
     discnet::shared_adapter_manager m_adapter_manager;
     discnet::network::shared_network_handler m_network_handler;

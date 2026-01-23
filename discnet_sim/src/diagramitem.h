@@ -5,7 +5,10 @@
 #define DIAGRAMITEM_H
 
 #include <QGraphicsPixmapItem>
+#include <QTextBrowser>
 #include <QList>
+#include "nodedialog.h"
+#include "node.h"
 
 QT_BEGIN_NAMESPACE
 class QPixmap;
@@ -24,6 +27,7 @@ public:
     enum DiagramType { Step, Conditional, StartEnd, Io };
 
     DiagramItem(DiagramType diagramType, QMenu *contextMenu, QGraphicsItem *parent = nullptr);
+    ~DiagramItem();
 
     void removeArrow(Arrow *arrow);
     void removeArrows();
@@ -42,6 +46,8 @@ private:
     QPolygonF myPolygon;
     QMenu *myContextMenu;
     QList<Arrow *> arrows;
+    NodeDialog* m_dialog;
+    discnet::shared_discnet_node m_node;
 };
 //! [0]
 

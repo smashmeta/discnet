@@ -34,12 +34,27 @@ namespace discnet::network
 
     struct client_creator : public iclient_creator
     {
-        DISCNET_EXPORT client_creator(discnet::shared_io_context io_context);
+        DISCNET_EXPORT client_creator(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context);
 
         DISCNET_EXPORT shared_multicast_client create(multicast_info_t info, const data_received_func& callback_func) override;
         DISCNET_EXPORT shared_unicast_client create(unicast_info_t info, const data_received_func& callback_func) override;
     private:
+        discnet::application::shared_loggers m_loggers;
         discnet::shared_io_context m_io_context;
+    };
+
+    struct simulator_client_creator : public iclient_creator
+    {
+        simulator_client_creator(const discnet::application::shared_loggers& loggers)
+            : m_loggers(loggers)
+        {
+            // nothing for now
+        }
+
+        shared_multicast_client create(multicast_info_t info, const data_received_func& callback_func) override { return std::make_shared<simulator_multicast_client>(info, callback_func); }
+        shared_unicast_client create(unicast_info_t info, const data_received_func& callback_func) override { return std::make_shared<simulator_unicast_client>(info, callback_func); }
+    private:
+        discnet::application::shared_loggers m_loggers;
     };
 
     class network_handler
@@ -62,7 +77,8 @@ namespace discnet::network
         boost::signals2::signal<void(const data_message_t&, const network_info_t&)> e_data_message_received;
     
     public:
-        DISCNET_EXPORT network_handler(shared_adapter_manager adapter_manager, const discnet::application::configuration_t& configuration, shared_client_creator client_creator);
+        DISCNET_EXPORT network_handler(const discnet::application::shared_loggers& loggers, shared_adapter_manager adapter_manager, const discnet::application::configuration_t& configuration, shared_client_creator client_creator);
+        DISCNET_EXPORT ~network_handler();
 
         DISCNET_EXPORT network_clients_t clients() const;
         DISCNET_EXPORT void transmit_multicast(const adapter_t& adapter, const message_list_t& messages);
@@ -79,6 +95,7 @@ namespace discnet::network
         void adapter_changed(const adapter_t& previous_adapter, const adapter_t& current_adapter);
         void adapter_removed(const adapter_t& adapter);
 
+        discnet::application::shared_loggers m_loggers;
         discnet::shared_adapter_manager m_adapter_manager;
         discnet::application::configuration_t m_configuration;
         shared_client_creator m_client_creator;

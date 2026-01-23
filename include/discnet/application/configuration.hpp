@@ -7,6 +7,7 @@
 #include <expected>
 #include <discnet/typedefs.hpp>
 #include <discnet/discnet.hpp>
+#include <spdlog/spdlog.h>
 
 namespace discnet::application
 {
@@ -16,6 +17,14 @@ namespace discnet::application
         address_t m_multicast_address;
         port_type_t m_multicast_port;
      };
+
+     struct loggers_t
+     {
+         DISCNET_EXPORT loggers_t();
+         std::shared_ptr<spdlog::logger> m_logger;
+     };
+
+     using shared_loggers = std::shared_ptr<loggers_t>;
 
      using expected_configuration_t = std::expected<configuration_t, std::string>;
 
