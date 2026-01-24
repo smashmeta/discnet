@@ -16,7 +16,9 @@ find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 # setting up source files and header files groups
 file(GLOB HEADERS_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
+file(GLOB QRC_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.qrc")
 file(GLOB SOURCE_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+
 
 # adding file filters to visual studio project
 source_group("header/" FILES ${HEADERS_DEFAULT_GRP})
@@ -25,7 +27,8 @@ source_group("src/" FILES ${SOURCE_DEFAULT_GRP})
 # setting up executable
 add_executable(discnet_sim
     ${HEADERS_DEFAULT_GRP}
-	${SOURCE_DEFAULT_GRP}
+	${QRC_DEFAULT_GRP}
+    ${SOURCE_DEFAULT_GRP}
 )
 
 # adding thirdparty library dependencies
