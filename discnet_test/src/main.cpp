@@ -39,8 +39,9 @@ TEST(main, shift_buffer_debugging_remove_later)
 
 TEST(main, sha256_file)
 {
+    // verified with powershell command 'Get-FileHash -Path "C:\Path\To\Your\File.ext"'
     std::string hashed_file = discnet::sha256_file("sha.file");
-    EXPECT_EQ(hashed_file, "f33ae3bc9a22cd7564990a794789954409977013966fb1a8f43c35776b833a95");
+    EXPECT_EQ(hashed_file, "49ba83ac312e418f75c3fdc25844174e9be305278d5860afb423fca2af760faa");
 }
 
 TEST(arguments_parsing, normal_usage)

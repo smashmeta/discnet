@@ -40,6 +40,8 @@ protected:
 public:
     virtual void SetUp() override
     {
+        m_loggers = std::make_shared<discnet::application::loggers_t>();
+
         m_adapter_1.m_guid = boost::uuids::to_string(boost::uuids::random_generator()());
         m_adapter_1.m_mac_address = m_adapter_1.m_guid;
         m_adapter_1.m_index = 0;

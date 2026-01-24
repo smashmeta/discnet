@@ -36,19 +36,19 @@ namespace main
     class application
     {
     public:
-        application(discnet::application::configuration_t configuration);
+        application(discnet::application::configuration_t configuration, const discnet::application::shared_loggers& loggers);
         
         bool initialize();
         void update(discnet::time_point_t current_time);
     private:
         discnet::application::configuration_t m_configuration;
+        discnet::application::shared_loggers m_loggers;
         shared_asio_context_t m_asio_context;
         discnet::shared_adapter_manager m_adapter_manager;
         discnet::shared_route_manager m_route_manager;
         discnet::network::shared_network_handler m_network_handler;
         shared_discovery_message_handler m_discovery_message_handler;
         shared_transmission_handler m_transmission_handler;
-        discnet::application::shared_loggers m_loggers;
     };
 } // !namespace main
 } // !namespace discnet

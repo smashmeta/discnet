@@ -3,7 +3,6 @@
  */
 
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <discnet/application/configuration.hpp>
 #include <discnet_app/asio_context.hpp>
 #include <discnet/adapter_manager.hpp>
@@ -173,10 +172,10 @@ namespace discnet::main
 
 namespace discnet::main
 {
-    application::application(discnet::application::configuration_t configuration)
-        : m_configuration(configuration), m_loggers(std::make_shared<discnet::application::loggers_t>())
+    application::application(discnet::application::configuration_t configuration, const discnet::application::shared_loggers& loggers)
+        : m_configuration(configuration), m_loggers(loggers)
     {
-        m_loggers->m_logger = spdlog::stdout_color_mt("console");
+        // nothing for now
     }
 
     bool application::initialize()

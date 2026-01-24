@@ -14,13 +14,14 @@ namespace discnet::network
         // nothing for now
     }
     
-    shared_unicast_client unicast_client::create(discnet::shared_io_context io_context, unicast_info_t info, const data_received_func& callback_func) 
+    shared_unicast_client unicast_client::create(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, unicast_info_t info, const data_received_func& callback_func) 
     {
-        return std::shared_ptr<unicast_client>(new unicast_client{io_context, info, callback_func});
+        return std::shared_ptr<unicast_client>(new unicast_client{loggers, io_context, info, callback_func});
     }
 
-    unicast_client::unicast_client(discnet::shared_io_context io_context, unicast_info_t info, const data_received_func& callback_func)
+    unicast_client::unicast_client(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, unicast_info_t info, const data_received_func& callback_func)
         :   iunicast_client(info, callback_func),
+            m_loggers(loggers),
             m_context(io_context), 
             m_rcv_socket(new discnet::socket_t{*io_context.get()}),
             m_snd_socket(new discnet::socket_t{*io_context.get()}),
@@ -79,12 +80,12 @@ namespace discnet::network
         {
             if (error == boost::asio::error::connection_aborted)
             {
-                spdlog::info("closing unicast connection on adapter {}.", m_info.m_address.to_string());
+                m_loggers->m_logger->info("closing unicast connection on adapter {}.", m_info.m_address.to_string());
                 close();
             }
             else
             {
-                spdlog::warn("error reading data. id: {}, message: {}.", error.value(), error.message());
+                m_loggers->m_logger->warn("error reading data. id: {}, message: {}.", error.value(), error.message());
             }
             
             return;
@@ -117,7 +118,7 @@ namespace discnet::network
         m_snd_socket->open(unicast_endpoint.protocol(), error);
         if (error.failed())
         {
-            spdlog::warn("failed to open socket on local address: {}, port: {}. Error: {}.", 
+            m_loggers->m_logger->warn("failed to open socket on local address: {}, port: {}. Error: {}.", 
                 unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
             return false;
         }
@@ -129,7 +130,7 @@ namespace discnet::network
     {
         using udp_t = boost::asio::ip::udp;
 
-        spdlog::info("setting up unicast listening socket - addr: {}, port: {}.", 
+        m_loggers->m_logger->info("setting up unicast listening socket - addr: {}, port: {}.", 
            m_info.m_address.to_string(),
            m_info.m_port);
 
@@ -139,7 +140,7 @@ namespace discnet::network
         m_rcv_socket->open(unicast_endpoint.protocol(), error);
         if (error.failed())
         {
-            spdlog::warn("failed to open socket on local address: {}, port: {}. Error: {}.", 
+            m_loggers->m_logger->warn("failed to open socket on local address: {}, port: {}. Error: {}.", 
                unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
             return false;
         }
@@ -147,14 +148,14 @@ namespace discnet::network
         m_rcv_socket->set_option(udp_t::socket::reuse_address(true), error);
         if (error.failed())
         {
-            spdlog::warn("failed to enable udp socket option: reuse_address. Error: {}.", error.message());
+            m_loggers->m_logger->warn("failed to enable udp socket option: reuse_address. Error: {}.", error.message());
             return false;
         }
         
         m_rcv_socket->bind(unicast_endpoint, error);
         if (error.failed())
         {
-            spdlog::warn("failed to bind socket on local address: {}, port: {}. Error: {}.", 
+            m_loggers->m_logger->warn("failed to bind socket on local address: {}, port: {}. Error: {}.", 
                unicast_endpoint.address().to_string(), unicast_endpoint.port(), error.message());
             return false;
         }

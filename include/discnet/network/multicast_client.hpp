@@ -9,6 +9,7 @@
 #include <boost/core/ignore_unused.hpp>
 #include <discnet/discnet.hpp>
 #include <discnet/typedefs.hpp>
+#include <discnet/application/configuration.hpp>
 #include <discnet/network/data_handler.hpp>
 #include <discnet/network/buffer.hpp>
 #include <discnet/network/network_info.hpp>
@@ -59,7 +60,7 @@ namespace discnet::network
     class multicast_client : public imulticast_client, public std::enable_shared_from_this<multicast_client>
     {
     public:
-        static DISCNET_EXPORT shared_multicast_client create(discnet::shared_io_context io_context, multicast_info_t info, const data_received_func& callback_func);
+        static DISCNET_EXPORT shared_multicast_client create(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, multicast_info_t info, const data_received_func& callback_func);
 
         DISCNET_EXPORT bool open();
         DISCNET_EXPORT bool write(const discnet::network::buffer_t& buffer);
@@ -72,12 +73,13 @@ namespace discnet::network
         void handle_read(const boost::system::error_code& error, size_t bytes_received);
 
     protected:
-        multicast_client(discnet::shared_io_context io_context, multicast_info_t info, const data_received_func& callback_func);
+        multicast_client(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, multicast_info_t info, const data_received_func& callback_func);
 
     private:
         bool open_multicast_snd_socket();
         bool open_multicast_rcv_socket();
 
+        discnet::application::shared_loggers m_loggers;
         discnet::shared_io_context m_context;
         discnet::shared_udp_socket m_rcv_socket;
         discnet::shared_udp_socket m_snd_socket;

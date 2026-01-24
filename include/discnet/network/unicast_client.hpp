@@ -7,6 +7,7 @@
 #include <boost/asio.hpp>
 #include <boost/core/ignore_unused.hpp>
 #include <discnet/discnet.hpp>
+#include <discnet/application/configuration.hpp>
 #include <discnet/typedefs.hpp>
 #include <discnet/network/data_handler.hpp>
 #include <discnet/network/buffer.hpp>
@@ -55,7 +56,7 @@ namespace discnet::network
     class unicast_client : public iunicast_client, public std::enable_shared_from_this<unicast_client>
     {
     public:
-        [[nodiscard]] static DISCNET_EXPORT shared_unicast_client create(discnet::shared_io_context io_context, unicast_info_t info, const data_received_func& callback_func);
+        [[nodiscard]] static DISCNET_EXPORT shared_unicast_client create(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, unicast_info_t info, const data_received_func& callback_func);
 
         DISCNET_EXPORT bool open();
         // DISCNET_EXPORT bool write(const discnet::network::buffer_t& buffer);
@@ -69,12 +70,13 @@ namespace discnet::network
         void handle_read(const boost::system::error_code& error, size_t bytes_received);
 
     protected:
-        unicast_client(discnet::shared_io_context io_context, unicast_info_t info, const data_received_func& callback_func);
+        unicast_client(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, unicast_info_t info, const data_received_func& callback_func);
 
     private:
         bool open_unicast_snd_socket();
         bool open_unicast_rcv_socket();
 
+        discnet::application::shared_loggers m_loggers;
         discnet::shared_io_context m_context;
         discnet::shared_udp_socket m_rcv_socket;
         discnet::shared_udp_socket m_snd_socket;

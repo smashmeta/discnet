@@ -14,13 +14,14 @@ namespace discnet::network
         // nothing for now
     }
 
-    shared_multicast_client multicast_client::create(discnet::shared_io_context io_context, multicast_info_t info, const data_received_func& callback_func) 
+    shared_multicast_client multicast_client::create(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, multicast_info_t info, const data_received_func& callback_func) 
     {
-        return std::shared_ptr<multicast_client>(new multicast_client{io_context, info, callback_func});
+        return std::shared_ptr<multicast_client>(new multicast_client{loggers, io_context, info, callback_func});
     }
 
-    multicast_client::multicast_client(discnet::shared_io_context io_context, multicast_info_t info, const data_received_func& callback_func)
+    multicast_client::multicast_client(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, multicast_info_t info, const data_received_func& callback_func)
         :   imulticast_client(info, callback_func),
+            m_loggers(loggers),
             m_context(io_context), 
             m_rcv_socket(new discnet::socket_t{*io_context.get()}),
             m_snd_socket(new discnet::socket_t{*io_context.get()}),
@@ -79,12 +80,12 @@ namespace discnet::network
         {
             if (error == boost::asio::error::connection_aborted)
             {
-                spdlog::info("closing multicast connection on adapter {}.", m_info.m_adapter_address.to_string());
+                m_loggers->m_logger->info("closing multicast connection on adapter {}.", m_info.m_adapter_address.to_string());
                 close();
             }
             else
             {
-                spdlog::warn("error reading data. id: {}, message: {}.", error.value(), error.message());
+                m_loggers->m_logger->warn("error reading data. id: {}, message: {}.", error.value(), error.message());
             }
             
             return;
@@ -118,7 +119,7 @@ namespace discnet::network
         m_snd_socket->open(multicast_endpoint.protocol(), error);
         if (error.failed())
         {
-            spdlog::warn("failed to open socket on local address: {}, port: {}. Error: {}.", 
+            m_loggers->m_logger->warn("failed to open socket on local address: {}, port: {}. Error: {}.", 
                multicast_endpoint.address().to_string(), multicast_endpoint.port(), error.message());
             return false;
         }
@@ -126,7 +127,7 @@ namespace discnet::network
         m_snd_socket->set_option(multicast::outbound_interface(m_info.m_adapter_address), error);
         if (error.failed())
         {
-            spdlog::warn("failed to enable udp socket option: outbound_interface with address: {}. Error: {}.", 
+            m_loggers->m_logger->warn("failed to enable udp socket option: outbound_interface with address: {}. Error: {}.", 
                m_info.m_adapter_address.to_string(), error.message());
         }
 
@@ -138,7 +139,7 @@ namespace discnet::network
         using udp_t = boost::asio::ip::udp;
         namespace multicast = boost::asio::ip::multicast;
 
-        spdlog::info("setting up multicast listening socket - addr: {}, port: {}, on adapter {}.", 
+        m_loggers->m_logger->info("setting up multicast listening socket - addr: {}, port: {}, on adapter {}.", 
            m_info.m_multicast_address.to_string(),
            m_info.m_multicast_port,
            m_info.m_adapter_address.to_string());
@@ -149,35 +150,35 @@ namespace discnet::network
         m_rcv_socket->open(multicast_endpoint.protocol(), error);
         if (error.failed())
         {
-            spdlog::warn("failed to open socket. Error: {}.", error.message());
+            m_loggers->m_logger->warn("failed to open socket. Error: {}.", error.message());
             return false;
         }
         
         m_rcv_socket->set_option(udp_t::socket::reuse_address(true), error);
         if (error.failed())
         {
-            spdlog::warn("failed to set socket option (reuse_address = true). Error: {}.", error.message());
+            m_loggers->m_logger->warn("failed to set socket option (reuse_address = true). Error: {}.", error.message());
             return false;
         }
 
         m_rcv_socket->set_option(multicast::enable_loopback(false), error);
         if (error.failed())
         {
-            spdlog::warn("failed to set socket option (multicast::enable_loopback = false). Error: {}.", error.message());
+            m_loggers->m_logger->warn("failed to set socket option (multicast::enable_loopback = false). Error: {}.", error.message());
             return false;
         }
         
         m_rcv_socket->bind(multicast_endpoint, error);
         if (error.failed())
         {
-            spdlog::warn("failed to set bind socket. Error: {}.", error.message());
+            m_loggers->m_logger->warn("failed to set bind socket. Error: {}.", error.message());
             return false;
         }
 
         m_rcv_socket->set_option(multicast::join_group(m_info.m_multicast_address, m_info.m_adapter_address), error);
         if (error.failed())
         {
-            spdlog::warn("failed to join multicast group [addr: {} adapter: {}]. Error: {}.", 
+            m_loggers->m_logger->warn("failed to join multicast group [addr: {} adapter: {}]. Error: {}.", 
                 m_info.m_multicast_address.to_string(), m_info.m_adapter_address.to_string(), error.message());
             return false;
         }

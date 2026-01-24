@@ -27,12 +27,12 @@ namespace discnet::network
 
     shared_multicast_client client_creator::create(multicast_info_t info, const data_received_func& callback_func)
     {
-        return discnet::network::multicast_client::create(m_io_context, info, callback_func);
+        return discnet::network::multicast_client::create(m_loggers, m_io_context, info, callback_func);
     }
 
     shared_unicast_client client_creator::create(unicast_info_t info, const data_received_func& callback_func)
     {
-        return discnet::network::unicast_client::create(m_io_context, info, callback_func);
+        return discnet::network::unicast_client::create(m_loggers, m_io_context, info, callback_func);
     }
 
     network_handler::network_handler(const discnet::application::shared_loggers& loggers, shared_adapter_manager adapter_manager, const discnet::application::configuration_t& configuration, shared_client_creator client_creator)

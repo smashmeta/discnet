@@ -76,12 +76,10 @@ expected_configuration_t get_configuration(int arguments_count, const char** arg
     try
     {
         bpo::store(bpo::parse_command_line(arguments_count, arguments_vector, description), variable_map);
-        // log.info("command line arguments parsed.");
     }
     catch (const std::exception& ex)
     {
         std::string error_message = std::format("failed to parse command line arguments. Reason: {}", ex.what());
-        // log.error(error_message);
         return std::unexpected(error_message);
     }
 
@@ -103,14 +101,12 @@ expected_configuration_t get_configuration(int arguments_count, const char** arg
         if (result.m_node_id <= 0)
         {
             std::string error_message = "invalid node_id given";
-            // log.error(error_message);
             return std::unexpected(error_message);
         }
     }
     else
     {
         std::string error_message = "node_id argument not set"; 
-        // log.error(error_message);
         return std::unexpected(error_message);
     }
 
@@ -125,14 +121,12 @@ expected_configuration_t get_configuration(int arguments_count, const char** arg
         if (error)
         {
             std::string error_message = "invalid multicast_address given"; 
-            // log.error(error_message);
             return std::unexpected(error_message);
         }
     }
     else
     {
         std::string error_message = "multicast_address argument not set"; 
-        // log.error(error_message);
         return std::unexpected(error_message);
     }
 
@@ -144,7 +138,6 @@ expected_configuration_t get_configuration(int arguments_count, const char** arg
         if (multicast_port <= 0)
         {
             std::string error_message = "invalid multicast_port given"; 
-            // log.error(error_message);
             return std::unexpected(error_message);
         }
 
@@ -153,7 +146,6 @@ expected_configuration_t get_configuration(int arguments_count, const char** arg
     else
     {
         std::string error_message = "multicast_port argument not set"; 
-        // log.error(error_message);
         return std::unexpected(error_message);
     }
 
