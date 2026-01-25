@@ -41,22 +41,7 @@ namespace discnet::network
         multicast_info_t m_info;    
         data_received_func m_data_received_func;
     };
-
-    class simulator_multicast_client : public imulticast_client
-    {
-    public:
-        simulator_multicast_client(multicast_info_t info, const data_received_func& func)
-            : imulticast_client(info, func)
-        {
-            // nothing for now
-        }
     
-        bool open() override { return false; }
-        bool write([[maybe_unused]] const discnet::network::buffer_t& buffer) override { return false; }
-        void close() override { }
-        multicast_info_t info() const override { return m_info; }
-    };
-
     class multicast_client : public imulticast_client, public std::enable_shared_from_this<multicast_client>
     {
     public:

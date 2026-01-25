@@ -47,12 +47,12 @@ namespace discnet::test
 
     struct client_creator_mock : public discnet::network::iclient_creator
     {
-        discnet::network::shared_multicast_client create(discnet::network::multicast_info_t info, const discnet::network::data_received_func& callback_func) override
+        discnet::network::shared_multicast_client create(const discnet::network::multicast_info_t& info, const discnet::network::data_received_func& callback_func) override
         {
             return std::make_shared<multicast_client_mock>(info, callback_func);
         }
         
-        discnet::network::shared_unicast_client create(discnet::network::unicast_info_t info, const discnet::network::data_received_func& callback_func) override
+        discnet::network::shared_unicast_client create(const discnet::network::unicast_info_t& info, const discnet::network::data_received_func& callback_func) override
         {
             return std::make_shared<unicast_client_mock>(info, callback_func);
         }
@@ -91,13 +91,13 @@ public:
         m_adapter_3.m_address_list = { {boost::asio::ip::make_address_v4("192.200.30.3"), boost::asio::ip::make_address_v4("255.255.255.0")} };
 
         std::vector<discnet::adapter_t> adapters = {m_adapter_1, m_adapter_2, m_adapter_3};
-        auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
+        auto fetcher = std::make_shared<discnet::test::adapter_fetcher_mock>();
         EXPECT_CALL(*fetcher.get(), get_adapters())
             .WillRepeatedly(testing::Return(adapters));
 
         m_loggers = std::make_shared<discnet::application::loggers_t>();
         m_configuration = discnet::application::configuration_t{.m_node_id = 1, .m_multicast_address = boost::asio::ip::make_address_v4("234.5.6.7"), .m_multicast_port = 1337 };
-        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, std::move(fetcher));
+        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, fetcher);
         m_network_handler = std::make_shared<discnet::network::network_handler>(m_loggers, m_adapter_manager, m_configuration, std::make_shared<discnet::test::client_creator_mock>());
         m_route_manager = std::make_shared<discnet::route_manager>(m_loggers, m_adapter_manager, m_network_handler);
 

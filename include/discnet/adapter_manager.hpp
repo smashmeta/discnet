@@ -17,13 +17,6 @@ namespace discnet
         virtual std::vector<adapter_t> get_adapters() = 0; 
     };
 
-    class simulator_adapter_fetcher : public adapter_fetcher
-    {
-    public:
-        simulator_adapter_fetcher() {}
-        std::vector<adapter_t> get_adapters() { return {}; }
-    };
-
     class adapter_manager
     {
     public:
@@ -31,7 +24,7 @@ namespace discnet
         boost::signals2::signal<void(const adapter_t& prev, const adapter_t& curr)> e_changed;
         boost::signals2::signal<void(const adapter_t&)> e_removed;
 
-        DISCNET_EXPORT adapter_manager(const discnet::application::shared_loggers& loggers, std::unique_ptr<adapter_fetcher> fetcher);
+        DISCNET_EXPORT adapter_manager(const discnet::application::shared_loggers& loggers, std::shared_ptr<adapter_fetcher> fetcher);
         
         DISCNET_EXPORT void update();
 
@@ -41,7 +34,7 @@ namespace discnet
         DISCNET_EXPORT std::expected<adapter_t, std::string> find_adapter(const adapter_identifier_t& id) const;
     protected:
         discnet::application::shared_loggers m_loggers;
-        std::unique_ptr<adapter_fetcher> m_fetcher;
+        std::shared_ptr<adapter_fetcher> m_fetcher;
         std::map<adapter_identifier_t, adapter_t> m_adapters;
     };
 

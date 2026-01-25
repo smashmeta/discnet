@@ -77,7 +77,7 @@ target_include_directories(discnet PUBLIC
 )
 
 # adding thirdparty library dependencies
-target_link_libraries(discnet PRIVATE OpenSSL::Crypto)
+target_link_libraries(discnet PUBLIC OpenSSL::Crypto)
 target_link_libraries(discnet PRIVATE spdlog::spdlog_header_only)
 target_link_libraries(discnet PUBLIC Boost::log Boost::log_setup Boost::program_options)
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -85,5 +85,4 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(discnet PRIVATE IPHLPAPI wbemuuid)
 endif()
 
-install(TARGETS discnet
-        DESTINATION bin)
+copy_runtime_dependencies(discnet)

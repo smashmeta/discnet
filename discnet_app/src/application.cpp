@@ -185,9 +185,11 @@ namespace discnet::main
         m_loggers->m_logger->info("setting up adapter_manager...");
 
 #ifdef _WIN32
-        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, std::make_unique<discnet::windows_adapter_fetcher>());
+        auto adapter_fetcher = std::make_shared<discnet::windows_adapter_fetcher>();
+        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, adapter_fetcher);
 #elif defined(__GNUC__) && !defined(__clang__)
-        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, std::make_unique<discnet::linux_adapter_fetcher>());
+        auto adapter_fetcher = std::make_shared<discnet::linux_adapter_fetcher>();
+        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, adapter_fetcher);
 #endif
 
         m_loggers->m_logger->info("setting up network_handler...");

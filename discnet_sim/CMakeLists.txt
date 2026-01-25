@@ -13,6 +13,7 @@ find_package(Boost REQUIRED COMPONENTS program_options log log_setup)
 find_package(GTest CONFIG REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # setting up source files and header files groups
 file(GLOB HEADERS_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
@@ -35,10 +36,10 @@ add_executable(discnet_sim
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(discnet_sim PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
 endif()
+target_link_libraries(discnet_sim PUBLIC OpenSSL::Crypto)
 target_link_libraries(discnet_sim PUBLIC Boost::log Boost::log_setup Boost::program_options)
 target_link_libraries(discnet_sim PRIVATE discnet::discnet_lib)
 target_link_libraries(discnet_sim PRIVATE spdlog::spdlog_header_only)
 target_link_libraries(discnet_sim PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets)
 
-install(TARGETS discnet_sim
-        DESTINATION bin)
+copy_runtime_dependencies(discnet_sim)

@@ -26,8 +26,8 @@ namespace discnet::network
 
     struct iclient_creator
     {
-        virtual shared_multicast_client create(multicast_info_t info, const data_received_func& callback_func) = 0;
-        virtual shared_unicast_client create(unicast_info_t info, const data_received_func& callback_func) = 0;
+        virtual shared_multicast_client create(const multicast_info_t& info, const data_received_func& callback_func) = 0;
+        virtual shared_unicast_client create(const unicast_info_t& info, const data_received_func& callback_func) = 0;
     };
 
     using shared_client_creator = std::shared_ptr<iclient_creator>;
@@ -36,27 +36,13 @@ namespace discnet::network
     {
         DISCNET_EXPORT client_creator(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context);
 
-        DISCNET_EXPORT shared_multicast_client create(multicast_info_t info, const data_received_func& callback_func) override;
-        DISCNET_EXPORT shared_unicast_client create(unicast_info_t info, const data_received_func& callback_func) override;
+        DISCNET_EXPORT shared_multicast_client create(const multicast_info_t& info, const data_received_func& callback_func) override;
+        DISCNET_EXPORT shared_unicast_client create(const unicast_info_t& info, const data_received_func& callback_func) override;
     private:
         discnet::application::shared_loggers m_loggers;
         discnet::shared_io_context m_io_context;
     };
-
-    struct simulator_client_creator : public iclient_creator
-    {
-        simulator_client_creator(const discnet::application::shared_loggers& loggers)
-            : m_loggers(loggers)
-        {
-            // nothing for now
-        }
-
-        shared_multicast_client create(multicast_info_t info, const data_received_func& callback_func) override { return std::make_shared<simulator_multicast_client>(info, callback_func); }
-        shared_unicast_client create(unicast_info_t info, const data_received_func& callback_func) override { return std::make_shared<simulator_unicast_client>(info, callback_func); }
-    private:
-        discnet::application::shared_loggers m_loggers;
-    };
-
+    
     class network_handler
     {
         using discovery_message_t = discnet::network::messages::discovery_message_t;

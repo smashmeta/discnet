@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <QtWidgets>
+#include <QTimer>
 
 const int InsertTextButton = 10;
 
@@ -29,17 +30,28 @@ MainWindow::MainWindow()
             this, &MainWindow::itemSelected);
     createToolbars();
 
+    QVBoxLayout *vlayout = new QVBoxLayout;
     QHBoxLayout *layout = new QHBoxLayout;
     layout->addWidget(toolBox);
     view = new QGraphicsView(scene);
     layout->addWidget(view);
 
+    vlayout->addLayout(layout);
+    networkTrafficLog = new QTextEdit;
+    vlayout->addWidget(networkTrafficLog);
+    
     QWidget *widget = new QWidget;
-    widget->setLayout(layout);
+    widget->setLayout(vlayout);
 
     setCentralWidget(widget);
     setWindowTitle(tr("Diagramscene"));
     setUnifiedTitleAndToolBarOnMac(true);
+
+    m_simulator.set_traffic_manager_log_handle(networkTrafficLog);
+
+    timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, this, &MainWindow::update);
+    timer->start(100);
 }
 //! [0]
 
@@ -100,10 +112,24 @@ void MainWindow::deleteItem()
 
     selectedItems = scene->selectedItems();
     for (QGraphicsItem *item : std::as_const(selectedItems)) {
-         if (item->type() == DiagramItem::Type)
-             qgraphicsitem_cast<DiagramItem *>(item)->removeArrows();
-         scene->removeItem(item);
-         delete item;
+        DiagramItem* diagram_item = nullptr;
+        if (item->type() == DiagramItem::Type)
+        {
+            diagram_item = qgraphicsitem_cast<DiagramItem *>(item);
+            diagram_item->removeArrows();
+            
+            discnet::instance_identifier node_id = std::format("node_{}", diagram_item->node_id());
+            if (m_simulator.remove_instance(node_id))
+            {
+                scene->removeItem(item);
+                delete item;        
+            }
+        }
+        else
+        {
+            scene->removeItem(item);
+            delete item;
+        }
      }
 }
 //! [3]
@@ -154,6 +180,14 @@ void MainWindow::sendToBack()
 //! [7]
 void MainWindow::itemInserted(DiagramItem *item)
 {
+    discnet::application::configuration_t configuration{
+        .m_node_id = item->node_id(), 
+        .m_multicast_address = boost::asio::ip::make_address_v4("234.5.6.7"), 
+        .m_multicast_port = 1337 
+    };
+
+    m_simulator.add_instance(configuration, item->log_handle());
+
     pointerTypeGroup->button(int(DiagramScene::MoveItem))->setChecked(true);
     scene->setMode(DiagramScene::Mode(pointerTypeGroup->checkedId()));
     buttonGroup->button(int(item->diagramType()))->setChecked(false);
@@ -263,8 +297,7 @@ void MainWindow::handleFontChange()
 //! [19]
 void MainWindow::itemSelected(QGraphicsItem *item)
 {
-    DiagramTextItem *textItem =
-    qgraphicsitem_cast<DiagramTextItem *>(item);
+    DiagramTextItem *textItem = qgraphicsitem_cast<DiagramTextItem *>(item);
 
     QFont font = textItem->font();
     fontCombo->setCurrentFont(font);
@@ -283,6 +316,25 @@ void MainWindow::about()
                           "use of the graphics framework."));
 }
 //! [20]
+
+void MainWindow::properties()
+{
+    QList<QGraphicsItem *> selectedItems = scene->selectedItems();
+    for (QGraphicsItem *item : std::as_const(selectedItems)) {
+        DiagramItem* diagram_item = nullptr;
+        if (item->type() == DiagramItem::Type)
+        {
+            diagram_item = qgraphicsitem_cast<DiagramItem *>(item);
+            diagram_item->show_properties();
+        }
+     }
+}
+
+void MainWindow::update()
+{
+    auto current_time = discnet::sys_clock_t::now();
+    m_simulator.update(current_time);
+}
 
 //! [21]
 void MainWindow::createToolBox()
@@ -371,6 +423,11 @@ void MainWindow::createActions()
     deleteAction->setStatusTip(tr("Delete item from diagram"));
     connect(deleteAction, &QAction::triggered, this, &MainWindow::deleteItem);
 
+    propertiesAction = new QAction(QIcon(":/images/properties.png"), tr("&Properties"), this);
+    propertiesAction->setShortcut(tr("Properties"));
+    propertiesAction->setStatusTip(tr("Item Properties"));
+    connect(propertiesAction, &QAction::triggered, this, &MainWindow::properties);
+
     exitAction = new QAction(tr("E&xit"), this);
     exitAction->setShortcuts(QKeySequence::Quit);
     exitAction->setStatusTip(tr("Quit Scenediagram example"));
@@ -406,6 +463,7 @@ void MainWindow::createMenus()
 
     itemMenu = menuBar()->addMenu(tr("&Item"));
     itemMenu->addAction(deleteAction);
+    itemMenu->addAction(propertiesAction);
     itemMenu->addSeparator();
     itemMenu->addAction(toFrontAction);
     itemMenu->addAction(sendBackAction);
@@ -421,6 +479,7 @@ void MainWindow::createToolbars()
 //! [25]
     editToolBar = addToolBar(tr("Edit"));
     editToolBar->addAction(deleteAction);
+    editToolBar->addAction(propertiesAction);
     editToolBar->addAction(toFrontAction);
     editToolBar->addAction(sendBackAction);
 

@@ -3,6 +3,7 @@
 find_package(Boost REQUIRED COMPONENTS program_options log)
 find_package(GTest CONFIG REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # enabling and adding google tests
 enable_testing()
@@ -26,6 +27,7 @@ add_executable(discnet_test
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(discnet_test PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
 endif()
+target_link_libraries(discnet_test PUBLIC OpenSSL::Crypto)
 target_link_libraries(discnet_test PRIVATE Boost::log)
 target_link_libraries(discnet_test PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
 target_link_libraries(discnet_test PRIVATE discnet::discnet_lib)
@@ -37,3 +39,5 @@ configure_file(
         "${CMAKE_BINARY_DIR}/discnet_test/sha.file"
         COPYONLY
     )
+
+copy_runtime_dependencies(discnet_test)

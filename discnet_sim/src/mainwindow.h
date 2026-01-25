@@ -5,7 +5,9 @@
 #define MAINWINDOW_H
 
 #include "diagramitem.h"
+#include "node.h"
 #include <QMainWindow>
+
 
 class DiagramScene;
 
@@ -22,6 +24,7 @@ class QFont;
 class QToolButton;
 class QAbstractButton;
 class QGraphicsView;
+class QTimer;
 QT_END_NAMESPACE
 
 //! [0]
@@ -54,6 +57,9 @@ private slots:
     void itemSelected(QGraphicsItem *item);
     void about();
 
+    void properties();
+    void update();
+
 private:
     void createToolBox();
     void createActions();
@@ -75,7 +81,7 @@ private:
     QAction *exitAction;
     QAction *addAction;
     QAction *deleteAction;
-
+    
     QAction *toFrontAction;
     QAction *sendBackAction;
     QAction *aboutAction;
@@ -108,6 +114,11 @@ private:
     QAction *textAction;
     QAction *fillAction;
     QAction *lineAction;
+
+    QAction* propertiesAction;
+    QTextEdit* networkTrafficLog;
+    QTimer *timer;
+    discnet::simulator m_simulator;
 };
 //! [0]
 

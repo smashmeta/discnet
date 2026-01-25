@@ -165,13 +165,89 @@ namespace discnet
         message_queue_t m_queue;
     };
 
+    class simulator_multicast_client : public network::imulticast_client
+    {
+    public:
+        simulator_multicast_client(const uint16_t node_id, const shared_network_traffic_manager& ntm, const network::multicast_info_t& info, const network::data_received_func& func)
+            : network::imulticast_client(info, func), m_node_id(node_id), m_network_traffic_manager(ntm)
+        {
+            // nothing for now
+        }
+    
+        bool open() override { return true; }
+        bool write(const discnet::network::buffer_t& buffer) override 
+        { 
+            m_network_traffic_manager->data_sent(m_node_id, m_info, buffer);
+            return true; 
+        }
+        void close() override { }
+        network::multicast_info_t info() const override { return m_info; }
+
+        void receive_bytes([[maybe_unused]] const network::multicast_info_t& info, [[maybe_unused]] const discnet::network::buffer_t& buffer)
+        {
+
+        }
+
+    private:
+        uint16_t m_node_id;
+        shared_network_traffic_manager m_network_traffic_manager;
+    };
+
+    class simulator_unicast_client : public network::iunicast_client
+    {
+    public:
+        simulator_unicast_client(const uint16_t node_id, const shared_network_traffic_manager& ntm, const network::unicast_info_t& info, const network::data_received_func& func)
+            : network::iunicast_client(info, func), m_node_id(node_id), m_network_traffic_manager(ntm)
+        {
+            // nothing for now
+        }
+    
+        bool open() override { return true; }
+        bool write([[maybe_unused]] const discnet::address_t& recipient, [[maybe_unused]] const discnet::network::buffer_t& buffe) override { return false; }
+        void close() override { }
+
+    private:
+        uint16_t m_node_id;
+        shared_network_traffic_manager m_network_traffic_manager;
+    };
+
+    struct simulator_client_creator : public discnet::network::iclient_creator
+    {
+        simulator_client_creator(const discnet::application::shared_loggers& loggers, const uint16_t node_id, const shared_network_traffic_manager& ntm)
+            : m_loggers(loggers), m_node_id(node_id), m_network_traffic_manager(ntm)
+        {
+            // nothing for now
+        }
+
+        discnet::network::shared_multicast_client create(const discnet::network::multicast_info_t& info, const discnet::network::data_received_func& callback_func) override 
+        { 
+            auto result = std::make_shared<simulator_multicast_client>(m_node_id, m_network_traffic_manager, info, callback_func);
+            return result; 
+        }
+
+        discnet::network::shared_unicast_client create(const discnet::network::unicast_info_t& info, const discnet::network::data_received_func& callback_func) override 
+        { 
+            auto result = std::make_shared<simulator_unicast_client>(m_node_id, m_network_traffic_manager, info, callback_func); 
+            return result;
+        }
+    private:
+        discnet::application::shared_loggers m_loggers;
+        uint16_t m_node_id;
+        shared_network_traffic_manager m_network_traffic_manager;
+    };
+
     static int instance_id = 0;
-    discnet_node::discnet_node(const application::configuration_t& configuration, QTextEdit* text_edit)
-        : m_configuration(configuration)
+    discnet_node::discnet_node(const application::configuration_t& configuration, const shared_network_traffic_manager& ntm, QTextEdit* text_edit)
+        : m_configuration(configuration), m_network_traffic_manager(ntm)
     {
         // nothing for now
         m_loggers = std::make_shared<discnet::application::loggers_t>();
         m_loggers->m_logger = spdlog::qt_logger_mt(std::format("qt_{}", instance_id++), text_edit);
+    }
+
+    void discnet_node::add_adapter(const adapter_t& adapter)
+    {
+        m_adapter_fetcher->add_adapter(adapter);
     }
 
     bool discnet_node::initialize()
@@ -179,11 +255,13 @@ namespace discnet
         m_loggers->m_logger->info(std::format("discnet - node id: {}, multicast: [addr: {}, port: {}].", 
             m_configuration.m_node_id, m_configuration.m_multicast_address.to_string(), m_configuration.m_multicast_port));
 
+        m_loggers->m_logger->info("setting up adapter_fetcher...");
+        m_adapter_fetcher = std::make_shared<discnet::simulator_adapter_fetcher>();
         m_loggers->m_logger->info("setting up adapter_manager...");
-        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, std::make_unique<discnet::simulator_adapter_fetcher>());
+        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, m_adapter_fetcher);
 
         m_loggers->m_logger->info("setting up network_handler...");
-        m_network_handler = std::make_shared<discnet::network::network_handler>(m_loggers, m_adapter_manager, m_configuration, std::make_shared<network::simulator_client_creator>(m_loggers));
+        m_network_handler = std::make_shared<discnet::network::network_handler>(m_loggers, m_adapter_manager, m_configuration, std::make_shared<simulator_client_creator>(m_loggers, m_configuration.m_node_id, m_network_traffic_manager));
         m_loggers->m_logger->info("setting up route_manager...");
         m_route_manager = std::make_shared<discnet::route_manager>(m_loggers, m_adapter_manager, m_network_handler);
         m_loggers->m_logger->info("setting up transmission_handler...");

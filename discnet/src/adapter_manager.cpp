@@ -125,8 +125,8 @@ namespace discnet
         }
     } // ! anonymous namespace
 
-    adapter_manager::adapter_manager(const discnet::application::shared_loggers& loggers, std::unique_ptr<adapter_fetcher> fetcher)
-        : m_loggers(loggers), m_fetcher{std::move(fetcher)} 
+    adapter_manager::adapter_manager(const discnet::application::shared_loggers& loggers, std::shared_ptr<adapter_fetcher> fetcher)
+        : m_loggers(loggers), m_fetcher(fetcher) 
     {
         // nothing for now
     }

@@ -8,7 +8,6 @@
 #include <QTextBrowser>
 #include <QList>
 #include "nodedialog.h"
-#include "node.h"
 
 QT_BEGIN_NAMESPACE
 class QPixmap;
@@ -37,6 +36,9 @@ public:
     QPixmap image() const;
     int type() const override { return Type; }
 
+    uint16_t node_id() const { return m_node_id; }
+    QTextEdit* log_handle() const { return m_dialog->log(); }
+    void show_properties() const { m_dialog->show(); }
 protected:
     void contextMenuEvent(QGraphicsSceneContextMenuEvent *event) override;
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
@@ -47,7 +49,7 @@ private:
     QMenu *myContextMenu;
     QList<Arrow *> arrows;
     NodeDialog* m_dialog;
-    discnet::shared_discnet_node m_node;
+    uint16_t m_node_id;
 };
 //! [0]
 
