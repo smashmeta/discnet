@@ -183,9 +183,9 @@ namespace discnet
         void close() override { }
         network::multicast_info_t info() const override { return m_info; }
 
-        void receive_bytes([[maybe_unused]] const network::multicast_info_t& info, [[maybe_unused]] const discnet::network::buffer_t& buffer)
+        void receive_bytes(const discnet::network::buffer_t& buffer, const discnet::address_t& sender)
         {
-
+            m_data_received_func(buffer.const_buffer(), sender, m_info.m_multicast_address);
         }
 
     private:
@@ -222,6 +222,7 @@ namespace discnet
         discnet::network::shared_multicast_client create(const discnet::network::multicast_info_t& info, const discnet::network::data_received_func& callback_func) override 
         { 
             auto result = std::make_shared<simulator_multicast_client>(m_node_id, m_network_traffic_manager, info, callback_func);
+            m_network_traffic_manager->register_adapter(m_node_id, result);
             return result; 
         }
 
@@ -235,6 +236,31 @@ namespace discnet
         uint16_t m_node_id;
         shared_network_traffic_manager m_network_traffic_manager;
     };
+
+    void network_traffic_manager::data_sent(const uint16_t node_id, const network::multicast_info_t& info, const discnet::network::buffer_t& buffer)
+    {
+        if (m_network_logger)
+        {
+            std::string log_entry = std::format("node: {}, adapter: {}, multicast: [addr: {}, port: {}] - {}",
+                node_id, info.m_adapter_address.to_string(), info.m_multicast_address.to_string(), info.m_multicast_port, discnet::bytes_to_hex_string(buffer.data()));
+            m_network_logger->info(log_entry);
+
+            for (auto& [id, adapters] : m_mc_adapters)
+            {
+                if (id != node_id)
+                {
+                    for (auto& adapter : adapters)
+                    {
+                        auto sim_adapter = std::dynamic_pointer_cast<simulator_multicast_client>(adapter);
+                        if (sim_adapter)
+                        {
+                            sim_adapter->receive_bytes(buffer, info.m_adapter_address);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     static int instance_id = 0;
     discnet_node::discnet_node(const application::configuration_t& configuration, const shared_network_traffic_manager& ntm, QTextEdit* text_edit)

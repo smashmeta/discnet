@@ -93,13 +93,18 @@ namespace network
     class network_traffic_manager
     {
     public:
-        void data_sent([[maybe_unused]] const uint16_t node_id, [[maybe_unused]] const network::multicast_info_t& info, [[maybe_unused]] const discnet::network::buffer_t& buffer)
+        void data_sent(const uint16_t node_id, const network::multicast_info_t& info, const discnet::network::buffer_t& buffer);
+
+        void register_adapter(const uint16_t node_id, network::shared_multicast_client client)
         {
-            if (m_network_logger)
+            auto itr_node_entry = m_mc_adapters.find(node_id);
+            if (itr_node_entry != m_mc_adapters.end())
             {
-                std::string log_entry = std::format("node: {}, adapter: {}, multicast: [addr: {}, port: {}] - {}",
-                    node_id, info.m_adapter_address.to_string(), info.m_multicast_address.to_string(), info.m_multicast_port, discnet::bytes_to_hex_string(buffer.data()));
-                m_network_logger->info(log_entry);
+                itr_node_entry->second.push_back(client);
+            }
+            else
+            {
+                m_mc_adapters.insert({node_id, {client}});
             }
         }
 
@@ -109,6 +114,7 @@ namespace network
         }
     private:
         std::shared_ptr<spdlog::logger> m_network_logger;
+        std::map<uint16_t, std::vector<network::shared_multicast_client>> m_mc_adapters;
     };
 
     using shared_network_traffic_manager = std::shared_ptr<network_traffic_manager>;
