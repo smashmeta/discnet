@@ -222,7 +222,7 @@ namespace discnet
         discnet::network::shared_multicast_client create(const discnet::network::multicast_info_t& info, const discnet::network::data_received_func& callback_func) override 
         { 
             auto result = std::make_shared<simulator_multicast_client>(m_node_id, m_network_traffic_manager, info, callback_func);
-            m_network_traffic_manager->register_adapter(m_node_id, result);
+            m_network_traffic_manager->register_client(m_node_id, result);
             return result; 
         }
 
@@ -245,7 +245,14 @@ namespace discnet
                 node_id, info.m_adapter_address.to_string(), info.m_multicast_address.to_string(), info.m_multicast_port, discnet::bytes_to_hex_string(buffer.data()));
             m_network_logger->info(log_entry);
 
-            for (auto& [id, adapters] : m_mc_adapters)
+            std::string subnet_mask_sender;
+            {
+                auto ip_str = info.m_adapter_address.to_string();
+                auto last_segment_pos = ip_str.find_last_of('.');
+                subnet_mask_sender = ip_str.substr(0, last_segment_pos);
+            }
+
+            for (auto& [id, adapters] : m_mc_clients)
             {
                 if (id != node_id)
                 {
@@ -254,7 +261,17 @@ namespace discnet
                         auto sim_adapter = std::dynamic_pointer_cast<simulator_multicast_client>(adapter);
                         if (sim_adapter)
                         {
-                            sim_adapter->receive_bytes(buffer, info.m_adapter_address);
+                            std::string subnet_mask_receiver;
+                            {
+                                auto ip_str = adapter->info().m_adapter_address.to_string();
+                                auto last_segment_pos = ip_str.find_last_of('.');
+                                subnet_mask_receiver = ip_str.substr(0, last_segment_pos);
+                            }
+
+                            if (subnet_mask_sender == subnet_mask_receiver)
+                            {
+                                sim_adapter->receive_bytes(buffer, info.m_adapter_address);
+                            }
                         }
                     }
                 }
@@ -269,6 +286,11 @@ namespace discnet
         // nothing for now
         m_loggers = std::make_shared<discnet::application::loggers_t>();
         m_loggers->m_logger = spdlog::qt_logger_mt(std::format("qt_{}", instance_id++), text_edit);
+    }
+
+    discnet_node::~discnet_node()
+    {
+        m_loggers->m_logger->info("shutting down discnet node [{}].", m_configuration.m_node_id);
     }
 
     void discnet_node::add_adapter(const adapter_t& adapter)

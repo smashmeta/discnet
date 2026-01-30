@@ -1,5 +1,6 @@
-<!DOCTYPE RCC><RCC version="1.0">
-<qresource>
+<!DOCTYPE RCC>
+<RCC version="1.0">
+  <qresource>
     <file>images/pointer.png</file>
     <file>images/linepointer.png</file>
     <file>images/textpointer.png</file>
@@ -16,5 +17,6 @@
     <file>images/background2.png</file>
     <file>images/background3.png</file>
     <file>images/background4.png</file>
-</qresource>
+    <file>images/node.png</file>
+  </qresource>
 </RCC>

@@ -39,6 +39,7 @@ public:
     uint16_t node_id() const { return m_node_id; }
     QTextEdit* log_handle() const { return m_dialog->log(); }
     void show_properties() const { m_dialog->show(); }
+    NodeDialog* dialog() const { return m_dialog; }
 protected:
     void contextMenuEvent(QGraphicsSceneContextMenuEvent *event) override;
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
@@ -48,8 +49,8 @@ private:
     QPolygonF myPolygon;
     QMenu *myContextMenu;
     QList<Arrow *> arrows;
-    NodeDialog* m_dialog;
     uint16_t m_node_id;
+    NodeDialog* m_dialog;
 };
 //! [0]
 

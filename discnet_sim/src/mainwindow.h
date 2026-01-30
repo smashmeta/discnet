@@ -59,6 +59,8 @@ private slots:
 
     void properties();
     void update();
+    void add_adapter(const uint16_t node_id, const std::string& adapter_ip);
+    void client_enabled(const uint16_t node_id, const bool enable, NodeDialog* dialog);
 
 private:
     void createToolBox();

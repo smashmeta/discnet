@@ -15,9 +15,34 @@ DiagramItem::DiagramItem(DiagramType diagramType, QMenu *contextMenu,
                          QGraphicsItem *parent)
     : QGraphicsPolygonItem(parent), myDiagramType(diagramType)
     , myContextMenu(contextMenu)
-    , m_dialog(new NodeDialog(nullptr))
     , m_node_id(++s_node_id)
+    , m_dialog(new NodeDialog(m_node_id, nullptr))
 {
+    QGraphicsPixmapItem *imageItem = new QGraphicsPixmapItem(this);
+    QPixmap pix(":/images/pc.png");
+    imageItem->setPixmap(pix);
+
+    // Center the text within the polygon's bounding rect
+    QRectF imageRect = imageItem->boundingRect();
+    imageRect.moveCenter(boundingRect().center());
+    imageItem->setPos(imageRect.topLeft());
+
+    QGraphicsTextItem *textItem = new QGraphicsTextItem(QString::number(m_node_id), this);
+    textItem->setTextWidth(boundingRect().width());
+    
+    // Optional: Customize font, color, etc.
+    QFont font;
+    font.setPointSize(30);
+    textItem->setFont(font);
+    textItem->setDefaultTextColor(Qt::black);
+
+    // Center the text within the polygon's bounding rect
+    QRectF textRect = textItem->boundingRect();
+    textRect.moveCenter(boundingRect().center());
+    textRect.moveRight(15);
+    textRect.moveBottom(15);
+    textItem->setPos(textRect.topLeft());
+    
     QPainterPath path;
     switch (myDiagramType) {
         case StartEnd:
@@ -31,21 +56,23 @@ DiagramItem::DiagramItem(DiagramType diagramType, QMenu *contextMenu,
             break;
         case Conditional:
             myPolygon << QPointF(-100, 0) << QPointF(0, 100)
-                      << QPointF(100, 0) << QPointF(0, -100)
-                      << QPointF(-100, 0);
+                    << QPointF(100, 0) << QPointF(0, -100)
+                    << QPointF(-100, 0);
             break;
         case Step:
             myPolygon << QPointF(-100, -100) << QPointF(100, -100)
-                      << QPointF(100, 100) << QPointF(-100, 100)
-                      << QPointF(-100, -100);
+                    << QPointF(100, 100) << QPointF(-100, 100)
+                    << QPointF(-100, -100);
             break;
         default:
             myPolygon << QPointF(-120, -80) << QPointF(-70, 80)
-                      << QPointF(120, 80) << QPointF(70, -80)
-                      << QPointF(-120, -80);
+                    << QPointF(120, 80) << QPointF(70, -80)
+                    << QPointF(-120, -80);
             break;
     }
+    
     setPolygon(myPolygon);
+    
     setFlag(QGraphicsItem::ItemIsMovable, true);
     setFlag(QGraphicsItem::ItemIsSelectable, true);
     setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);

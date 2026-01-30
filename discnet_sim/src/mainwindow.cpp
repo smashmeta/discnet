@@ -118,8 +118,7 @@ void MainWindow::deleteItem()
             diagram_item = qgraphicsitem_cast<DiagramItem *>(item);
             diagram_item->removeArrows();
             
-            discnet::instance_identifier node_id = std::format("node_{}", diagram_item->node_id());
-            if (m_simulator.remove_instance(node_id))
+            if (m_simulator.remove_instance(diagram_item->node_id()))
             {
                 scene->removeItem(item);
                 delete item;        
@@ -180,19 +179,56 @@ void MainWindow::sendToBack()
 //! [7]
 void MainWindow::itemInserted(DiagramItem *item)
 {
-    discnet::application::configuration_t configuration{
-        .m_node_id = item->node_id(), 
-        .m_multicast_address = boost::asio::ip::make_address_v4("234.5.6.7"), 
-        .m_multicast_port = 1337 
-    };
-
-    m_simulator.add_instance(configuration, item->log_handle());
+    connect(item->dialog(), &NodeDialog::add_adapter, this, &MainWindow::add_adapter);
+    connect(item->dialog(), &NodeDialog::client_enabled, this, &MainWindow::client_enabled);
 
     pointerTypeGroup->button(int(DiagramScene::MoveItem))->setChecked(true);
     scene->setMode(DiagramScene::Mode(pointerTypeGroup->checkedId()));
     buttonGroup->button(int(item->diagramType()))->setChecked(false);
 }
 //! [7]
+
+void MainWindow::add_adapter(const uint16_t node_id, const std::string& adapter_ip)
+{
+    static int ip_addr = 1;
+    static int guid_id = 1;
+    int current_guid_id = guid_id++;
+    discnet::adapter_t tmp;
+    tmp.m_guid = std::format("{}", current_guid_id); // "154EA313-6D41-415A-B007-BBB7AD740F1F";
+    tmp.m_mac_address = std::format("{}_{}", "3C:A9:F4:3C:1F:00", current_guid_id);
+    tmp.m_index = 0;
+    tmp.m_name = std::format("dummy_adapter_{}", current_guid_id);
+    tmp.m_description = "[description]";
+    tmp.m_loopback = false;
+    tmp.m_enabled = true;
+    tmp.m_address_list = { discnet::address_mask_t{boost::asio::ip::make_address_v4(adapter_ip), boost::asio::ip::make_address_v4("255.255.255.0")} };
+    tmp.m_gateway = discnet::address_t::any();
+    tmp.m_mtu = 1024;
+
+    auto node = m_simulator.find_node(node_id);
+    if (node)
+    {
+        node->add_adapter(tmp);
+    }
+}
+
+ void MainWindow::client_enabled(const uint16_t node_id, const bool enable, NodeDialog* dialog)
+ {
+    if (enable)
+    {
+        discnet::application::configuration_t configuration{
+            .m_node_id = node_id, 
+            .m_multicast_address = boost::asio::ip::make_address_v4("234.5.6.7"), 
+            .m_multicast_port = 1337 
+        };
+
+        m_simulator.add_instance(configuration, dialog->log());
+    }
+    else
+    {
+        m_simulator.remove_instance(node_id);
+    }
+ }
 
 //! [8]
 void MainWindow::textInserted(QGraphicsTextItem *)

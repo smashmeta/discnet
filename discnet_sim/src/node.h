@@ -36,7 +36,7 @@ namespace network
     class transmission_handler;
     using shared_transmission_handler = std::shared_ptr<transmission_handler>;
 
-    using instance_identifier = std::string;
+    using instance_identifier = uint16_t;
 
     class simulator_adapter_fetcher : public adapter_fetcher
     {
@@ -70,6 +70,7 @@ namespace network
     {
     public:
         discnet_node(const application::configuration_t& configuration, const shared_network_traffic_manager& ntm, QTextEdit* text_edit);
+        ~discnet_node();
 
         void add_adapter(const adapter_t& adapter);
         
@@ -90,21 +91,51 @@ namespace network
 
     using shared_discnet_node = std::shared_ptr<discnet_node>;
 
+    using switch_identifier = uint16_t;
+
+    static uint16_t s_ip_segement = 1;
+    class network_switch
+    {
+        
+    public:
+        network_switch(switch_identifier id)
+            : m_id(id), m_subnet_ip(std::format("192.200.{}", s_ip_segement++)), m_next_valid_ip(1)
+        {
+            // nothing for now
+        }
+
+        std::string get_subnet() const
+        {
+            return m_subnet_ip;
+        }
+
+        discnet::address_t create_ip() 
+        {
+            return boost::asio::ip::make_address_v4(std::format("{}.{}", m_subnet_ip, m_next_valid_ip++));
+        }
+    private:
+        switch_identifier m_id;
+        std::string m_subnet_ip;
+        uint16_t m_next_valid_ip;
+    };
+
+    using shared_network_switch = std::shared_ptr<network_switch>;
+
     class network_traffic_manager
     {
     public:
         void data_sent(const uint16_t node_id, const network::multicast_info_t& info, const discnet::network::buffer_t& buffer);
 
-        void register_adapter(const uint16_t node_id, network::shared_multicast_client client)
+        void register_client(const uint16_t node_id, network::shared_multicast_client client)
         {
-            auto itr_node_entry = m_mc_adapters.find(node_id);
-            if (itr_node_entry != m_mc_adapters.end())
+            auto itr_client = m_mc_clients.find(node_id);
+            if (itr_client != m_mc_clients.end())
             {
-                itr_node_entry->second.push_back(client);
+                itr_client->second.push_back(client);
             }
             else
             {
-                m_mc_adapters.insert({node_id, {client}});
+                m_mc_clients.insert({node_id, {client}});
             }
         }
 
@@ -112,9 +143,21 @@ namespace network
         {
             m_network_logger = spdlog::qt_logger_mt("sim_network_log", log_handle);
         }
+
+        bool add_switch(const network_switch& val)
+        {
+            auto existing = m_switches.find(val.get_subnet());
+            if (existing == m_switches.end())
+            {
+                m_switches.insert({val.get_subnet(), val});
+            }
+
+            return false;
+        }
     private:
         std::shared_ptr<spdlog::logger> m_network_logger;
-        std::map<uint16_t, std::vector<network::shared_multicast_client>> m_mc_adapters;
+        std::map<uint16_t, std::vector<network::shared_multicast_client>> m_mc_clients;
+        std::map<std::string, network_switch> m_switches;
     };
 
     using shared_network_traffic_manager = std::shared_ptr<network_traffic_manager>;
@@ -128,32 +171,34 @@ namespace network
             // nothing for now
         }
 
+        shared_discnet_node find_node(const uint16_t node_id)
+        {
+            auto itr_node = m_nodes.find(node_id);
+            if (itr_node != m_nodes.end())
+            {
+                return itr_node->second;
+            }
+
+            return {};
+        }
+
         instance_identifier add_instance(const discnet::application::configuration_t& configuration, QTextEdit* log_handle)
         {
             auto node = std::make_shared<discnet::discnet_node>(configuration, m_network_traffic_manager, log_handle);
             node->initialize();
             
-            static int ip_addr = 1;
-            discnet::adapter_t tmp;
-            tmp.m_guid = "154EA313-6D41-415A-B007-BBB7AD740F1F";
-            tmp.m_mac_address = "3C:A9:F4:3C:1F:00";
-            tmp.m_index = 0;
-            tmp.m_name = "dummy_adapter";
-            tmp.m_description = "[description]";
-            tmp.m_loopback = false;
-            tmp.m_enabled = true;
-            tmp.m_address_list = { discnet::address_mask_t{boost::asio::ip::make_address_v4(std::format("192.200.1.{}", ip_addr++)), boost::asio::ip::make_address_v4("255.255.255.0")} };
-            tmp.m_gateway = discnet::address_t::any();
-            tmp.m_mtu = 1024;
-            node->add_adapter(tmp);
-
             std::lock_guard<std::mutex> lock {m_mutex};
             static uint32_t sequence_number = 1;
-            instance_identifier node_id = std::format("node_{}", configuration.m_node_id);
+            instance_identifier node_id = configuration.m_node_id;
             m_nodes.insert(std::make_pair(node_id, node));
             return node_id;
         }
-        
+
+        bool add_switch(switch_identifier id)
+        {
+            return m_network_traffic_manager->add_switch(network_switch(id));
+        }
+
         bool remove_instance(const instance_identifier& id)
         {
             std::lock_guard<std::mutex> lock {m_mutex};

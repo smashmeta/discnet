@@ -71,10 +71,7 @@ bool route_manager::process_discovery_message(const discovery_message_t& message
     {
         node_identifier_t indirect_node_id {.m_id = indirect_node.m_identifier, .m_address = indirect_node.m_address};
         route_identifier_t indirect_route_id {.m_node = indirect_node_id, .m_adapter = network_info.m_adapter, .m_reporter = network_info.m_sender};
-        jumps_t indirect_jumps = jumps;
-        
-        std::ranges::copy(indirect_node.m_jumps, std::back_inserter(indirect_jumps));
-        result &= process_route(adapter.value(), network_info.m_reception_time, indirect_route_id, indirect_jumps);
+        result &= process_route(adapter.value(), network_info.m_reception_time, indirect_route_id, indirect_node.m_jumps);
     }
     
     return result;
