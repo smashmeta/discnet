@@ -1,0 +1,71 @@
+{
+    "": "list<Adapter> Gives back a list of IP-based network devices",
+    "NetworkManager": "list<UdpClient> Sets up a UDP client for each active adapter. By default NetworkAdapter will set up a UDP client which talks on a general channel (port:{1337}).",
+    "DeviceDiscoveryManager": "tries to find alternative adapters that can be used on the given network adapter(s). Ex. A device that is connected on the same network that offers a REST api.",
+    "Channel": "?"
+}
+
+
+
+
+AdapterManager:
+----------------------------------
+Description: Keeps track of available network IP adapters and reports changes made to them.
+Input: IAdapterFetcher { alt: WindowsAdapterFetcher, LinuxAdapterFetcher, SimulatorAdapterFetcher, MockAdapterFetcher }
+Events: { e_new, e_changed, e_removed }
+Output: Example. 
+    { 
+        guid: "154EA313-6D41-415A-B007-BBB7AD740F1F", 
+        mac: "3C:A9:F4:3C:1F:00",
+        index: 0,
+        name: "Ethernet-lan", 
+        description: "Intel(R) Centrino(R) Ultimate-N 6300 AGN", 
+        enabled: true,
+        address: "192.169.10.10",
+        mask: "255.255.255.0",
+        gateway: "192.200.10.1"  
+    }
+
+NetworkManager:
+----------------------------------
+Description: 1. Sets up default UDP clients for each network adapter. 2. Manually set up extra clients on different ports.
+Input:  IClientCreator { alt: ClientCreator, SimulatorClientCreator, MockClientCreator }
+            IUdpClient { alt: UdpClient, SimulatorUdpClient, MockUdpClient }
+Events: { e_discovery_message_received, e_data_message_received }
+Output: Example. 
+    [
+        { "eth0", "13337" }, 
+        { "eth1", "13337" }, 
+        { "eth1", "13338" }
+    ]
+
+NodeManager:
+----------------------------------
+Description: Keeps track of all nodes that has been detected, and all the routes to each node.
+Input:
+Events:
+Output: Example.
+    {
+    "tree": [
+        { 
+            "channel": { "client": "eth0", "endpoint": "239.10.10.10:13337" }, 
+            "nodes": [
+                { "name": "alpha", "metric": 256, "children": [
+                    { "node": "bravo", "metric": "256", "children": [] },
+                    { "node": "charlie", "metric": "256", "children": [] },
+                    { "node": "delta", "metric": "256", "children": [
+                        { "node": "echo", "metric": "256", "children": [] },
+                        { "node": "foxtrot", "metric": "256", "children": [] }
+                    ] }
+                ] },
+                { "name": "golf", "metric": 256, "children": [] }
+            ] 
+        },
+        { 
+            "channel": { "client": "eth1", "endpoint": "192.213.32.4:13338" }, 
+            "nodes": [
+                { "node": "hotel", "metric": "256", "children": [] }
+            ] 
+        }
+    ]
+}

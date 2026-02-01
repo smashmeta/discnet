@@ -1,0 +1,41 @@
+
+{
+    "tree": [
+        { 
+            "channel": { "client": "udp", "endpoint": "239.10.10.10:22222" }, 
+            "nodes": [
+                { "name": "alpha", "metric": 256, "children": [
+                    { "node": "bravo", "metric": "256", "children": [] },
+                    { "node": "charlie", "metric": "256", "children": [] },
+                    { "node": "delta", "metric": "256", "children": [
+                        { "node": "echo", "metric": "256", "children": [] },
+                        { "node": "foxtrot", "metric": "256", "children": [] }
+                    ] }
+                ] },
+                { "name": "golf", "metric": 256, "children": [] }
+            ] 
+        },
+        { 
+            "channel": { "client": "udp", "endpoint": "192.213.32.4:22222" }, 
+            "nodes": [
+                { "node": "hotel", "metric": "256", "children": [] }
+            ] 
+        }
+    ],
+    
+    "nodes_1": [
+        { "id": 1, "endpoint": "10.10.10.2:22222", "routes": [
+            { "channel": { "client": "udp", "endpoint": "239.10.10.10:22222" }, "hops": [] }
+        ] }
+    ],
+
+    "nodes_2": [
+        { "id": 1, "endpoints": [
+            { "endpoint": "10.10.10.2:22222", "routes": [
+                { "channel": { "client": "udp", "endpoint": "239.10.10.10:22222" }, "hops": [
+                    { "id": 2, "endpoint": "192.168.1.2:22222", "metric": 256 }
+                ] }
+            ] }
+        ] }
+    ]
+}

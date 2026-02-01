@@ -25,14 +25,9 @@ namespace discnet::network
         // nothing for now
     }
 
-    shared_multicast_client client_creator::create(const multicast_info_t& info, const data_received_func& callback_func)
+    shared_udp_client client_creator::create(const udp_info_t& info, const data_received_func& callback_func)
     {
-        return discnet::network::multicast_client::create(m_loggers, m_io_context, info, callback_func);
-    }
-
-    shared_unicast_client client_creator::create(const unicast_info_t& info, const data_received_func& callback_func)
-    {
-        return discnet::network::unicast_client::create(m_loggers, m_io_context, info, callback_func);
+        return discnet::network::udp_client::create(m_loggers, m_io_context, info, callback_func);
     }
 
     network_handler::network_handler(const discnet::application::shared_loggers& loggers, shared_adapter_manager adapter_manager, const discnet::application::configuration_t& configuration, shared_client_creator client_creator)
@@ -65,8 +60,8 @@ namespace discnet::network
             return;
         }
 
-        auto& client = *itr_client;
-        if (client.m_multicast)
+        auto& client = itr_client->m_client;
+        if (client && client->info().m_multicast != discnet::address_t::any())
         {
             discnet::network::buffer_t buffer(4096);
             auto success = discnet::network::messages::packet_codec_t::encode(buffer, messages);
@@ -75,7 +70,7 @@ namespace discnet::network
                 m_loggers->m_logger->error("failed to encode messages to a valid packet.");
             }
 
-            client.m_multicast->write(buffer);
+            client->write(buffer);
         }
     }
 
@@ -89,8 +84,8 @@ namespace discnet::network
             return;
         }
 
-        auto& client = *itr_client;
-        if (client.m_unicast)
+        auto& client = itr_client->m_client;
+        if (client)
         {
             discnet::network::buffer_t buffer(4096);
             auto success = discnet::network::messages::packet_codec_t::encode(buffer, messages);
@@ -99,11 +94,11 @@ namespace discnet::network
                 m_loggers->m_logger->error("failed to encode messages to a valid packet.");
             }
 
-            client.m_unicast->write(recipient, buffer);
+            client->write(buffer, recipient);
         }
     }
 
-    void network_handler::update()
+    void network_handler::update(const discnet::time_point_t& current)
     {
         if (m_adapter_init_list.size() > 0)
         {   // see if any new clients have been established
@@ -116,7 +111,7 @@ namespace discnet::network
                     if (result)
                     {
                         network_client_t client = result.value();
-                        m_loggers->m_logger->info("now listening for messages on adapter {}.", client.m_multicast->info().m_adapter_address.to_string());
+                        m_loggers->m_logger->info("now listening for messages on adapter {}.", client.m_client->info().m_adapter.to_string());
                         m_clients.push_back(client);
                     }
                     else
@@ -130,9 +125,8 @@ namespace discnet::network
         for (auto& client : m_clients)
         {
             network_info_t network_info;
-            network_info.m_adapter = client.m_multicast->info().m_adapter_address;
-            network_info.m_receiver = client.m_multicast->info().m_multicast_address;
-            network_info.m_reception_time = discnet::time_point_t::clock::now();
+            network_info.m_adapter = client.m_client->info().m_adapter;
+            network_info.m_reception_time = current;
 
             auto streams = client.m_data_handler->process();
             for (const data_stream_packets_t& stream : streams)
@@ -168,47 +162,35 @@ namespace discnet::network
         {
             auto& client = *itr_client;
             m_loggers->m_logger->info("removing client from adapter (name: {}, guid: {}).", adapter.m_name, adapter.m_mac_address);
-            client.m_multicast->close();
-            client.m_unicast->close();
+            client.m_client->close();
             m_clients.erase(itr_client);
         }
     }
 
     network_handler::network_client_result_t network_handler::process_adapter(network_client_t client)
     {
-        bool unicast_enabled = client.m_unicast->open();
-        bool multicast_enabled = client.m_multicast->open();
+        bool udp_enabled = client.m_client->open();
         size_t retry_count = 0;
         discnet::time_point_t start_time = discnet::time_point_t::clock::now();
         discnet::time_point_t current_time = start_time;
         discnet::time_point_t timeout = start_time + std::chrono::seconds(15); 
-        while ((!unicast_enabled || !multicast_enabled) && current_time < timeout)
+        while (!udp_enabled && current_time < timeout)
         {
             m_loggers->m_logger->info("retry connect #{}.", ++retry_count);
             // give the OS some time to initialize the adapter before we start listening
             std::this_thread::sleep_for(std::chrono::seconds(1));
-            if (!multicast_enabled)
+            if (!udp_enabled)
             {
-                multicast_enabled = client.m_multicast->open();
-            }
-            if (!unicast_enabled)
-            {
-                unicast_enabled = client.m_unicast->open();
+                udp_enabled = client.m_client->open();
             }
             
             current_time = discnet::time_point_t::clock::now();
         }
 
-        if (!multicast_enabled)
+        if (!udp_enabled)
         {
-            client.m_multicast.reset();
-            return std::unexpected("failed to start multicast client. dropping client for adapter");
-        }
-
-        if (!unicast_enabled)
-        {
-            client.m_unicast.reset();
-            return std::unexpected("failed to start unicast client. dropping client for adapter");            
+            client.m_client.reset();
+            return std::unexpected("failed to start udp client. dropping client for adapter");            
         }
 
         return client;
@@ -234,22 +216,16 @@ namespace discnet::network
             return;
         }
 
-        discnet::network::multicast_info_t multicast_info;
-        multicast_info.m_adapter_address = adapter.m_address_list.front().first;
-        multicast_info.m_multicast_address = m_configuration.m_multicast_address;
-        multicast_info.m_multicast_port = m_configuration.m_multicast_port;
+        discnet::network::udp_info_t udp_info;
+        udp_info.m_adapter = adapter.m_address_list.front().first;
+        udp_info.m_multicast = m_configuration.m_multicast_address;
+        udp_info.m_port = m_configuration.m_multicast_port;
 
-        discnet::network::unicast_info_t unicast_info;
-        unicast_info.m_address = adapter.m_address_list.front().first;
-        unicast_info.m_port = m_configuration.m_multicast_port + 1;
-
-        
         network_client_t client;
         client.m_data_handler = std::make_shared<discnet::network::data_handler>(4095);
         auto data_received_callback_func = std::bind(&discnet::network::data_handler::handle_receive, client.m_data_handler, 
             std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-        client.m_multicast = m_client_creator->create(multicast_info, data_received_callback_func);
-        client.m_unicast = m_client_creator->create(unicast_info, data_received_callback_func);
+        client.m_client = m_client_creator->create(udp_info, data_received_callback_func);
         client.m_adapter_identifier = adapter.m_mac_address;
 
         {

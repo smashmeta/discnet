@@ -10,8 +10,7 @@
 #include <discnet/discnet.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/application/configuration.hpp>
-#include <discnet/network/unicast_client.hpp>
-#include <discnet/network/multicast_client.hpp>
+#include <discnet/network/udp_client.hpp>
 #include <discnet/network/messages/packet.hpp>
 
 namespace discnet::network
@@ -19,15 +18,28 @@ namespace discnet::network
     struct network_client_t
     {
         discnet::adapter_identifier_t m_adapter_identifier;
-        discnet::network::shared_multicast_client m_multicast;
-        discnet::network::shared_unicast_client m_unicast;
+        discnet::network::shared_udp_client m_client;
         discnet::network::shared_data_handler m_data_handler;
     };
 
+    // using network_client_t = std::variant<discnet::network::shared_multicast_client, discnet::network::shared_unicast_client>;
+    // 
+    // struct network_channel_identifier_t
+    // {
+    //     discnet::adapter_identifier_t m_adapter_identifier;
+    //     discnet::endpoint_t m_endpoint;
+    // };
+    // 
+    // struct network_channel_t
+    // {
+    //     network_channel_identifier_t m_identifier;
+    //     network_client_t m_client;
+    //     discnet::network::shared_data_handler m_data_handler;
+    // };
+
     struct iclient_creator
     {
-        virtual shared_multicast_client create(const multicast_info_t& info, const data_received_func& callback_func) = 0;
-        virtual shared_unicast_client create(const unicast_info_t& info, const data_received_func& callback_func) = 0;
+        virtual shared_udp_client create(const udp_info_t& info, const data_received_func& callback_func) = 0;
     };
 
     using shared_client_creator = std::shared_ptr<iclient_creator>;
@@ -36,8 +48,7 @@ namespace discnet::network
     {
         DISCNET_EXPORT client_creator(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context);
 
-        DISCNET_EXPORT shared_multicast_client create(const multicast_info_t& info, const data_received_func& callback_func) override;
-        DISCNET_EXPORT shared_unicast_client create(const unicast_info_t& info, const data_received_func& callback_func) override;
+        DISCNET_EXPORT shared_udp_client create(const udp_info_t& info, const data_received_func& callback_func) override;
     private:
         discnet::application::shared_loggers m_loggers;
         discnet::shared_io_context m_io_context;
@@ -51,7 +62,6 @@ namespace discnet::network
         using network_clients_t = std::vector<network_client_t>;
         using data_stream_packets_t = discnet::network::data_stream_packets_t;
         using packet_t = discnet::network::messages::packet_t;
-        using multicast_info_t = discnet::network::multicast_info_t;
         using message_variant_t = discnet::network::messages::message_variant_t;
         using message_list_t = discnet::network::messages::message_list_t;
 
@@ -69,7 +79,7 @@ namespace discnet::network
         DISCNET_EXPORT network_clients_t clients() const;
         DISCNET_EXPORT void transmit_multicast(const adapter_t& adapter, const message_list_t& messages);
         DISCNET_EXPORT void transmit_unicast(const adapter_t& adapter, const address_t& recipient, message_list_t& messages);
-        DISCNET_EXPORT void update();
+        DISCNET_EXPORT void update(const discnet::time_point_t& current);
 
     private:
         void remove_client(const adapter_t& adapter);

@@ -19,7 +19,7 @@ DiagramItem::DiagramItem(DiagramType diagramType, QMenu *contextMenu,
     , m_dialog(new NodeDialog(m_node_id, nullptr))
 {
     QGraphicsPixmapItem *imageItem = new QGraphicsPixmapItem(this);
-    QPixmap pix(":/images/pc.png");
+    QPixmap pix(":/images/node.png");
     imageItem->setPixmap(pix);
 
     // Center the text within the polygon's bounding rect

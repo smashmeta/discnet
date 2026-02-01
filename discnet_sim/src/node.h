@@ -8,8 +8,7 @@
 #include <discnet/typedefs.hpp>
 #include <discnet/application/configuration.hpp>
 #include <discnet/adapter_manager.hpp>
-#include <discnet/network/multicast_client.hpp>
-#include <discnet/network/unicast_client.hpp>
+#include <discnet/network/network_handler.hpp>
 #include <QTextEdit>
 #include <spdlog/sinks/qt_sinks.h>
 
@@ -124,18 +123,19 @@ namespace network
     class network_traffic_manager
     {
     public:
-        void data_sent(const uint16_t node_id, const network::multicast_info_t& info, const discnet::network::buffer_t& buffer);
+        void data_sent(const uint16_t node_id, const network::udp_info_t& info, const discnet::network::buffer_t& buffer);
+        void data_sent(const uint16_t node_id, const network::udp_info_t& info, const discnet::network::buffer_t& buffer, const discnet::address_t& recipient);
 
-        void register_client(const uint16_t node_id, network::shared_multicast_client client)
+        void register_client(const uint16_t node_id, network::shared_udp_client client)
         {
-            auto itr_client = m_mc_clients.find(node_id);
-            if (itr_client != m_mc_clients.end())
+            auto itr_client = m_clients.find(node_id);
+            if (itr_client != m_clients.end())
             {
                 itr_client->second.push_back(client);
             }
             else
             {
-                m_mc_clients.insert({node_id, {client}});
+                m_clients.insert({node_id, {client}});
             }
         }
 
@@ -156,7 +156,7 @@ namespace network
         }
     private:
         std::shared_ptr<spdlog::logger> m_network_logger;
-        std::map<uint16_t, std::vector<network::shared_multicast_client>> m_mc_clients;
+        std::map<uint16_t, std::vector<network::shared_udp_client>> m_clients;
         std::map<std::string, network_switch> m_switches;
     };
 

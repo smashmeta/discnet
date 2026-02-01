@@ -16,46 +16,28 @@ namespace discnet::test
         MOCK_METHOD(std::vector<discnet::adapter_t>, get_adapters, (), (override));
     };
 
-    class multicast_client_mock : public discnet::network::imulticast_client
+    class udp_client_mock : public discnet::network::iudp_client
     {
     public:
-        multicast_client_mock(discnet::network::multicast_info_t info, const discnet::network::data_received_func& func)
-            : discnet::network::imulticast_client(info, func)
+        udp_client_mock(discnet::network::udp_info_t info, const discnet::network::data_received_func& func)
+            : discnet::network::iudp_client(info, func)
         {
             // nothing for now
         }
 
         bool open() override { return true; }
         MOCK_METHOD(bool, write, (const discnet::network::buffer_t&), (override));
-        MOCK_METHOD(void, close, (), (override));
-        discnet::network::multicast_info_t info() const override { return m_info; }
-    };
-
-    class unicast_client_mock : public discnet::network::iunicast_client
-    {
-    public:
-        unicast_client_mock(discnet::network::unicast_info_t info, const discnet::network::data_received_func& func)
-            : discnet::network::iunicast_client(info, func)
-        {
-            // nothing for now
-        }
-
-        bool open() override { return true; }
-        MOCK_METHOD(bool, write, (const discnet::address_t& recipient, const discnet::network::buffer_t& buffer), (override));
+        MOCK_METHOD(bool, write, (const discnet::network::buffer_t& buffer, const discnet::address_t& recipient), (override));
         MOCK_METHOD(void, close, (), (override));
     };
 
     struct client_creator_mock : public discnet::network::iclient_creator
     {
-        discnet::network::shared_multicast_client create(const discnet::network::multicast_info_t& info, const discnet::network::data_received_func& callback_func) override
+        discnet::network::shared_udp_client create(const discnet::network::udp_info_t& info, const discnet::network::data_received_func& callback_func) override
         {
-            return std::make_shared<multicast_client_mock>(info, callback_func);
+            return std::make_shared<udp_client_mock>(info, callback_func);
         }
         
-        discnet::network::shared_unicast_client create(const discnet::network::unicast_info_t& info, const discnet::network::data_received_func& callback_func) override
-        {
-            return std::make_shared<unicast_client_mock>(info, callback_func);
-        }
     private:
         discnet::application::shared_loggers m_loggers;
     };
@@ -162,7 +144,7 @@ TEST_F(route_manager_fixture, process_single_discovery_message)
     EXPECT_EQ(routes[1].m_identifier.m_adapter, network_info.m_adapter);
     EXPECT_EQ(routes[1].m_identifier.m_reporter, network_info.m_sender);
     EXPECT_EQ(routes[1].m_status.m_online, true);
-    ASSERT_EQ(routes[1].m_status.m_jumps.size(), 2);
+    ASSERT_EQ(routes[1].m_status.m_jumps.size(), 1);
     ASSERT_THAT(routes[1].m_status.m_jumps, ::testing::ElementsAre(256, 256));
 }
 

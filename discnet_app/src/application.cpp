@@ -205,7 +205,7 @@ namespace discnet::main
     void application::update(discnet::time_point_t current_time)
     {
         m_adapter_manager->update();
-        m_network_handler->update();
+        m_network_handler->update(current_time);
         m_route_manager->update(current_time);
         m_transmission_handler->update(current_time);
     }

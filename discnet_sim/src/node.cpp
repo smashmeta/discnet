@@ -165,11 +165,11 @@ namespace discnet
         message_queue_t m_queue;
     };
 
-    class simulator_multicast_client : public network::imulticast_client
+    class simulator_udp_client : public network::iudp_client
     {
     public:
-        simulator_multicast_client(const uint16_t node_id, const shared_network_traffic_manager& ntm, const network::multicast_info_t& info, const network::data_received_func& func)
-            : network::imulticast_client(info, func), m_node_id(node_id), m_network_traffic_manager(ntm)
+        simulator_udp_client(const uint16_t node_id, const shared_network_traffic_manager& ntm, const network::udp_info_t& info, const network::data_received_func& func)
+            : network::iudp_client(info, func), m_node_id(node_id), m_network_traffic_manager(ntm)
         {
             // nothing for now
         }
@@ -180,31 +180,22 @@ namespace discnet
             m_network_traffic_manager->data_sent(m_node_id, m_info, buffer);
             return true; 
         }
-        void close() override { }
-        network::multicast_info_t info() const override { return m_info; }
+
+        bool write(const discnet::network::buffer_t& buffer, const discnet::address_t& recipient) override 
+        { 
+            m_network_traffic_manager->data_sent(m_node_id, m_info, buffer, recipient);
+            return true; 
+        }
+
+        void close() override 
+        { 
+            // todo: implement
+        }
 
         void receive_bytes(const discnet::network::buffer_t& buffer, const discnet::address_t& sender)
         {
-            m_data_received_func(buffer.const_buffer(), sender, m_info.m_multicast_address);
+            m_data_received_func(buffer.const_buffer(), sender, m_info.m_multicast);
         }
-
-    private:
-        uint16_t m_node_id;
-        shared_network_traffic_manager m_network_traffic_manager;
-    };
-
-    class simulator_unicast_client : public network::iunicast_client
-    {
-    public:
-        simulator_unicast_client(const uint16_t node_id, const shared_network_traffic_manager& ntm, const network::unicast_info_t& info, const network::data_received_func& func)
-            : network::iunicast_client(info, func), m_node_id(node_id), m_network_traffic_manager(ntm)
-        {
-            // nothing for now
-        }
-    
-        bool open() override { return true; }
-        bool write([[maybe_unused]] const discnet::address_t& recipient, [[maybe_unused]] const discnet::network::buffer_t& buffe) override { return false; }
-        void close() override { }
 
     private:
         uint16_t m_node_id;
@@ -219,64 +210,68 @@ namespace discnet
             // nothing for now
         }
 
-        discnet::network::shared_multicast_client create(const discnet::network::multicast_info_t& info, const discnet::network::data_received_func& callback_func) override 
+        discnet::network::shared_udp_client create(const discnet::network::udp_info_t& info, const discnet::network::data_received_func& callback_func) override 
         { 
-            auto result = std::make_shared<simulator_multicast_client>(m_node_id, m_network_traffic_manager, info, callback_func);
+            auto result = std::make_shared<simulator_udp_client>(m_node_id, m_network_traffic_manager, info, callback_func);
             m_network_traffic_manager->register_client(m_node_id, result);
             return result; 
         }
 
-        discnet::network::shared_unicast_client create(const discnet::network::unicast_info_t& info, const discnet::network::data_received_func& callback_func) override 
-        { 
-            auto result = std::make_shared<simulator_unicast_client>(m_node_id, m_network_traffic_manager, info, callback_func); 
-            return result;
-        }
     private:
         discnet::application::shared_loggers m_loggers;
         uint16_t m_node_id;
         shared_network_traffic_manager m_network_traffic_manager;
     };
 
-    void network_traffic_manager::data_sent(const uint16_t node_id, const network::multicast_info_t& info, const discnet::network::buffer_t& buffer)
+    void network_traffic_manager::data_sent(const uint16_t node_id, const network::udp_info_t& info, const discnet::network::buffer_t& buffer)
     {
         if (m_network_logger)
         {
             std::string log_entry = std::format("node: {}, adapter: {}, multicast: [addr: {}, port: {}] - {}",
-                node_id, info.m_adapter_address.to_string(), info.m_multicast_address.to_string(), info.m_multicast_port, discnet::bytes_to_hex_string(buffer.data()));
+                node_id, info.m_adapter.to_string(), info.m_adapter.to_string(), info.m_port, discnet::bytes_to_hex_string(buffer.data()));
             m_network_logger->info(log_entry);
 
             std::string subnet_mask_sender;
             {
-                auto ip_str = info.m_adapter_address.to_string();
+                auto ip_str = info.m_adapter.to_string();
                 auto last_segment_pos = ip_str.find_last_of('.');
                 subnet_mask_sender = ip_str.substr(0, last_segment_pos);
             }
 
-            for (auto& [id, adapters] : m_mc_clients)
+            for (auto& [id, adapters] : m_clients)
             {
                 if (id != node_id)
                 {
                     for (auto& adapter : adapters)
                     {
-                        auto sim_adapter = std::dynamic_pointer_cast<simulator_multicast_client>(adapter);
+                        auto sim_adapter = std::dynamic_pointer_cast<simulator_udp_client>(adapter);
                         if (sim_adapter)
                         {
                             std::string subnet_mask_receiver;
                             {
-                                auto ip_str = adapter->info().m_adapter_address.to_string();
+                                auto ip_str = adapter->info().m_adapter.to_string();
                                 auto last_segment_pos = ip_str.find_last_of('.');
                                 subnet_mask_receiver = ip_str.substr(0, last_segment_pos);
                             }
 
                             if (subnet_mask_sender == subnet_mask_receiver)
                             {
-                                sim_adapter->receive_bytes(buffer, info.m_adapter_address);
+                                sim_adapter->receive_bytes(buffer, info.m_adapter);
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    void network_traffic_manager::data_sent(
+        [[maybe_unused]] const uint16_t node_id, 
+        [[maybe_unused]] const network::udp_info_t& info, 
+        [[maybe_unused]] const discnet::network::buffer_t& buffer, 
+        [[maybe_unused]] const discnet::address_t& recipient)
+    {
+        // todo: implement
     }
 
     static int instance_id = 0;
@@ -321,7 +316,7 @@ namespace discnet
     void discnet_node::update(discnet::time_point_t current_time)
     {
         m_adapter_manager->update();
-        m_network_handler->update();
+        m_network_handler->update(current_time);
         m_route_manager->update(current_time);
         m_transmission_handler->update(current_time);
     }

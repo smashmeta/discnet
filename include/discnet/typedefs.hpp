@@ -17,6 +17,7 @@ namespace discnet
     typedef boost::system::error_code error_code_t;
     typedef boost::asio::ip::address_v4 address_t;
     typedef boost::asio::ip::port_type port_type_t;
+    typedef boost::asio::ip::udp::endpoint endpoint_t;
     typedef boost::asio::ip::udp::socket socket_t;
     typedef std::chrono::system_clock::time_point time_point_t;
     typedef std::chrono::system_clock::duration duration_t;

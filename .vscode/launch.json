@@ -31,7 +31,7 @@
     },
     {
       "name": "discnet_app_windows",
-      "program": "${workspaceFolder}/build/discnet_app/Debug/discnet_app.exe",
+      "program": "${workspaceFolder}/build/discnet_app/discnet_app.exe",
       "cwd": "${workspaceFolder}/build/discnet_app",
       "type": "cppvsdbg",
       "request": "launch",
@@ -44,7 +44,7 @@
     },
     {
       "name": "discnet_sim_windows",
-      "program": "${workspaceFolder}/build/discnet_sim/Debug/discnet_sim.exe",
+      "program": "${workspaceFolder}/build/discnet_sim/discnet_sim.exe",
       "cwd": "${workspaceFolder}/build/discnet_sim",
       "type": "cppvsdbg",
       "stopAtEntry": false,
@@ -52,7 +52,7 @@
     },
     {
       "name": "discnet_test_windows",
-      "program": "${workspaceFolder}/build/discnet_test/Debug/discnet_test.exe",
+      "program": "${workspaceFolder}/build/discnet_test/discnet_test.exe",
       "cwd": "${workspaceFolder}/build/discnet_test",
       "type": "cppvsdbg",
       "request": "launch"

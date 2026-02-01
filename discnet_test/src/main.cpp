@@ -15,7 +15,6 @@
 #include <discnet/network/buffer.hpp>
 #include <discnet/network/messages/packet.hpp>
 #include <discnet/network/messages/discovery_message.hpp>
-#include <discnet/network/multicast_client.hpp>
 #include <discnet/application/configuration.hpp>
 
 
