@@ -1,6 +1,8 @@
-#include "nodedialog.h"
+#include "ui/widgets/nodedialog.h"
 #include "ui_nodedialog.h"
 
+namespace discnet::sim::ui
+{
 NodeDialog::NodeDialog(uint16_t node_id, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::NodeDialog)
@@ -53,3 +55,4 @@ void NodeDialog::on_btnEnable_clicked()
         emit client_enabled(m_node_id, false, this); 
     }
 }
+} // !namespace discnet::sim::ui

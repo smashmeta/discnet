@@ -11,6 +11,7 @@
 #include <QGraphicsScene>
 #include "ui/widgets/RouterItem.h"
 #include "ui/widgets/NodeItem.h"
+#include "simulator/simulator.h"
 
 
 namespace discnet::sim::ui
@@ -32,9 +33,15 @@ namespace discnet::sim::ui
         void dropEvent(QGraphicsSceneDragDropEvent *event) override;
 
         void contextMenuEvent(QGraphicsSceneContextMenuEvent *event) override;
-    private:
+
+private slots:
+        void onMenuDeletePressed();
+        void onMenuProperiesPressed();
+        
+private:
         std::mutex m_mutex;
         static uint32_t s_item_index;
         std::vector<ItemHandle> m_items;
+        logic::simulator m_simulator;
     };
 } // !namespace discnet::sim::ui

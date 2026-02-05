@@ -19,5 +19,6 @@
     <file>images/background4.png</file>
     <file>images/node.png</file>
     <file>images/router.png</file>
+    <file>images/adapter.png</file>
   </qresource>
 </RCC>

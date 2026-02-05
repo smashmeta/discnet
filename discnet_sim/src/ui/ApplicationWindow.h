@@ -1,5 +1,8 @@
-#ifndef APPLICATIONWINDOW_H
-#define APPLICATIONWINDOW_H
+/*
+ *
+ */
+
+#pragma once
 
 #include <QMainWindow>
 #include <QGraphicsView>
@@ -23,7 +26,4 @@ namespace discnet::sim::ui
         SimulatorScene* m_scene;
         QGraphicsView* m_view;
     };
-}
-
-
-#endif // APPLICATIONWINDOW_H
+} // !namespace discnet::sim::ui

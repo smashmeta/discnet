@@ -83,10 +83,12 @@ namespace discnet::sim::ui
     void SimulatorScene::contextMenuEvent(QGraphicsSceneContextMenuEvent* event)
     {
         auto cursor_position = event->scenePos();
-        std::string test = std::format("x: {}, y: {}", cursor_position.x(), cursor_position.y());
         QGraphicsItem* item = itemAt(event->scenePos(), QTransform());
-        if (item && !test.empty()) 
+        if (item) 
         {
+            this->clearSelection();
+            item->setSelected(true);
+
             auto menu = new QMenu();
             auto node = dynamic_cast<NodeItem*>(item);
             if (node)
@@ -104,12 +106,12 @@ namespace discnet::sim::ui
             auto deleteAction = new QAction(QIcon(":/images/delete.png"), QString("&Delete"));
             deleteAction->setShortcut(QString("Delete"));
             deleteAction->setStatusTip(QString("Delete item from diagram"));
-            // connect(deleteAction, &QAction::triggered, this, &MainWindow::deleteItem);
+            connect(deleteAction, &QAction::triggered, this, &SimulatorScene::onMenuDeletePressed);
 
             auto propertiesAction = new QAction(QIcon(":/images/properties.png"), QString("&Properties"));
             propertiesAction->setShortcut(QString("Properties"));
             propertiesAction->setStatusTip(QString("Item Properties"));
-            // connect(propertiesAction, &QAction::triggered, this, &MainWindow::properties);
+            connect(propertiesAction, &QAction::triggered, this, &SimulatorScene::onMenuProperiesPressed);
 
             menu->addAction(deleteAction);
             menu->addAction(propertiesAction);
@@ -119,5 +121,20 @@ namespace discnet::sim::ui
         {
             QGraphicsScene::contextMenuEvent(event);
         }
+    }
+
+    void SimulatorScene::onMenuDeletePressed()
+    {
+        QList<QGraphicsItem *> selectedItems = this->selectedItems();
+        for (QGraphicsItem *item : std::as_const(selectedItems)) 
+        {
+            this->removeItem(item);
+            delete item;
+        }
+    }
+
+    void SimulatorScene::onMenuProperiesPressed()
+    {
+
     }
 } // !namespace discnet::sim::ui
