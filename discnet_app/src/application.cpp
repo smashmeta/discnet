@@ -4,11 +4,11 @@
 
 #include <spdlog/spdlog.h>
 #include <discnet/application/configuration.hpp>
-#include <discnet_app/asio_context.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/route_manager.hpp>
 #include <discnet/network/network_handler.hpp>
-#include <discnet_app/application.hpp>
+#include "asio_context.hpp"
+#include "application.hpp"
 #ifdef _WIN32
 #include <discnet/windows/adapter_fetcher.hpp>
 #elif defined(__GNUC__) && !defined(__clang__)

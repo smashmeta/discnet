@@ -5,7 +5,6 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/qt_sinks.h>
 #include <discnet/application/configuration.hpp>
-#include <discnet_app/asio_context.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/route_manager.hpp>
 #include <discnet/network/network_handler.hpp>

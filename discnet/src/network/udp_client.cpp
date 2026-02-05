@@ -52,7 +52,7 @@ namespace discnet::network
         using udp_t = boost::asio::ip::udp;
         namespace multicast = boost::asio::ip::multicast;
 
-        m_loggers->m_logger->info("setting up udp socket - addr: {}, port {} (multicast: {}).", 
+        m_loggers->m_logger->info("setting up udp socket - addr: {}, port: {}, multicast: {}.", 
            m_info.m_adapter.to_string(),
            m_info.m_port,
            m_info.m_multicast.to_string());

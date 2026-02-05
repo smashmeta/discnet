@@ -17,7 +17,6 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <discnet_app/application.hpp>
 #include <discnet/node.hpp>
 #include <discnet/route_manager.hpp>
 #include <discnet/network/buffer.hpp>
@@ -28,7 +27,9 @@
 #include <discnet/network/data_handler.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/application/configuration.hpp>
-#include <discnet_app/asio_context.hpp>
+#include "asio_context.hpp"
+#include "application.hpp"
+
 
 /*
  *  - persistent node(s)
