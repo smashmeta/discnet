@@ -40,7 +40,7 @@
  *  - data_message_t: replace
  */
 
-void program_yeild(std::shared_ptr<spdlog::logger> logger, const discnet::time_point_t& start_time)
+void program_yeild(std::shared_ptr<spdlog::logger>& logger, const discnet::time_point_t& start_time)
 {
     // sampling program duration
     auto current_time = discnet::time_point_t::clock::now();
@@ -66,32 +66,33 @@ int main(int arguments_count, const char** arguments_vector)
     boost::filesystem::path executable_directory = boost::dll::program_location().parent_path();
     std::cout << "current path is set to " << executable_directory << std::endl;
     
-    auto loggers = std::make_shared<discnet::application::loggers_t>();
-    loggers->m_logger = spdlog::stdout_color_mt("console");
+    auto console_logger = spdlog::stdout_color_mt("console_logger");
 
     discnet::application::expected_configuration_t configuration = discnet::application::get_configuration(arguments_count, arguments_vector);
     if (!configuration)
     {
-        loggers->m_logger->error("failed to load configuration. terminating application. error: {}.", configuration.error());
+        console_logger->error("failed to load configuration. terminating application. error: {}.", configuration.error());
         return EXIT_FAILURE;
     }
 
-    loggers->m_logger->info("configuration loaded. node_id: {}, mc-address: {}, mc-port: {}.", 
+    auto logger = spdlog::stdout_color_mt(configuration->m_log_instance_id);
+
+    logger->info("configuration loaded. node_id: {}, mc-address: {}, mc-port: {}.", 
         configuration->m_node_id, configuration->m_multicast_address.to_string(), configuration->m_multicast_port);
 
-    discnet::main::application application(configuration.value(), loggers);
+    discnet::main::application application(configuration.value());
     if (!application.initialize())
     {
-        loggers->m_logger->error("failed to initialize application.");
+        logger->error("failed to initialize application.");
         return EXIT_FAILURE;
     }
     
-    loggers->m_logger->info("discnet initialized and running.");
+    logger->info("discnet initialized and running.");
     while (true)
     {
         auto current_time = discnet::time_point_t::clock::now();
         application.update(current_time);   
-        program_yeild(loggers->m_logger, current_time);
+        program_yeild(logger, current_time);
     }
 
     spdlog::shutdown();

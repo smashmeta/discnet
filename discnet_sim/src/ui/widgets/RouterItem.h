@@ -11,6 +11,9 @@ namespace discnet::sim::ui
     class RouterItem : public QGraphicsPixmapItem 
     {
     public:
-        RouterItem(QGraphicsItem *parent = nullptr);
+        RouterItem(const std::string& name, QGraphicsItem *parent = nullptr);
+    
+    protected:
+        std::string m_name;
     };
 } // !namespace discnet::sim::ui

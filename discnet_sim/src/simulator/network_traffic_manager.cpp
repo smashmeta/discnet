@@ -49,7 +49,7 @@ namespace discnet::sim::logic
         }
     }
 
-    void network_traffic_manager::data_sent(const uint16_t node_id, const network::udp_info_t& info, const discnet::network::buffer_t& buffer, const discnet::address_t& recipient)
+    void network_traffic_manager::data_sent([[maybe_unused]] const uint16_t node_id, [[maybe_unused]] const network::udp_info_t& info, [[maybe_unused]] const discnet::network::buffer_t& buffer, [[maybe_unused]] const discnet::address_t& recipient)
     {
     // todo: implement
     }

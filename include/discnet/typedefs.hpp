@@ -9,6 +9,7 @@
 #include <boost/asio.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <discnet/discnet.hpp>
+#include <spdlog/spdlog.h>
 
 namespace discnet
 {
@@ -28,6 +29,7 @@ namespace discnet
     typedef std::shared_ptr<boost::asio::ip::udp::socket> shared_udp_socket;
     using metric_t = uint16_t;
     using jumps_t = std::vector<metric_t>;
+    using shared_logger = std::shared_ptr<spdlog::logger>;
 
     DISCNET_EXPORT std::string to_string(const jumps_t& jumps);
 

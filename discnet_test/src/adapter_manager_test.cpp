@@ -8,6 +8,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <discnet/route.hpp>
 #include <discnet/adapter_manager.hpp>
+#include <spdlog/sinks/null_sink.h>
 
 namespace discnet::test
 {
@@ -40,7 +41,13 @@ protected:
 public:
     virtual void SetUp() override
     {
-        m_loggers = std::make_shared<discnet::application::loggers_t>();
+        m_configuration.m_node_id = 1;
+        m_configuration.m_log_instance_id = "test";
+        m_configuration.m_multicast_address = boost::asio::ip::make_address_v4("239.200.200.1");
+        m_configuration.m_multicast_port = 1010;
+
+        auto null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
+        auto logger = std::make_shared<spdlog::logger>(m_configuration.m_log_instance_id, null_sink);
 
         m_adapter_1.m_guid = boost::uuids::to_string(boost::uuids::random_generator()());
         m_adapter_1.m_mac_address = m_adapter_1.m_guid;
@@ -66,7 +73,7 @@ public:
         };
     }
 protected:
-    discnet::application::shared_loggers m_loggers;
+    discnet::application::configuration_t m_configuration;
     discnet::adapter_t m_adapter_1;
     discnet::adapter_t m_adapter_2;
 };
@@ -77,7 +84,7 @@ TEST_F(adapter_manager_fixture, find_adapter)
     {	// making sure that the manager is destroyed (or else gtest will complain about memory leaks)
         auto fetcher = std::make_unique<discnet::test::adapter_fetcher_mock>();
         EXPECT_CALL(*fetcher.get(), get_adapters()).Times(1).WillOnce(testing::Return(adapters));
-        discnet::adapter_manager manager { m_loggers, std::move(fetcher) };
+        discnet::adapter_manager manager { m_configuration, std::move(fetcher) };
         manager.update();
 
         auto adapter_valid_10 = manager.find_adapter(boost::asio::ip::make_address_v4("10.0.0.1"));
@@ -112,7 +119,7 @@ TEST_F(adapter_manager_fixture, update)
             .WillOnce(testing::Return(adapters_changed))
             .WillOnce(testing::Return(adapters_empty));
 
-        adapter_manager manager { m_loggers, std::move(fetcher) };
+        adapter_manager manager { m_configuration, std::move(fetcher) };
  
         discnet::test::callback_tester_t callbacks_tester;
         manager.e_new.connect(std::bind(&discnet::test::callback_tester_t::new_adapter, &callbacks_tester, std::placeholders::_1));

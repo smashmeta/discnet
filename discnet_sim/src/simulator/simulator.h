@@ -17,11 +17,7 @@ namespace discnet::sim::logic
     class simulator
     {
     public:
-        simulator()
-            : m_network_traffic_manager(std::make_shared<network_traffic_manager>())
-        {
-            // nothing for now
-        }
+        simulator();
 
         shared_discnet_node find_node(const uint16_t node_id);
         instance_identifier add_instance(const discnet::application::configuration_t& configuration, QTextEdit* log_handle);

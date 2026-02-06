@@ -16,6 +16,12 @@ namespace discnet
     class route_manager;
     using shared_route_manager = std::shared_ptr<route_manager>;
 
+    class discovery_message_handler;
+    using shared_discovery_message_handler = std::shared_ptr<discovery_message_handler>;
+
+    class transmission_handler;
+    using shared_transmission_handler = std::shared_ptr<transmission_handler>;
+
 namespace network
 {
     class network_handler;
@@ -27,22 +33,16 @@ namespace main
     struct asio_context_t;
     using shared_asio_context_t = std::shared_ptr<asio_context_t>;
 
-    class discovery_message_handler;
-    using shared_discovery_message_handler = std::shared_ptr<discovery_message_handler>;
-
-    class transmission_handler;
-    using shared_transmission_handler = std::shared_ptr<transmission_handler>;
-
     class application
     {
     public:
-        application(discnet::application::configuration_t configuration, const discnet::application::shared_loggers& loggers);
+        application(discnet::application::configuration_t configuration);
         
         bool initialize();
         void update(discnet::time_point_t current_time);
     private:
         discnet::application::configuration_t m_configuration;
-        discnet::application::shared_loggers m_loggers;
+        discnet::shared_logger m_logger;
         shared_asio_context_t m_asio_context;
         discnet::shared_adapter_manager m_adapter_manager;
         discnet::shared_route_manager m_route_manager;

@@ -53,13 +53,13 @@ namespace discnet::sim::logic
         void update(time_point_t current_time);
     private:
         application::configuration_t m_configuration;
+        discnet::shared_logger m_logger;
         shared_simulator_adapter_fetcher m_adapter_fetcher;
         discnet::shared_adapter_manager m_adapter_manager;
         discnet::shared_route_manager m_route_manager;
         discnet::network::shared_network_handler m_network_handler;
         shared_discovery_message_handler m_discovery_message_handler;
         shared_transmission_handler m_transmission_handler;
-        discnet::application::shared_loggers m_loggers;
         shared_network_traffic_manager m_network_traffic_manager;
     };
 

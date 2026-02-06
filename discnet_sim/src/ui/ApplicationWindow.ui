@@ -16,65 +16,60 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QSplitter" name="splitter">
-      <property name="frameShape">
-       <enum>QFrame::Shape::NoFrame</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Shadow::Plain</enum>
-      </property>
-      <property name="lineWidth">
-       <number>5</number>
-      </property>
-      <property name="midLineWidth">
-       <number>5</number>
-      </property>
-      <property name="orientation">
-       <enum>Qt::Orientation::Horizontal</enum>
-      </property>
-      <property name="handleWidth">
-       <number>10</number>
-      </property>
-      <widget class="QToolBox" name="toolbox">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>165</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="baseSize">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="frameShape">
-        <enum>QFrame::Shape::Box</enum>
-       </property>
-       <widget class="QWidget" name="tbPage1">
-        <property name="geometry">
-         <rect>
-          <x>0</x>
-          <y>0</y>
-          <width>163</width>
-          <height>507</height>
-         </rect>
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <item>
+       <widget class="QToolBox" name="toolbox">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <attribute name="label">
-         <string>Items</string>
-        </attribute>
+        <property name="minimumSize">
+         <size>
+          <width>165</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>160</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="baseSize">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::Shape::Box</enum>
+        </property>
+        <widget class="QWidget" name="tbPage1">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>0</y>
+           <width>163</width>
+           <height>505</height>
+          </rect>
+         </property>
+         <attribute name="label">
+          <string>Items</string>
+         </attribute>
+        </widget>
        </widget>
-      </widget>
-      <widget class="QWidget" name="scene" native="true">
-       <layout class="QHBoxLayout" name="horizontalLayout"/>
-      </widget>
-     </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="scene">
+        <property name="frameShape">
+         <enum>QFrame::Shape::WinPanel</enum>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout"/>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>

@@ -8,6 +8,12 @@
 
 namespace discnet::sim::logic
 {
+    simulator::simulator()
+        : m_network_traffic_manager(std::make_shared<network_traffic_manager>())
+    {
+        // nothing for now
+    }
+
     shared_discnet_node simulator::find_node(const uint16_t node_id)
     {
         auto itr_node = m_nodes.find(node_id);

@@ -19,19 +19,19 @@ namespace discnet::network
         }
     } // !anonymous namespace
 
-    client_creator::client_creator(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context)
-        : m_loggers(loggers), m_io_context(io_context)
+    client_creator::client_creator(const discnet::application::configuration_t& configuration, discnet::shared_io_context io_context)
+        : m_configuration(configuration), m_logger(spdlog::get(configuration.m_log_instance_id)), m_io_context(io_context)
     {
         // nothing for now
     }
 
     shared_udp_client client_creator::create(const udp_info_t& info, const data_received_func& callback_func)
     {
-        return discnet::network::udp_client::create(m_loggers, m_io_context, info, callback_func);
+        return discnet::network::udp_client::create(m_configuration, m_io_context, info, callback_func);
     }
 
-    network_handler::network_handler(const discnet::application::shared_loggers& loggers, shared_adapter_manager adapter_manager, const discnet::application::configuration_t& configuration, shared_client_creator client_creator)
-        : m_loggers(loggers), m_adapter_manager(adapter_manager), m_configuration(configuration), m_client_creator(client_creator)
+    network_handler::network_handler(const discnet::application::configuration_t& configuration, shared_adapter_manager adapter_manager, shared_client_creator client_creator)
+        : m_configuration(configuration), m_logger(spdlog::get(configuration.m_log_instance_id)), m_adapter_manager(adapter_manager), m_client_creator(client_creator)
     {
         m_adapter_manager->e_new.connect(std::bind(&network_handler::adapter_added, this, std::placeholders::_1));
         m_adapter_manager->e_changed.connect(std::bind(&network_handler::adapter_changed, this, std::placeholders::_1, std::placeholders::_2));
@@ -56,7 +56,7 @@ namespace discnet::network
         auto itr_client = std::find_if(m_clients.begin(), m_clients.end(), adapter_check_func);
         if (itr_client == m_clients.end())
         {
-            m_loggers->m_logger->error("multicast - failed to find client for adapter {} - message(s) dropped.", adapter.m_name);
+            m_logger->error("multicast - failed to find client for adapter {} - message(s) dropped.", adapter.m_name);
             return;
         }
 
@@ -67,7 +67,7 @@ namespace discnet::network
             auto success = discnet::network::messages::packet_codec_t::encode(buffer, messages);
             if (!success)
             {
-                m_loggers->m_logger->error("failed to encode messages to a valid packet.");
+                m_logger->error("failed to encode messages to a valid packet.");
             }
 
             client->write(buffer);
@@ -80,7 +80,7 @@ namespace discnet::network
         auto itr_client = std::find_if(m_clients.begin(), m_clients.end(), adapter_check_func);
         if (itr_client == m_clients.end())
         {
-            m_loggers->m_logger->error("unicast - failed to find client for adapter {} - message(s) dropped.", adapter.m_name);
+            m_logger->error("unicast - failed to find client for adapter {} - message(s) dropped.", adapter.m_name);
             return;
         }
 
@@ -91,7 +91,7 @@ namespace discnet::network
             auto success = discnet::network::messages::packet_codec_t::encode(buffer, messages);
             if (!success)
             {
-                m_loggers->m_logger->error("failed to encode messages to a valid packet.");
+                m_logger->error("failed to encode messages to a valid packet.");
             }
 
             client->write(buffer, recipient);
@@ -111,12 +111,12 @@ namespace discnet::network
                     if (result)
                     {
                         network_client_t client = result.value();
-                        m_loggers->m_logger->info("now listening for messages on adapter {}.", client.m_client->info().m_adapter.to_string());
+                        m_logger->info("now listening for messages on adapter {}.", client.m_client->info().m_adapter.to_string());
                         m_clients.push_back(client);
                     }
                     else
                     {
-                        m_loggers->m_logger->error("failed to create client. message: {}.", result.error());
+                        m_logger->error("failed to create client. message: {}.", result.error());
                     }
                 }
             }
@@ -161,7 +161,7 @@ namespace discnet::network
         if (itr_client != m_clients.end())
         {
             auto& client = *itr_client;
-            m_loggers->m_logger->info("removing client from adapter (name: {}, guid: {}).", adapter.m_name, adapter.m_mac_address);
+            m_logger->info("removing client from adapter (name: {}, guid: {}).", adapter.m_name, adapter.m_mac_address);
             client.m_client->close();
             m_clients.erase(itr_client);
         }
@@ -176,7 +176,7 @@ namespace discnet::network
         discnet::time_point_t timeout = start_time + std::chrono::seconds(15); 
         while (!udp_enabled && current_time < timeout)
         {
-            m_loggers->m_logger->info("retry connect #{}.", ++retry_count);
+            m_logger->info("retry connect #{}.", ++retry_count);
             // give the OS some time to initialize the adapter before we start listening
             std::this_thread::sleep_for(std::chrono::seconds(1));
             if (!udp_enabled)
@@ -200,19 +200,19 @@ namespace discnet::network
     {
         if (!adapter.m_enabled)
         {
-            m_loggers->m_logger->info("skipping adapter {} because it is disabled.", adapter.m_name);
+            m_logger->info("skipping adapter {} because it is disabled.", adapter.m_name);
             return;
         }
 
         if (adapter.m_address_list.empty())
         {
-            m_loggers->m_logger->info("skipping adapter {} because it is missing ipv4 address.", adapter.m_name);
+            m_logger->info("skipping adapter {} because it is missing ipv4 address.", adapter.m_name);
             return;
         }
 
         if (adapter.m_loopback)
         {
-            m_loggers->m_logger->info("skipping adapter {} because it is a loopback adapter.", adapter.m_name);
+            m_logger->info("skipping adapter {} because it is a loopback adapter.", adapter.m_name);
             return;
         }
 
@@ -237,7 +237,7 @@ namespace discnet::network
     void network_handler::adapter_added(const adapter_t& adapter)
     {
         std::string adapter_guid_str = boost::lexical_cast<std::string>(adapter.m_guid);
-        m_loggers->m_logger->info("new adapter detected. Name: {}, guid: {}, mac: {}.", adapter.m_name, adapter_guid_str, adapter.m_mac_address);
+        m_logger->info("new adapter detected. Name: {}, guid: {}, mac: {}.", adapter.m_name, adapter_guid_str, adapter.m_mac_address);
         add_client(adapter);
     }
 
@@ -250,7 +250,7 @@ namespace discnet::network
             bool ip_address_changed = previous_adapter.m_address_list != current_adapter.m_address_list;
             if (ip_address_changed)
             {
-                m_loggers->m_logger->info("adapter {} ip-address chaned. re-creating client.", current_adapter.m_name);
+                m_logger->info("adapter {} ip-address chaned. re-creating client.", current_adapter.m_name);
                 remove_client(previous_adapter);
                 add_client(current_adapter);
             }

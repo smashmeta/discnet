@@ -54,12 +54,15 @@ namespace discnet::sim::ui
             dataStream >> tool_type;
             event->acceptProposedAction();
 
+            static uint16_t node_id_sequence_number = 1000;
+            static uint16_t router_sequence_number = 1;
+
             switch (tool_type)
             {
                 case ToolBoxItemType::Node:
                 {
                     std::lock_guard<std::mutex> lock {m_mutex};
-                    auto node = new NodeItem();
+                    auto node = new NodeItem(node_id_sequence_number++);
                     m_items.push_back({++s_item_index, node});
                     addItem(node);
                     node->setPos(event->scenePos() - QPointF(64, 64));
@@ -68,7 +71,7 @@ namespace discnet::sim::ui
                 case ToolBoxItemType::Router:
                 {
                     std::lock_guard<std::mutex> lock {m_mutex};
-                    auto router = new RouterItem();
+                    auto router = new RouterItem(std::format("router_{}", router_sequence_number++));
                     m_items.push_back({++s_item_index, router});
                     addItem(router);
                     router->setPos(event->scenePos() - QPointF(64, 64));
@@ -102,19 +105,19 @@ namespace discnet::sim::ui
                 auto action = menu->addAction("ROUTER");
                 action->setEnabled(false);
             }
+            
+            auto propertiesAction = new QAction(QIcon(":/images/properties.png"), QString("&Properties"));
+            propertiesAction->setShortcut(QString("Properties"));
+            propertiesAction->setStatusTip(QString("Item Properties"));
+            connect(propertiesAction, &QAction::triggered, this, &SimulatorScene::onMenuProperiesPressed);
 
             auto deleteAction = new QAction(QIcon(":/images/delete.png"), QString("&Delete"));
             deleteAction->setShortcut(QString("Delete"));
             deleteAction->setStatusTip(QString("Delete item from diagram"));
             connect(deleteAction, &QAction::triggered, this, &SimulatorScene::onMenuDeletePressed);
 
-            auto propertiesAction = new QAction(QIcon(":/images/properties.png"), QString("&Properties"));
-            propertiesAction->setShortcut(QString("Properties"));
-            propertiesAction->setStatusTip(QString("Item Properties"));
-            connect(propertiesAction, &QAction::triggered, this, &SimulatorScene::onMenuProperiesPressed);
-
-            menu->addAction(deleteAction);
             menu->addAction(propertiesAction);
+            menu->addAction(deleteAction);
             menu->popup(event->screenPos());
         }
         else
@@ -125,9 +128,10 @@ namespace discnet::sim::ui
 
     void SimulatorScene::onMenuDeletePressed()
     {
-        QList<QGraphicsItem *> selectedItems = this->selectedItems();
-        for (QGraphicsItem *item : std::as_const(selectedItems)) 
+        QList<QGraphicsItem *> selected = this->selectedItems();
+        if (selected.size() == 1)
         {
+            auto item = selected.first();
             this->removeItem(item);
             delete item;
         }
@@ -135,6 +139,21 @@ namespace discnet::sim::ui
 
     void SimulatorScene::onMenuProperiesPressed()
     {
-
+        QList<QGraphicsItem *> selected = this->selectedItems();
+        if (selected.size() == 1)
+        {
+            auto item = selected.first();
+            
+            auto node = dynamic_cast<NodeItem*>(item);
+            if (node)
+            {
+                node->showProperties();
+            }
+            auto router = dynamic_cast<RouterItem*>(item);
+            if (router)
+            {
+                // todo: add router properties menu
+            }
+        }
     }
 } // !namespace discnet::sim::ui

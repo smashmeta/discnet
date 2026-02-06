@@ -17,7 +17,7 @@ namespace discnet::sim::logic
     {
     public:
         network_switch(switch_identifier id)
-            : m_id(id), m_subnet_ip(std::format("192.200.{}", s_ip_segement++)), m_next_valid_ip(1)
+            : m_id(id), m_subnet_ip(std::format("192.200.{}", s_ip_segement++)), m_next_valid_ip(2)
         {
             // nothing for now
         }

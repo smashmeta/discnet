@@ -3,7 +3,7 @@
 
 namespace discnet::sim::ui
 {
-NodeDialog::NodeDialog(uint16_t node_id, QWidget *parent)
+NodeDialog::NodeDialog(const uint16_t node_id, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::NodeDialog)
     , m_node_id(node_id)

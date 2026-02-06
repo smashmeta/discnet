@@ -8,6 +8,8 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <discnet/network/network_handler.hpp>
 #include <discnet/route_manager.hpp>
+#include <spdlog/sinks/null_sink.h>
+
 
 namespace discnet::test
 {
@@ -37,9 +39,6 @@ namespace discnet::test
         {
             return std::make_shared<udp_client_mock>(info, callback_func);
         }
-        
-    private:
-        discnet::application::shared_loggers m_loggers;
     };
 } // ! namespace discnet::test
 
@@ -51,6 +50,14 @@ public:
     void SetUp() override
     {
         // setting up data
+        m_configuration.m_node_id = 1;
+        m_configuration.m_log_instance_id = "test";
+        m_configuration.m_multicast_address = boost::asio::ip::make_address_v4("239.200.200.1");
+        m_configuration.m_multicast_port = 1010;
+
+        auto null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
+        auto logger = std::make_shared<spdlog::logger>(m_configuration.m_log_instance_id, null_sink);
+
         m_adapter_1.m_index = 1;
         m_adapter_1.m_enabled = true;
         m_adapter_1.m_guid = boost::uuids::to_string(boost::uuids::random_generator()());
@@ -77,11 +84,10 @@ public:
         EXPECT_CALL(*fetcher.get(), get_adapters())
             .WillRepeatedly(testing::Return(adapters));
 
-        m_loggers = std::make_shared<discnet::application::loggers_t>();
         m_configuration = discnet::application::configuration_t{.m_node_id = 1, .m_multicast_address = boost::asio::ip::make_address_v4("234.5.6.7"), .m_multicast_port = 1337 };
-        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_loggers, fetcher);
-        m_network_handler = std::make_shared<discnet::network::network_handler>(m_loggers, m_adapter_manager, m_configuration, std::make_shared<discnet::test::client_creator_mock>());
-        m_route_manager = std::make_shared<discnet::route_manager>(m_loggers, m_adapter_manager, m_network_handler);
+        m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_configuration, fetcher);
+        m_network_handler = std::make_shared<discnet::network::network_handler>(m_configuration, m_adapter_manager, std::make_shared<discnet::test::client_creator_mock>());
+        m_route_manager = std::make_shared<discnet::route_manager>(m_configuration, m_adapter_manager, m_network_handler);
 
         m_adapter_manager->update();
     }
@@ -103,7 +109,6 @@ protected:
     discnet::adapter_t m_adapter_2;
     discnet::adapter_t m_adapter_3;
 
-    discnet::application::shared_loggers m_loggers;
     discnet::application::configuration_t m_configuration;
     discnet::shared_adapter_manager m_adapter_manager;
     discnet::network::shared_network_handler m_network_handler;

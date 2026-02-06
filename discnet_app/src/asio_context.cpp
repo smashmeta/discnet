@@ -10,8 +10,8 @@
 
 namespace discnet::main
 {
-    asio_context_t::asio_context_t(const discnet::application::shared_loggers& loggers)
-        : m_loggers(loggers)
+    asio_context_t::asio_context_t(const discnet::application::configuration_t& configuration)
+        : m_configuration(configuration), m_logger(spdlog::get(configuration.m_log_instance_id))
     {
         // whatlog::logger log("asio_context::ctor");
 
@@ -24,16 +24,17 @@ namespace discnet::main
         
         for (size_t i = 0; i < worker_threads_count; ++i)
         {
-            m_loggers->m_logger->info("spawning asio worker thread - named: {}.", thread_names[i]);
-            m_thread_group.push_back(std::jthread(std::bind(&work_handler, m_loggers, thread_names[i], m_io_context)));
+            m_logger->info("spawning asio worker thread - named: {}.", thread_names[i]);
+            m_thread_group.push_back(std::jthread(std::bind(&work_handler, m_configuration, thread_names[i], m_io_context)));
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
-    void asio_context_t::work_handler(discnet::application::shared_loggers loggers, const std::string& thread_name, discnet::shared_io_context io_context)
+    void asio_context_t::work_handler(const discnet::application::configuration_t& configuration, const std::string& thread_name, discnet::shared_io_context io_context)
     {
-        loggers->m_logger->info("starting thread {}.", thread_name);
+        auto logger = spdlog::get(configuration.m_log_instance_id);
+        logger->info("starting thread {}.", thread_name);
 
         for (;;)
         {
@@ -44,11 +45,11 @@ namespace discnet::main
             }
             catch (std::exception& ex)
             {
-                loggers->m_logger->warn("worker thread encountered an error. exception: {}.", std::string(ex.what()));
+                logger->warn("worker thread encountered an error. exception: {}.", std::string(ex.what()));
             }
             catch (...)
             {
-                loggers->m_logger->warn("worker thread encountered an unknown exception.");
+                logger->warn("worker thread encountered an unknown exception.");
             }
         }
     }

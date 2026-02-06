@@ -42,13 +42,6 @@ namespace options
     }
 } // !namespace options
 
-static int instance_id = 0;
-loggers_t::loggers_t()
-    : m_logger(std::make_shared<spdlog::logger>(std::format("console_{}", instance_id++)))
-{
-    // nothing for now
-}
-
 expected_configuration_t get_configuration(int arguments_count, const char** arguments_vector)
 {
     namespace bpo = boost::program_options;

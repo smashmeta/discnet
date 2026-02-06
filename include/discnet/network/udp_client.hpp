@@ -47,7 +47,7 @@ namespace discnet::network
     class udp_client : public iudp_client, public std::enable_shared_from_this<udp_client>
     {
     public:
-        [[nodiscard]] static DISCNET_EXPORT shared_udp_client create(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, udp_info_t info, const data_received_func& callback_func);
+        [[nodiscard]] static DISCNET_EXPORT shared_udp_client create(const discnet::application::configuration_t& configuration, discnet::shared_io_context io_context, udp_info_t info, const data_received_func& callback_func);
 
         DISCNET_EXPORT bool open() override;
         DISCNET_EXPORT bool write(const discnet::network::buffer_t& buffer) override;
@@ -59,12 +59,13 @@ namespace discnet::network
         void handle_read(const boost::system::error_code& error, size_t bytes_received);
 
     protected:
-        udp_client(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, udp_info_t info, const data_received_func& callback_func);
+        udp_client(const discnet::application::configuration_t& configuration, discnet::shared_io_context io_context, udp_info_t info, const data_received_func& callback_func);
 
     private:
         bool internal_open();
 
-        discnet::application::shared_loggers m_loggers;
+        discnet::application::configuration_t m_configuration;
+        discnet::shared_logger m_logger;
         discnet::shared_io_context m_context;
         discnet::shared_udp_socket m_socket;
         std::vector<discnet::byte_t> m_rcv_buffer;

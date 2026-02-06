@@ -15,11 +15,12 @@ namespace discnet::main
 {
     struct asio_context_t
     {
-        asio_context_t(const discnet::application::shared_loggers& loggers);
+        asio_context_t(const discnet::application::configuration_t& configuration);
 
-        static void work_handler(discnet::application::shared_loggers loggers, const std::string& thread_name, discnet::shared_io_context io_context);
+        static void work_handler(const discnet::application::configuration_t& configuration, const std::string& thread_name, discnet::shared_io_context io_context);
         
-        discnet::application::shared_loggers m_loggers;
+        discnet::application::configuration_t m_configuration;
+        discnet::shared_logger m_logger;
         std::shared_ptr<boost::asio::io_context> m_io_context;
         std::shared_ptr<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> m_worker;
         std::vector<std::jthread> m_thread_group;

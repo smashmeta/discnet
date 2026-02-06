@@ -26,7 +26,7 @@ namespace discnet
         boost::signals2::signal<void(const route_t& route)> e_new_route;
         boost::signals2::signal<void(const route_t& curr, bool prev)> e_online_state_changed;
 
-        DISCNET_EXPORT route_manager(const discnet::application::shared_loggers& loggers, shared_adapter_manager adapter_manager, network::shared_network_handler network_handler);
+        DISCNET_EXPORT route_manager(const discnet::application::configuration_t& configuration, shared_adapter_manager adapter_manager, network::shared_network_handler network_handler);
 
         DISCNET_EXPORT void update(const time_point_t& current_time);
         DISCNET_EXPORT bool process_discovery_message(const discovery_message_t& route, const network_info_t& adapter_info);
@@ -37,7 +37,8 @@ namespace discnet
     private:
         bool process_route(const adapter_t& adapter, const discnet::time_point_t& network_info, const route_identifier_t& identifier, const jumps_t& jumps);
 
-        discnet::application::shared_loggers m_loggers;
+        discnet::application::configuration_t m_configuration;
+        discnet::shared_logger m_logger;
         shared_adapter_manager m_adapter_manager;
         network::shared_network_handler m_network_handler;
         adapter_routes_map_t m_adapter_routes;

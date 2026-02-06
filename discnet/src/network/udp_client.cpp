@@ -14,14 +14,15 @@ namespace discnet::network
         // nothing for now
     }
 
-    shared_udp_client udp_client::create(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, udp_info_t info, const data_received_func& callback_func) 
+    shared_udp_client udp_client::create(const discnet::application::configuration_t& configuration, discnet::shared_io_context io_context, udp_info_t info, const data_received_func& callback_func) 
     {
-        return std::shared_ptr<udp_client>(new udp_client(loggers, io_context, info, callback_func));
+        return std::shared_ptr<udp_client>(new udp_client(configuration, io_context, info, callback_func));
     }
 
-    udp_client::udp_client(const discnet::application::shared_loggers& loggers, discnet::shared_io_context io_context, udp_info_t info, const data_received_func& callback_func)
+    udp_client::udp_client(const discnet::application::configuration_t& configuration, discnet::shared_io_context io_context, udp_info_t info, const data_received_func& callback_func)
         :   iudp_client(info, callback_func),
-            m_loggers(loggers),
+            m_configuration(configuration),
+            m_logger(spdlog::get(configuration.m_log_instance_id)),
             m_context(io_context), 
             m_socket(new discnet::socket_t{*io_context.get()}),
             m_rcv_buffer(12560, '\0')
@@ -52,7 +53,7 @@ namespace discnet::network
         using udp_t = boost::asio::ip::udp;
         namespace multicast = boost::asio::ip::multicast;
 
-        m_loggers->m_logger->info("setting up udp socket - addr: {}, port: {}, multicast: {}.", 
+        m_logger->info("setting up udp socket - addr: {}, port: {}, multicast: {}.", 
            m_info.m_adapter.to_string(),
            m_info.m_port,
            m_info.m_multicast.to_string());
@@ -62,7 +63,7 @@ namespace discnet::network
         m_socket->open(boost::asio::ip::udp::v4(), error);
         if (error)
         {
-            m_loggers->m_logger->warn("failed to open ipv4 socket.");
+            m_logger->warn("failed to open ipv4 socket.");
             return false;
         }
 
@@ -76,7 +77,7 @@ namespace discnet::network
         m_socket->bind(udp_t::endpoint(m_info.m_adapter, m_info.m_port), error);
         if (error)
         {
-            m_loggers->m_logger->warn("failed to bind socket to adapter {}. Error: {}.", m_info.m_adapter.to_string(), error.message());
+            m_logger->warn("failed to bind socket to adapter {}. Error: {}.", m_info.m_adapter.to_string(), error.message());
             return false;
         }
 
@@ -84,7 +85,7 @@ namespace discnet::network
         m_socket->bind(udp_t::endpoint(udp_t::v4(), m_info.m_port), error);
         if (error)
         {
-            m_loggers->m_logger->warn("failed to set bind socket to ip-v4. Error: {}.", error.message());
+            m_logger->warn("failed to set bind socket to ip-v4. Error: {}.", error.message());
             return false;
         }
 
@@ -123,7 +124,7 @@ namespace discnet::network
         int rc = setsockopt(m_socket->native_handle(), SOL_SOCKET, SO_BINDTODEVICE, interface_name.c_str(), interface_name.size());
         if (rc < 0) 
         {
-            m_loggers->m_logger->warn("failed to set bind socket to native device interface {}. ErrorCode: {}.", interface_name, rc);
+            m_logger->warn("failed to set bind socket to native device interface {}. ErrorCode: {}.", interface_name, rc);
             return false;
         }
 #endif
@@ -131,21 +132,21 @@ namespace discnet::network
         m_socket->set_option(multicast::join_group(m_info.m_multicast, m_info.m_adapter));
         if (error)
         {
-            m_loggers->m_logger->warn("failed to set join multicast group ({}:{}). Error: {}.", m_info.m_multicast.to_string(), m_info.m_port, error.message());
+            m_logger->warn("failed to set join multicast group ({}:{}). Error: {}.", m_info.m_multicast.to_string(), m_info.m_port, error.message());
             return false;
         }
 
         m_socket->set_option(multicast::outbound_interface(m_info.m_adapter), error);
         if (error)
         {
-            m_loggers->m_logger->warn("failed to set socket option (outbound_interface: {}). Error: {}.", m_info.m_adapter.to_string(), error.message());
+            m_logger->warn("failed to set socket option (outbound_interface: {}). Error: {}.", m_info.m_adapter.to_string(), error.message());
             return false;
         }
 
         m_socket->set_option(multicast::enable_loopback(false), error);
         if (error)
         {
-            m_loggers->m_logger->warn("failed to set socket option (enable_loopback: false). Error: {}.", error.message());
+            m_logger->warn("failed to set socket option (enable_loopback: false). Error: {}.", error.message());
             return false;
         }
 
@@ -196,12 +197,12 @@ namespace discnet::network
         {
             if (error == boost::asio::error::connection_aborted)
             {
-                m_loggers->m_logger->info("closing multicast connection on adapter {}.", m_info.m_adapter.to_string());
+                m_logger->info("closing multicast connection on adapter {}.", m_info.m_adapter.to_string());
                 close();
             }
             else
             {
-                m_loggers->m_logger->warn("error reading data. id: {}, message: {}.", error.value(), error.message());
+                m_logger->warn("error reading data. id: {}, message: {}.", error.value(), error.message());
             }
             
             return;
