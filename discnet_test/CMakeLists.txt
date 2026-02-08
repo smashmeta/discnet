@@ -2,7 +2,7 @@
 # adding thirdparty dependencies
 find_package(Boost REQUIRED COMPONENTS program_options log)
 find_package(GTest CONFIG REQUIRED)
-find_package(spdlog REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 # enabling and adding google tests
@@ -25,13 +25,15 @@ add_executable(discnet_test
 
 # adding thirdparty library dependencies
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    target_link_libraries(discnet_test PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
+    target_link_libraries(discnet_test PUBLIC wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
 endif()
 target_link_libraries(discnet_test PUBLIC OpenSSL::Crypto)
-target_link_libraries(discnet_test PRIVATE Boost::log)
-target_link_libraries(discnet_test PRIVATE GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
-target_link_libraries(discnet_test PRIVATE discnet::discnet_lib)
-target_link_libraries(discnet_test PRIVATE spdlog::spdlog_header_only)
+target_link_libraries(discnet_test PUBLIC Boost::log)
+target_link_libraries(discnet_test PUBLIC GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main)
+target_link_libraries(discnet_test PUBLIC discnet::discnet_lib)
+target_link_libraries(discnet_test PRIVATE spdlog::spdlog)
+
+add_compile_definitions(SPDLOG_COMPILED_LIB)
 
 # copying test resource files
 configure_file(

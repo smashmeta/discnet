@@ -28,9 +28,9 @@ else()
 	add_compile_options(-Wall -pedantic)
 endif()
 
-set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+add_compile_definitions(SPDLOG_SHARED_LIB)
 
-add_compile_definitions(SPDLOG_USE_STD_FORMAT)
+set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 set(discnet_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
 

@@ -6,7 +6,7 @@ project(${PROJECT_NAME} VERSION ${DISCNET_VERSION} LANGUAGES CXX)
 # adding thirdparty dependencies
 find_package(Boost REQUIRED COMPONENTS program_options log log_setup)
 find_package(GTest CONFIG REQUIRED)
-find_package(spdlog REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 # setting up source files and header files groups
@@ -25,11 +25,11 @@ add_executable(discnet_app
 
 # adding thirdparty library dependencies
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    target_link_libraries(discnet_app PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
+    target_link_libraries(discnet_app PUBLIC wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
 endif()
 target_link_libraries(discnet_app PUBLIC OpenSSL::Crypto)
 target_link_libraries(discnet_app PUBLIC Boost::log Boost::log_setup Boost::program_options)
-target_link_libraries(discnet_app PRIVATE discnet::discnet_lib)
-target_link_libraries(discnet_app PRIVATE spdlog::spdlog_header_only)
+target_link_libraries(discnet_app PUBLIC discnet::discnet_lib)
+target_link_libraries(discnet_app PRIVATE spdlog::spdlog)
 
 copy_runtime_dependencies(discnet_app)

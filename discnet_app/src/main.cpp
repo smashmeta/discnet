@@ -56,7 +56,7 @@ void program_yeild(std::shared_ptr<spdlog::logger>& logger, const discnet::time_
     else
     {
         // yield process to not eat too much system time
-        logger->info("program execution time {} exceedes maximum frame time {}.", duration, milliseconds_per_frame);
+        logger->info("program execution time {} exceedes maximum frame time {}.", duration.count(), milliseconds_per_frame.count());
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 }

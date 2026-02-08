@@ -52,11 +52,12 @@ public:
         // setting up data
         m_configuration.m_node_id = 1;
         m_configuration.m_log_instance_id = "test";
-        m_configuration.m_multicast_address = boost::asio::ip::make_address_v4("239.200.200.1");
-        m_configuration.m_multicast_port = 1010;
+        m_configuration.m_multicast_address = boost::asio::ip::make_address_v4("234.5.6.7");
+        m_configuration.m_multicast_port = 1337;
 
-        auto null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
-        auto logger = std::make_shared<spdlog::logger>(m_configuration.m_log_instance_id, null_sink);
+        m_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
+        m_logger = std::make_shared<spdlog::logger>(m_configuration.m_log_instance_id, m_sink);
+        spdlog::register_logger(m_logger);
 
         m_adapter_1.m_index = 1;
         m_adapter_1.m_enabled = true;
@@ -84,7 +85,6 @@ public:
         EXPECT_CALL(*fetcher.get(), get_adapters())
             .WillRepeatedly(testing::Return(adapters));
 
-        m_configuration = discnet::application::configuration_t{.m_node_id = 1, .m_multicast_address = boost::asio::ip::make_address_v4("234.5.6.7"), .m_multicast_port = 1337 };
         m_adapter_manager = std::make_shared<discnet::adapter_manager>(m_configuration, fetcher);
         m_network_handler = std::make_shared<discnet::network::network_handler>(m_configuration, m_adapter_manager, std::make_shared<discnet::test::client_creator_mock>());
         m_route_manager = std::make_shared<discnet::route_manager>(m_configuration, m_adapter_manager, m_network_handler);
@@ -97,6 +97,7 @@ public:
         m_adapter_manager.reset();
         m_route_manager.reset();
         m_network_handler.reset();
+        spdlog::drop_all();
     }
 
 protected:
@@ -113,6 +114,8 @@ protected:
     discnet::shared_adapter_manager m_adapter_manager;
     discnet::network::shared_network_handler m_network_handler;
     discnet::shared_route_manager m_route_manager;
+    std::shared_ptr<spdlog::sinks::null_sink_mt> m_sink;
+    discnet::shared_logger m_logger;
 };
 
 TEST_F(route_manager_fixture, process_single_discovery_message)
@@ -149,7 +152,7 @@ TEST_F(route_manager_fixture, process_single_discovery_message)
     EXPECT_EQ(routes[1].m_identifier.m_adapter, network_info.m_adapter);
     EXPECT_EQ(routes[1].m_identifier.m_reporter, network_info.m_sender);
     EXPECT_EQ(routes[1].m_status.m_online, true);
-    ASSERT_EQ(routes[1].m_status.m_jumps.size(), 1);
+    ASSERT_EQ(routes[1].m_status.m_jumps.size(), 2);
     ASSERT_THAT(routes[1].m_status.m_jumps, ::testing::ElementsAre(256, 256));
 }
 

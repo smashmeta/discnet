@@ -2,7 +2,7 @@
 # adding thirdparty dependencies
 find_package(Boost REQUIRED COMPONENTS program_options log log_setup)
 find_package(OpenSSL REQUIRED)
-find_package(spdlog REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
 add_compile_definitions(DISCNET_DLL)
 
@@ -53,6 +53,7 @@ add_library(discnet SHARED
     ${HEADERS_NETWORK_GRP}
     ${HEADERS_NETWORK_MESSAGES_GRP}
 )
+
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 add_library(discnet SHARED
 	${SOURCE_DEFAULT_GRP}
@@ -78,11 +79,13 @@ target_include_directories(discnet PUBLIC
 
 # adding thirdparty library dependencies
 target_link_libraries(discnet PUBLIC OpenSSL::Crypto)
-target_link_libraries(discnet PRIVATE spdlog::spdlog_header_only)
+target_link_libraries(discnet PRIVATE spdlog::spdlog)
 target_link_libraries(discnet PUBLIC Boost::log Boost::log_setup Boost::program_options)
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_link_libraries(discnet PUBLIC bcrypt)
-    target_link_libraries(discnet PRIVATE IPHLPAPI wbemuuid)
+    target_link_libraries(discnet PUBLIC IPHLPAPI wbemuuid)
 endif()
+
+add_compile_definitions(SPDLOG_COMPILED_LIB)
 
 copy_runtime_dependencies(discnet)

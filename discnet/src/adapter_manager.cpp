@@ -126,7 +126,7 @@ namespace discnet
     } // ! anonymous namespace
 
     adapter_manager::adapter_manager(const discnet::application::configuration_t& configuration, std::shared_ptr<adapter_fetcher> fetcher)
-        : m_configuration(configuration), m_logger(spdlog::get(configuration.m_log_instance_id)), m_fetcher(fetcher) 
+        : m_configuration(configuration), m_fetcher(fetcher), m_logger(spdlog::get(configuration.m_log_instance_id))
     {
         // nothing for now
     }

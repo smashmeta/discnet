@@ -11,7 +11,7 @@ set(CMAKE_AUTORCC ON)
 # adding thirdparty dependencies
 find_package(Boost REQUIRED COMPONENTS program_options log log_setup)
 find_package(GTest CONFIG REQUIRED)
-find_package(spdlog REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(OpenSSL REQUIRED)
 
@@ -54,12 +54,12 @@ target_include_directories(discnet_sim PRIVATE src)
 
 # adding thirdparty library dependencies
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    target_link_libraries(discnet_sim PRIVATE wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
+    target_link_libraries(discnet_sim PUBLIC wsock32 ws2_32 IPHLPAPI wbemuuid bcrypt)
 endif()
 target_link_libraries(discnet_sim PUBLIC OpenSSL::Crypto)
 target_link_libraries(discnet_sim PUBLIC Boost::log Boost::log_setup Boost::program_options)
-target_link_libraries(discnet_sim PRIVATE discnet::discnet_lib)
-target_link_libraries(discnet_sim PRIVATE spdlog::spdlog_header_only)
-target_link_libraries(discnet_sim PRIVATE Qt5::Core Qt5::Gui Qt5::Widgets)
+target_link_libraries(discnet_sim PUBLIC discnet::discnet_lib)
+target_link_libraries(discnet_sim PRIVATE spdlog::spdlog)
+target_link_libraries(discnet_sim PUBLIC Qt5::Core Qt5::Gui Qt5::Widgets)
 
 copy_runtime_dependencies(discnet_sim)
