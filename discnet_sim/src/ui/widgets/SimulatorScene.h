@@ -11,6 +11,7 @@
 #include <QGraphicsScene>
 #include "ui/widgets/RouterItem.h"
 #include "ui/widgets/NodeItem.h"
+#include "ui/widgets/AdapterItem.h"
 #include "simulator/simulator.h"
 
 

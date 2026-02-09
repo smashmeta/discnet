@@ -13,15 +13,7 @@
 namespace discnet::sim::ui
 {
     class SimulatorScene;
-
-    class AdapterItem : public QGraphicsPixmapItem
-    {
-    public:
-        AdapterItem(const QPixmap& pixmap, QGraphicsItem *parent = nullptr);
-        ~AdapterItem();
-
-        void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
-    };
+    class AdapterItem;
 
     class NodeItem : public QGraphicsPixmapItem 
     {
@@ -32,15 +24,14 @@ namespace discnet::sim::ui
         void showProperties();
         void addAdapter();
         uint16_t node_id() const;
+        void add_adapter_item(AdapterItem* adapter);
 
-        void adapter_accepted(const adapter_t adapter);
-        
         void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
     private:
         uint16_t m_node_id;
         SimulatorScene* m_scene;
         NodeDialog* m_dialog;
         AdapterDialog* m_adapterDialog;
-        std::vector<discnet::adapter_t> m_adapters;
+        std::vector<AdapterItem*> m_adapters;
     };
 } // !namespace discnet::sim::ui

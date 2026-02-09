@@ -6,27 +6,12 @@
 #include <random>
 #include <discnet/typedefs.hpp>
 #include "ui/widgets/NodeItem.h"
+#include "ui/widgets/AdapterItem.h"
 #include "ui/widgets/SimulatorScene.h"
 
 
 namespace discnet::sim::ui
 {
-    AdapterItem::AdapterItem(const QPixmap& pixmap, QGraphicsItem* parent)
-        : QGraphicsPixmapItem(pixmap, parent)
-    {
-        // nothing 
-    }
-
-    AdapterItem::~AdapterItem()
-    {
-        // nothing for now
-    }
-
-    void AdapterItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) 
-    {
-        QGraphicsPixmapItem::mouseMoveEvent(event); // Call base class if needed
-    }
-
     NodeItem::NodeItem(const uint16_t node_id, SimulatorScene* scene, QGraphicsItem *parent)
         : QGraphicsPixmapItem(parent), m_node_id(node_id), m_scene(scene)
     {
@@ -85,56 +70,20 @@ namespace discnet::sim::ui
         return m_node_id;
     }
 
-    void NodeItem::adapter_accepted(const adapter_t adapter)
+    void NodeItem::add_adapter_item(AdapterItem* adapter)
     {
-        auto existing = std::find_if(m_adapters.begin(), m_adapters.end(), [&](const auto val){ return val.m_guid == adapter.m_guid; });
-        if (existing == m_adapters.end())
-        {
-            m_adapters.push_back(adapter);
-            auto adapterItem = new AdapterItem(QPixmap(":/images/adapter.png"), this);
-            adapterItem->setPos(10, 10);
-            m_scene->addItem(adapterItem);
-        }
+        m_adapters.push_back(adapter);
     }
 
     void NodeItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) 
     {
-        if (flags() & QGraphicsItem::ItemIsMovable) 
+        QPointF delta = event->scenePos() - event->lastScenePos();
+        this->moveBy(delta.x(), delta.y());
+        for (QGraphicsItem* adapter : m_adapters) 
         {
-            bool processed = false;
-            auto test = event->pos();
-            QPointF scenePos = mapToScene(event->scenePos()); // From View
-            QPointF localPos = mapFromScene(scenePos);
-            for (auto child : this->childItems())
-            {
-                auto bounding_box = child->boundingRect();
-                if (bounding_box.contains(test))
-                {
-                    auto adapter = dynamic_cast<AdapterItem*>(child);
-                    if (adapter)
-                    {
-                        adapter->mouseMoveEvent(event);
-                        processed = true;
-                    }
-                }
-            }
-
-            if (!processed)
-            {
-                QGraphicsItem::mouseMoveEvent(event);
-            }
-
-            // QPointF scenePos = mapToScene(event->scenePos()); // From View
-            // QGraphicsItem* item = m_scene->itemAt(scenePos, QTransform());
-            // auto adapter = dynamic_cast<AdapterItem*>(item);
-            // if (adapter)
-            // {
-            //     adapter->mouseMoveEvent(event);
-            // }
-            // else
-            // {
-            //     QGraphicsItem::mouseMoveEvent(event);
-            // }
+            adapter->moveBy(delta.x(), delta.y());
         }
+
+        QGraphicsPixmapItem::mouseMoveEvent(event);
     }
 } // !namespace discnet::sim::ui

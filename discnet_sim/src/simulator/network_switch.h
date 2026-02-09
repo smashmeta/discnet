@@ -16,21 +16,10 @@ namespace discnet::sim::logic
     class network_switch
     {
     public:
-        network_switch(switch_identifier id)
-            : m_id(id), m_subnet_ip(std::format("192.200.{}", s_ip_segement++)), m_next_valid_ip(2)
-        {
-            // nothing for now
-        }
+        network_switch(switch_identifier id);
 
-        std::string get_subnet() const
-        {
-            return m_subnet_ip;
-        }
-
-        discnet::address_t create_ip() 
-        {
-            return boost::asio::ip::make_address_v4(std::format("{}.{}", m_subnet_ip, m_next_valid_ip++));
-        }
+        std::string get_subnet() const;
+        discnet::address_t create_ip();
     private:
         switch_identifier m_id;
         std::string m_subnet_ip;

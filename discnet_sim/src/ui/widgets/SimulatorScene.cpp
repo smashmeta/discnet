@@ -177,7 +177,7 @@ namespace discnet::sim::ui
         }
     }
 
-    void SimulatorScene::adapterEvent([[maybe_unused]] const uint16_t node_id, [[maybe_unused]] const adapter_t adapter)
+    void SimulatorScene::adapterEvent(const uint16_t node_id, const adapter_t adapter)
     {
         for (auto& item : this->items())
         {
@@ -186,7 +186,15 @@ namespace discnet::sim::ui
             {
                 if (node->node_id() == node_id)
                 {
-                    node->adapter_accepted(adapter);
+                    std::lock_guard<std::mutex> lock {m_mutex};
+                    auto adapter_item = new AdapterItem(adapter);
+                    auto position = node->pos() + QPointF(10.0f, 10.0f);
+                    adapter_item->setPos(position);
+
+                    m_items.push_back({++s_item_index, adapter_item});
+                    addItem(adapter_item);
+                    
+                    node->add_adapter_item(adapter_item);
                 }
             }
         }
