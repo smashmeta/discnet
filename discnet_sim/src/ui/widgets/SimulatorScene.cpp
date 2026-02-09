@@ -62,7 +62,7 @@ namespace discnet::sim::ui
                 case ToolBoxItemType::Node:
                 {
                     std::lock_guard<std::mutex> lock {m_mutex};
-                    auto node = new NodeItem(node_id_sequence_number++);
+                    auto node = new NodeItem(node_id_sequence_number++, this);
                     m_items.push_back({++s_item_index, node});
                     addItem(node);
                     node->setPos(event->scenePos() - QPointF(64, 64));
@@ -98,6 +98,12 @@ namespace discnet::sim::ui
             {
                 auto action = menu->addAction("NODE");
                 action->setEnabled(false);
+
+                auto addAdapterAction = new QAction(QIcon(":/images/adapter.png"), QString("&Add Adapter"));
+                addAdapterAction->setShortcut(QString("Add Adapter"));
+                addAdapterAction->setStatusTip(QString("Add Adapter"));
+                connect(addAdapterAction, &QAction::triggered, this, &SimulatorScene::onAddAdapterPressed);
+                menu->addAction(addAdapterAction);
             }
             auto router = dynamic_cast<RouterItem*>(item);
             if (router)
@@ -153,6 +159,35 @@ namespace discnet::sim::ui
             if (router)
             {
                 // todo: add router properties menu
+            }
+        }
+    }
+
+    void SimulatorScene::onAddAdapterPressed()
+    {
+        QList<QGraphicsItem *> selected = this->selectedItems();
+        if (selected.size() == 1)
+        {
+            auto item = selected.first();
+            auto node = dynamic_cast<NodeItem*>(item);
+            if (node)
+            {
+                node->addAdapter();
+            }
+        }
+    }
+
+    void SimulatorScene::adapterEvent([[maybe_unused]] const uint16_t node_id, [[maybe_unused]] const adapter_t adapter)
+    {
+        for (auto& item : this->items())
+        {
+            auto node = dynamic_cast<NodeItem*>(item);
+            if (node)
+            {
+                if (node->node_id() == node_id)
+                {
+                    node->adapter_accepted(adapter);
+                }
             }
         }
     }

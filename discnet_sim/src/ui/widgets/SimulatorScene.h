@@ -34,10 +34,15 @@ namespace discnet::sim::ui
 
         void contextMenuEvent(QGraphicsSceneContextMenuEvent *event) override;
 
+
+public slots:
+        void adapterEvent(const uint16_t node_id, const adapter_t adapter);
+
 private slots:
         void onMenuDeletePressed();
         void onMenuProperiesPressed();
-        
+        void onAddAdapterPressed();
+
 private:
         std::mutex m_mutex;
         static uint32_t s_item_index;
