@@ -2,6 +2,7 @@
  *
  */
 
+#include "ui/widgets/ConnectionItem.h"
 #include "ui/widgets/RouterItem.h"
 #include <QFont>
 
@@ -13,12 +14,28 @@ namespace discnet::sim::ui
         setPixmap(QPixmap(":/images/router.png"));
         setFlag(QGraphicsItem::ItemIsMovable, true);
         setFlag(QGraphicsItem::ItemIsSelectable, true);
+    }
 
-        auto* name_label = new QGraphicsTextItem(name.c_str(), this);
-        name_label->setPos(10, 0);
-        name_label->setDefaultTextColor(Qt::blue);
-        QFont font = name_label->font();
-        font.setPointSize(20);
-        name_label->setFont(font);
+    void RouterItem::add(ConnectionItem* connection)
+    {
+        m_connections.push_back(connection);
+    }
+
+    QPointF RouterItem::center() const
+    {
+        return scenePos() + boundingRect().center();
+    }
+
+    QVariant RouterItem::itemChange(GraphicsItemChange change, const QVariant &value) 
+    {
+        if (change == ItemPositionHasChanged && scene()) 
+        {
+            for (ConnectionItem* connection : m_connections) 
+            {
+                connection->update_router(this);
+            }
+        }
+
+        return QGraphicsItem::itemChange(change, value);
     }
 } // !namespace discnet::sim::ui

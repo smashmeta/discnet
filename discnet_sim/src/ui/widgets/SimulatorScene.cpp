@@ -16,7 +16,7 @@ namespace discnet::sim::ui
     uint32_t SimulatorScene::s_item_index = 0;
 
     SimulatorScene::SimulatorScene(QObject *parent)
-        : QGraphicsScene(parent)
+        : QGraphicsScene(parent), m_connector(nullptr)
     {
         // nothing for now
     }
@@ -83,6 +83,29 @@ namespace discnet::sim::ui
         }
     }
 
+    void SimulatorScene::keyPressEvent(QKeyEvent *event)
+    {
+        if (event->key() == Qt::Key_Control) 
+        {
+        }
+        QGraphicsScene::keyPressEvent(event);
+    }
+
+    void SimulatorScene::keyReleaseEvent(QKeyEvent *event) 
+    {
+        if (event->key() == Qt::Key_Control) 
+        {
+            std::lock_guard lock{m_connector_mutex};
+            if (m_connector != nullptr)
+            {
+                removeItem(m_connector);
+                delete m_connector;
+                m_connector = nullptr;
+            }
+        }
+        QGraphicsScene::keyReleaseEvent(event);
+    }
+
     void SimulatorScene::contextMenuEvent(QGraphicsSceneContextMenuEvent* event)
     {
         auto cursor_position = event->scenePos();
@@ -130,6 +153,114 @@ namespace discnet::sim::ui
         {
             QGraphicsScene::contextMenuEvent(event);
         }
+    }
+
+    void SimulatorScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
+    {
+        if (event->modifiers() == Qt::KeyboardModifier::ControlModifier) 
+        {
+            QGraphicsItem* item = itemAt(event->scenePos(), QTransform());
+            if (item)
+            {
+                auto adapter = dynamic_cast<AdapterItem*>(item);
+                if (adapter)
+                {
+                    std::lock_guard connector_lock{m_connector_mutex};
+                    if (m_connector == nullptr)
+                    {
+                        
+                        QPointF start = adapter->center();
+                        QPointF end = event->scenePos();
+
+                        auto brush = QBrush(Qt::GlobalColor::blue, Qt::BrushStyle::SolidPattern);
+                        m_connector = addLine(start.x(), start.y(), end.x(), end.y(), QPen(brush, 4.0f));
+                        addItem(m_connector);
+                    }
+                    
+                }
+            }
+        }
+        else
+        {
+            QGraphicsScene::mousePressEvent(event);
+        }
+    }
+
+    void SimulatorScene::mouseMoveEvent([[maybe_unused]] QGraphicsSceneMouseEvent *event)
+    {
+        if (event->modifiers() == Qt::KeyboardModifier::ControlModifier) 
+        {
+            std::lock_guard connector_lock{m_connector_mutex};
+            if (m_connector != nullptr)
+            {
+                auto line = m_connector->line();
+                QGraphicsItem* item = itemAt(event->scenePos(), QTransform());
+                if (item)
+                {
+                    auto router = dynamic_cast<RouterItem*>(item);
+                    if (router)
+                    {
+                        QPointF router_position = router->center();
+                        m_connector->setLine(line.p1().x(), line.p1().y(), router_position.x(), router_position.y());
+                        auto brush = QBrush(Qt::GlobalColor::green, Qt::BrushStyle::SolidPattern);
+                        m_connector->setPen(QPen(brush, 6.0f));
+                    }
+                }
+                else
+                {
+                    auto brush = QBrush(Qt::GlobalColor::blue, Qt::BrushStyle::SolidPattern);
+                    m_connector->setPen(QPen(brush, 4.0f));
+                    m_connector->setLine(line.p1().x(), line.p1().y(), event->scenePos().x(), event->scenePos().y());
+                }
+            }
+        }
+
+        QGraphicsScene::mouseMoveEvent(event);
+    }
+
+    void SimulatorScene::mouseReleaseEvent([[maybe_unused]] QGraphicsSceneMouseEvent *event)
+    {
+        if (event->modifiers() == Qt::KeyboardModifier::ControlModifier) 
+        {
+            std::lock_guard connector_lock{m_connector_mutex};
+            if (m_connector != nullptr)
+            {
+                auto line = m_connector->line();
+                QGraphicsItem* item = itemAt(event->scenePos(), QTransform());
+                if (item)
+                {
+                    AdapterItem* adapter = nullptr;
+                    auto items_at_location = items(m_connector->line().p1());
+                    for (auto curr : items_at_location)
+                    {
+                        auto temp = dynamic_cast<AdapterItem*>(curr);
+                        if (temp)
+                        {
+                            adapter = temp;
+                            break;
+                        }
+                    }
+
+                    auto router = dynamic_cast<RouterItem*>(item);
+                    if (router && adapter)
+                    {
+                        std::lock_guard<std::mutex> item_lock{m_mutex};
+                        auto connection = new ConnectionItem(adapter, router);
+                        router->add(connection);
+                        adapter->add(connection);
+                        
+                        m_items.push_back({++s_item_index, connection});
+                        addItem(connection);
+                    }
+                }
+
+                removeItem(m_connector);
+                delete m_connector;
+                m_connector = nullptr;
+            }
+        }
+
+        QGraphicsScene::mouseReleaseEvent(event);
     }
 
     void SimulatorScene::onMenuDeletePressed()
