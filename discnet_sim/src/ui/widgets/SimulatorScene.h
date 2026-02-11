@@ -49,6 +49,11 @@ private slots:
         void onAddAdapterPressed();
 
 private:
+        void removeNode(NodeItem* node);
+        void removeAdapter(AdapterItem* adapter);
+        void removeRouter(RouterItem* router);
+
+private:
         std::mutex m_mutex;
         static uint32_t s_item_index;
         std::vector<ItemHandle> m_items;

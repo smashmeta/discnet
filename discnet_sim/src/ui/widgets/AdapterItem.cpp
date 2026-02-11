@@ -9,7 +9,7 @@
 namespace discnet::sim::ui
 {
     AdapterItem::AdapterItem(const adapter_t& adapter, QGraphicsItem* parent)
-        : QGraphicsPixmapItem(QPixmap(":/images/adapter.png"), parent), m_adapter(adapter)
+        : QGraphicsPixmapItem(QPixmap(":/images/adapter.png"), parent), m_adapter(adapter), m_connection(nullptr)
     {
         setFlag(QGraphicsItem::ItemIsMovable, true);
         setFlag(QGraphicsItem::ItemIsSelectable, true);
@@ -21,9 +21,14 @@ namespace discnet::sim::ui
         // nothing for now
     }
 
-    void AdapterItem::add(ConnectionItem* connection)
+    ConnectionItem* AdapterItem::connection()
     {
-        m_connections.push_back(connection);
+        return m_connection;
+    }
+
+    void AdapterItem::set_connection(ConnectionItem* connection)
+    {
+        m_connection = connection;
     }
 
     QPointF AdapterItem::center() const
@@ -35,9 +40,9 @@ namespace discnet::sim::ui
     {
         if (change == ItemPositionHasChanged && scene()) 
         {
-            for (ConnectionItem* connection : m_connections) 
+            if (m_connection) 
             {
-                connection->update_adapter(this);
+                m_connection->update_adapter(this);
             }
         }
 

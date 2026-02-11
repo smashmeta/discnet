@@ -18,12 +18,13 @@ namespace discnet::sim::ui
         AdapterItem(const adapter_t& adapter, QGraphicsItem *parent = nullptr);
         ~AdapterItem();
 
-        void add(ConnectionItem* connection);
+        void set_connection(ConnectionItem* connection);
+        ConnectionItem* connection();
         QPointF center() const;
         QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
 
     private:
         adapter_t m_adapter;
-        std::vector<ConnectionItem*> m_connections;
+        ConnectionItem* m_connection;
     };
 } // !namespace discnet::sim::ui

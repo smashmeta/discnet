@@ -16,6 +16,9 @@ namespace discnet::sim::ui
         RouterItem(const std::string& name, QGraphicsItem *parent = nullptr);
     
         void add(ConnectionItem* connection);
+        void remove(ConnectionItem* connection);
+        std::vector<ConnectionItem*> connections();
+
         QPointF center() const;
         QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
         

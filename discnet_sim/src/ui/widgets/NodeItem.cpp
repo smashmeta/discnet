@@ -75,6 +75,11 @@ namespace discnet::sim::ui
         m_adapters.push_back(adapter);
     }
 
+    std::vector<AdapterItem*> NodeItem::adapters()
+    {
+        return m_adapters;
+    }
+
     void NodeItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) 
     {
         QPointF delta = event->scenePos() - event->lastScenePos();

@@ -27,6 +27,16 @@ namespace discnet::sim::ui
         internal_update();
     }
 
+    AdapterItem* ConnectionItem::adapter()
+    {
+        return m_adapter;
+    }
+
+    RouterItem* ConnectionItem::router()
+    {
+        return m_router;
+    }
+
     void ConnectionItem::internal_update()
     {
         setLine(m_adapter->center().x(), m_adapter->center().y(), m_router->center().x(), m_router->center().y());

@@ -250,11 +250,18 @@ namespace discnet::sim::ui
                     auto router = dynamic_cast<RouterItem*>(item);
                     if (router && adapter)
                     {
+                        auto previous = adapter->connection();
+                        if (previous)
+                        {
+                            router->remove(previous);
+                            removeItem(previous);
+                        }
+
                         std::lock_guard<std::mutex> item_lock{m_mutex};
                         auto connection = new ConnectionItem(adapter, router);
                         connection->setZValue(-1000.0f);
+                        adapter->set_connection(connection);
                         router->add(connection);
-                        adapter->add(connection);
                         
                         m_items.push_back({++s_item_index, connection});
                         addItem(connection);
@@ -276,8 +283,24 @@ namespace discnet::sim::ui
         if (selected.size() == 1)
         {
             auto item = selected.first();
-            this->removeItem(item);
-            delete item;
+            
+            if (auto adapter = dynamic_cast<AdapterItem*>(item); adapter)
+            {
+                removeAdapter(adapter);
+                return;
+            }
+
+            if (auto router = dynamic_cast<RouterItem*>(item); router)
+            {
+                removeRouter(router);
+                return;
+            }
+
+            if (auto node = dynamic_cast<NodeItem*>(item); node)
+            {
+                removeNode(node);
+                return;
+            }
         }
     }
 
@@ -312,6 +335,55 @@ namespace discnet::sim::ui
             {
                 node->addAdapter();
             }
+        }
+    }
+
+    void SimulatorScene::removeNode(NodeItem* node)
+    {
+        if (node)
+        {
+            for (auto adapter : node->adapters())
+            {
+                removeAdapter(adapter);
+            }
+
+            removeItem(node);
+            delete node;
+        }
+    }
+
+    void SimulatorScene::removeAdapter(AdapterItem* adapter)
+    {
+        if (adapter)
+        {
+            auto connection = adapter->connection();
+            if (connection)
+            {
+                auto router = connection->router();
+                router->remove(connection);
+            }
+
+            removeItem(connection);
+            delete connection;
+
+            removeItem(adapter);
+            delete adapter;
+        }
+    }
+
+    void SimulatorScene::removeRouter(RouterItem* router)
+    {
+        if (router)
+        {
+            for (auto connection : router->connections())
+            {
+                connection->adapter()->set_connection(nullptr);
+                removeItem(connection);
+                delete connection;
+            }
+
+            removeItem(router);
+            delete router;
         }
     }
 

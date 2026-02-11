@@ -22,6 +22,20 @@ namespace discnet::sim::ui
         m_connections.push_back(connection);
     }
 
+    void RouterItem::remove(ConnectionItem* connection)
+    {
+        auto existing = std::find(m_connections.begin(), m_connections.end(), connection);
+        if (existing != m_connections.end())
+        {
+            m_connections.erase(existing);
+        }
+    }
+
+    std::vector<ConnectionItem*> RouterItem::connections()
+    {
+        return m_connections;
+    }
+
     QPointF RouterItem::center() const
     {
         return scenePos() + boundingRect().center();
