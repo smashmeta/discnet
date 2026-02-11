@@ -193,20 +193,26 @@ namespace discnet::sim::ui
             std::lock_guard connector_lock{m_connector_mutex};
             if (m_connector != nullptr)
             {
+                bool snapped = false;
                 auto line = m_connector->line();
-                QGraphicsItem* item = itemAt(event->scenePos(), QTransform());
-                if (item)
+                for (auto item : items(event->scenePos()))
                 {
-                    auto router = dynamic_cast<RouterItem*>(item);
-                    if (router)
+                    if (item)
                     {
-                        QPointF router_position = router->center();
-                        m_connector->setLine(line.p1().x(), line.p1().y(), router_position.x(), router_position.y());
-                        auto brush = QBrush(Qt::GlobalColor::green, Qt::BrushStyle::SolidPattern);
-                        m_connector->setPen(QPen(brush, 6.0f));
+                        auto router = dynamic_cast<RouterItem*>(item);
+                        if (router)
+                        {
+                            QPointF router_position = router->center();
+                            m_connector->setLine(line.p1().x(), line.p1().y(), router_position.x(), router_position.y());
+                            auto brush = QBrush(Qt::GlobalColor::green, Qt::BrushStyle::SolidPattern);
+                            m_connector->setPen(QPen(brush, 6.0f));
+                            snapped = true;
+                            break;
+                        }
                     }
                 }
-                else
+                
+                if (!snapped)
                 {
                     auto brush = QBrush(Qt::GlobalColor::blue, Qt::BrushStyle::SolidPattern);
                     m_connector->setPen(QPen(brush, 4.0f));
@@ -246,6 +252,7 @@ namespace discnet::sim::ui
                     {
                         std::lock_guard<std::mutex> item_lock{m_mutex};
                         auto connection = new ConnectionItem(adapter, router);
+                        connection->setZValue(-1000.0f);
                         router->add(connection);
                         adapter->add(connection);
                         

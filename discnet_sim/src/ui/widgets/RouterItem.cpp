@@ -14,6 +14,7 @@ namespace discnet::sim::ui
         setPixmap(QPixmap(":/images/router.png"));
         setFlag(QGraphicsItem::ItemIsMovable, true);
         setFlag(QGraphicsItem::ItemIsSelectable, true);
+        setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
     }
 
     void RouterItem::add(ConnectionItem* connection)

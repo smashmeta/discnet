@@ -13,6 +13,7 @@ namespace discnet::sim::ui
     {
         setFlag(QGraphicsItem::ItemIsMovable, true);
         setFlag(QGraphicsItem::ItemIsSelectable, true);
+        setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
     }
 
     AdapterItem::~AdapterItem()

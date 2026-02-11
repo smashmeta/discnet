@@ -142,6 +142,8 @@ expected_configuration_t get_configuration(int arguments_count, const char** arg
         return std::unexpected(error_message);
     }
 
+    result.m_log_instance_id = "discnet";
+
     return result;
 }
 } // !namespace discnet::application

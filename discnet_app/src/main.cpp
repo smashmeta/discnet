@@ -67,7 +67,6 @@ int main(int arguments_count, const char** arguments_vector)
     std::cout << "current path is set to " << executable_directory << std::endl;
     
     auto console_logger = spdlog::stdout_color_mt("console_logger");
-
     discnet::application::expected_configuration_t configuration = discnet::application::get_configuration(arguments_count, arguments_vector);
     if (!configuration)
     {
