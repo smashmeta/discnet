@@ -8,8 +8,9 @@
 
 namespace discnet::sim::ui
 {
-    AdapterItem::AdapterItem(const adapter_t& adapter, QGraphicsItem* parent)
-        : QGraphicsPixmapItem(QPixmap(":/images/adapter.png"), parent), m_adapter(adapter), m_connection(nullptr)
+    AdapterItem::AdapterItem(const adapter_t& adapter, NodeItem* node, QGraphicsItem* parent)
+        : QGraphicsPixmapItem(QPixmap(":/images/adapter.png"), parent), m_adapter(adapter),
+        m_node(node), m_connection(nullptr)
     {
         setFlag(QGraphicsItem::ItemIsMovable, true);
         setFlag(QGraphicsItem::ItemIsSelectable, true);
@@ -21,14 +22,19 @@ namespace discnet::sim::ui
         // nothing for now
     }
 
-    ConnectionItem* AdapterItem::connection()
+    NodeItem* AdapterItem::node()
     {
-        return m_connection;
+        return m_node;
     }
 
     void AdapterItem::set_connection(ConnectionItem* connection)
     {
         m_connection = connection;
+    }
+
+    ConnectionItem* AdapterItem::connection()
+    {
+        return m_connection;
     }
 
     QPointF AdapterItem::center() const

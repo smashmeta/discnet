@@ -24,7 +24,8 @@ namespace discnet::sim::ui
         void showProperties();
         void addAdapter();
         uint16_t node_id() const;
-        void add_adapter_item(AdapterItem* adapter);
+        void add_adapter(AdapterItem* adapter);
+        void remove_adapter(AdapterItem* adapter);
         std::vector<AdapterItem*> adapters();
 
         void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;

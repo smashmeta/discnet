@@ -70,9 +70,18 @@ namespace discnet::sim::ui
         return m_node_id;
     }
 
-    void NodeItem::add_adapter_item(AdapterItem* adapter)
+    void NodeItem::add_adapter(AdapterItem* adapter)
     {
         m_adapters.push_back(adapter);
+    }
+
+    void NodeItem::remove_adapter(AdapterItem* adapter)
+    {
+        auto existing = std::find(m_adapters.begin(), m_adapters.end(), adapter);
+        if (existing != m_adapters.end())
+        {
+            m_adapters.erase(existing);
+        }
     }
 
     std::vector<AdapterItem*> NodeItem::adapters()

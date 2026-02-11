@@ -363,6 +363,9 @@ namespace discnet::sim::ui
                 router->remove(connection);
             }
 
+            auto node = adapter->node();
+            node->remove_adapter(adapter);
+
             removeItem(connection);
             delete connection;
 
@@ -397,14 +400,14 @@ namespace discnet::sim::ui
                 if (node->node_id() == node_id)
                 {
                     std::lock_guard<std::mutex> lock {m_mutex};
-                    auto adapter_item = new AdapterItem(adapter);
+                    auto adapter_item = new AdapterItem(adapter, node);
                     auto position = node->pos() + QPointF(10.0f, 10.0f);
                     adapter_item->setPos(position);
 
                     m_items.push_back({++s_item_index, adapter_item});
                     addItem(adapter_item);
                     
-                    node->add_adapter_item(adapter_item);
+                    node->add_adapter(adapter_item);
                 }
             }
         }
