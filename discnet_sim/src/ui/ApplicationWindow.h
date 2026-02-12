@@ -14,6 +14,32 @@ class ApplicationWindow;
 
 namespace discnet::sim::ui
 {
+    class SimulatorGraphicsView : public QGraphicsView
+    {
+    public:
+        SimulatorGraphicsView(QGraphicsScene *scene, QWidget *parent = nullptr)
+            : QGraphicsView(scene, parent)
+        {
+            // nothing for now   
+        }
+    protected:
+        void keyPressEvent(QKeyEvent *event) override
+        {
+            if (event->key() == Qt::Key_Control) 
+            {
+                setDragMode(QGraphicsView::NoDrag);
+            }
+        }
+
+        void keyReleaseEvent(QKeyEvent *event) override
+        {
+            if (event->key() == Qt::Key_Control) 
+            {
+                setDragMode(QGraphicsView::RubberBandDrag);
+            }
+        }
+    };
+
     class ApplicationWindow : public QMainWindow
     {
         Q_OBJECT
@@ -24,6 +50,6 @@ namespace discnet::sim::ui
     private:
         Ui::ApplicationWindow *ui;
         SimulatorScene* m_scene;
-        QGraphicsView* m_view;
+        SimulatorGraphicsView* m_view;
     };
 } // !namespace discnet::sim::ui

@@ -24,7 +24,8 @@ namespace discnet::sim::ui
 
         m_scene = new SimulatorScene(this);
         m_scene->setSceneRect(QRectF(0, 0, 5000, 5000));
-        m_view = new QGraphicsView(m_scene);
+        m_view = new SimulatorGraphicsView(m_scene, this);
+        m_view->setDragMode(QGraphicsView::RubberBandDrag);
         ui->scene->layout()->addWidget(m_view);
     }
 

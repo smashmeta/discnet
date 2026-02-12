@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <nlohmann/json.hpp>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsPixmapItem>
 #include <discnet/adapter.hpp>
@@ -24,6 +25,10 @@ namespace discnet::sim::ui
         void set_connection(ConnectionItem* connection);
         ConnectionItem* connection();
         QPointF center() const;
+        adapter_t adapter() const;
+
+        nlohmann::json serialize() const;
+        static AdapterItem* deserialize(const nlohmann::json& json, NodeItem* node);
 
     protected:
         QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;

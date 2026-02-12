@@ -6,11 +6,15 @@
 #include "ui/widgets/RouterItem.h"
 #include <QFont>
 
+
 namespace discnet::sim::ui
 {
     RouterItem::RouterItem(const std::string& name, QGraphicsItem *parent)
         : QGraphicsPixmapItem(parent), m_name(name)
     {
+        static std::atomic<int> s_sequence_number = 0;
+        m_internal_id = s_sequence_number.fetch_add(1, std::memory_order_relaxed);
+
         setPixmap(QPixmap(":/images/router.png"));
         setFlag(QGraphicsItem::ItemIsMovable, true);
         setFlag(QGraphicsItem::ItemIsSelectable, true);
@@ -52,5 +56,38 @@ namespace discnet::sim::ui
         }
 
         return QGraphicsItem::itemChange(change, value);
+    }
+
+    uint32_t RouterItem::internal_id() const
+    {
+        return m_internal_id;
+    }
+
+    nlohmann::json RouterItem::serialize() const
+    {
+        nlohmann::json position = {
+            { "x", scenePos().x() },
+            { "y", scenePos().y() }
+        };
+
+        nlohmann::json result = {
+            { "internal_id", m_internal_id },
+            { "name", m_name },
+            { "position", position }
+        };
+
+        return result;
+    }
+
+    RouterItem* RouterItem::deserialize(const nlohmann::json& json)
+    {
+        RouterItem* result = nullptr;
+        auto name = json["name"].get<std::string>();
+        auto x = json["position"]["x"].get<double>();
+        auto y = json["position"]["y"].get<double>();
+        result = new RouterItem(name);
+        result->setPos(QPointF(x, y));
+        
+        return result;
     }
 } // !namespace discnet::sim::ui

@@ -14,6 +14,7 @@ find_package(GTest CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # setting up source files and header files groups
 file(GLOB HEADERS_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h" )
@@ -61,5 +62,6 @@ target_link_libraries(discnet_sim PUBLIC Boost::log Boost::log_setup Boost::prog
 target_link_libraries(discnet_sim PUBLIC discnet::discnet_lib)
 target_link_libraries(discnet_sim PRIVATE spdlog::spdlog)
 target_link_libraries(discnet_sim PUBLIC Qt5::Core Qt5::Gui Qt5::Widgets)
+target_link_libraries(discnet_sim PRIVATE nlohmann_json::nlohmann_json)
 
 copy_runtime_dependencies(discnet_sim)

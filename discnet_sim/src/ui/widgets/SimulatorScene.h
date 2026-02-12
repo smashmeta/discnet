@@ -40,6 +40,9 @@ namespace discnet::sim::ui
         void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
         void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
 
+        std::string serialize() const;
+        bool load(const std::string& json_str);
+
 public slots:
         void adapterEvent(const uint16_t node_id, const adapter_t adapter);
 
@@ -54,11 +57,7 @@ private:
         void removeRouter(RouterItem* router);
 
 private:
-        std::mutex m_mutex;
-        static uint32_t s_item_index;
-        std::vector<ItemHandle> m_items;
         logic::simulator m_simulator;
-
         std::mutex m_connector_mutex;
         QGraphicsLineItem* m_connector;
     };

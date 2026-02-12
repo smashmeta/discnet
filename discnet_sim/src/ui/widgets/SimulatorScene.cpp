@@ -2,9 +2,11 @@
  *
  */
 
+#include <iostream>
 #include <QMenu>
 #include <QAction>
 #include <QIcon>
+#include <nlohmann/json.hpp>
 #include <QGraphicsSceneDragDropEvent>
 #include <QGraphicsSceneContextMenuEvent>
 #include "ui/widgets/ToolBoxItem.h"
@@ -13,8 +15,6 @@
 
 namespace discnet::sim::ui
 {
-    uint32_t SimulatorScene::s_item_index = 0;
-
     SimulatorScene::SimulatorScene(QObject *parent)
         : QGraphicsScene(parent), m_connector(nullptr)
     {
@@ -46,7 +46,8 @@ namespace discnet::sim::ui
 
     void SimulatorScene::dropEvent(QGraphicsSceneDragDropEvent *event)
     {
-        if (event->mimeData()->hasFormat("application/qt-discnet-tool-item")) {
+        if (event->mimeData()->hasFormat("application/qt-discnet-tool-item")) 
+        {
             QByteArray itemData = event->mimeData()->data("application/qt-discnet-tool-item");
             QDataStream dataStream(&itemData, QIODevice::ReadOnly);
 
@@ -54,31 +55,29 @@ namespace discnet::sim::ui
             dataStream >> tool_type;
             event->acceptProposedAction();
 
-            static uint16_t node_id_sequence_number = 1000;
-            static uint16_t router_sequence_number = 1;
+            static std::atomic<uint16_t> node_id_sequence_number = 1000;
+            static std::atomic<uint16_t> router_sequence_number = 1;
 
             switch (tool_type)
             {
                 case ToolBoxItemType::Node:
                 {
-                    std::lock_guard<std::mutex> lock {m_mutex};
-                    auto node = new NodeItem(node_id_sequence_number++, this);
-                    m_items.push_back({++s_item_index, node});
+                    auto node = new NodeItem(node_id_sequence_number.fetch_add(1, std::memory_order_relaxed), this);
                     addItem(node);
                     node->setPos(event->scenePos() - QPointF(64, 64));
                     break;
                 }
                 case ToolBoxItemType::Router:
                 {
-                    std::lock_guard<std::mutex> lock {m_mutex};
-                    auto router = new RouterItem(std::format("router_{}", router_sequence_number++));
-                    m_items.push_back({++s_item_index, router});
+                    auto router = new RouterItem(std::format("router_{}", router_sequence_number.fetch_add(1, std::memory_order_relaxed)));
                     addItem(router);
                     router->setPos(event->scenePos() - QPointF(64, 64));
                     break;
                 }
             }
-        } else {
+        } 
+        else 
+        {
             event->ignore();
         }
     }
@@ -87,6 +86,7 @@ namespace discnet::sim::ui
     {
         if (event->key() == Qt::Key_Control) 
         {
+            
         }
         QGraphicsScene::keyPressEvent(event);
     }
@@ -264,13 +264,10 @@ namespace discnet::sim::ui
                             removeItem(previous);
                         }
 
-                        std::lock_guard<std::mutex> item_lock{m_mutex};
                         auto connection = new ConnectionItem(adapter, router);
                         connection->setZValue(-1000.0f);
                         adapter->set_connection(connection);
                         router->add(connection);
-                        
-                        m_items.push_back({++s_item_index, connection});
                         addItem(connection);
                     }
                 }
@@ -282,6 +279,140 @@ namespace discnet::sim::ui
         }
 
         QGraphicsScene::mouseReleaseEvent(event);
+    }
+
+    std::string SimulatorScene::serialize() const
+    {
+        nlohmann::json nodes = nlohmann::json::array();
+        nlohmann::json adapters = nlohmann::json::array();
+        nlohmann::json routers = nlohmann::json::array();
+        nlohmann::json connections = nlohmann::json::array();
+        for (const auto& item : items())
+        {
+            if (auto node = dynamic_cast<NodeItem*>(item); node)
+            {
+                nodes.push_back(node->serialize());
+            }
+
+            if (auto adapter = dynamic_cast<AdapterItem*>(item); adapter)
+            {
+                adapters.push_back(adapter->serialize());
+            }
+
+            if (auto router = dynamic_cast<RouterItem*>(item); router)
+            {
+                routers.push_back(router->serialize());
+            }
+
+            if (auto connection = dynamic_cast<ConnectionItem*>(item); connection)
+            {
+                connections.push_back(connection->serialize());
+            }
+        }
+
+        nlohmann::json result = {
+            { "nodes", nodes },
+            { "adapters", adapters },
+            { "routers", routers },
+            { "connections", connections } 
+        };
+
+        return result.dump(4);
+    }
+
+    bool SimulatorScene::load(const std::string& json_str)
+    {
+        bool result = true;
+        using router_entries = std::map<uint32_t, RouterItem*>;
+        using node_entries = std::map<uint32_t, NodeItem*>;
+        using adapter_entries = std::map<std::string, AdapterItem*>;
+        using connection_entries = std::map<uint32_t, ConnectionItem*>;
+        router_entries routers;
+        node_entries nodes;
+        adapter_entries adapters;
+        connection_entries connections;
+
+        try
+        {
+            auto json = nlohmann::json::parse(json_str);
+            for (const auto& router_json : json["routers"])
+            {
+                auto router = RouterItem::deserialize(router_json);
+                auto internal_id = router_json["internal_id"].get<uint32_t>();
+                routers.insert(std::make_pair(internal_id, router));
+            }
+            for (const auto& node_json : json["nodes"])
+            {
+                auto node = NodeItem::deserialize(node_json, this);
+                auto internal_id = node_json["internal_id"].get<uint32_t>();
+                nodes.insert(std::make_pair(internal_id, node));
+            }
+            for (const auto& adapter_json : json["adapters"])
+            {
+                auto internal_node_id = adapter_json["node_internal_id"].get<uint32_t>();
+                auto adapter_guid = adapter_json["guid"].get<std::string>();
+                auto node = nodes.find(internal_node_id);
+
+                auto adapter = AdapterItem::deserialize(adapter_json, node->second);
+                adapters.insert(std::make_pair(adapter_guid, adapter));
+            }
+            for (const auto& connection_json : json["connections"])
+            {
+                auto adapter_guid = connection_json["adapter"].get<std::string>();
+                auto router_internal_id = connection_json["router"].get<uint32_t>();
+                auto internal_id = connection_json["internal_id"].get<uint32_t>();
+                auto adapter = adapters.find(adapter_guid);
+                auto router = routers.find(router_internal_id);
+                auto connection = new ConnectionItem(adapter->second, router->second);
+                connections.insert(std::make_pair(internal_id, connection));
+            }
+
+            for (auto* router : routers | std::views::values)
+            {
+                addItem(router);
+            }
+
+            for (auto* node : nodes | std::views::values)
+            {
+                addItem(node);
+            }
+
+            for (auto* adapter : adapters | std::views::values)
+            {
+                addItem(adapter);
+            }
+
+            for (auto* connection : connections | std::views::values)
+            {
+                addItem(connection);
+            }
+        }
+        catch (...)
+        {
+            for (auto* router : routers | std::views::values)
+            {
+                delete router;
+            }
+
+            for (auto* node : nodes | std::views::values)
+            {
+                delete node;
+            }
+
+            for (auto* adapter : adapters | std::views::values)
+            {
+                delete adapter;
+            }
+
+            for (auto* connection : connections | std::views::values)
+            {
+                delete connection;
+            }
+
+            result = false;
+        }
+
+        return result;
     }
 
     void SimulatorScene::onMenuDeletePressed()
@@ -317,7 +448,6 @@ namespace discnet::sim::ui
         if (selected.size() == 1)
         {
             auto item = selected.first();
-            
             auto node = dynamic_cast<NodeItem*>(item);
             if (node)
             {
@@ -402,20 +532,14 @@ namespace discnet::sim::ui
         for (auto& item : this->items())
         {
             auto node = dynamic_cast<NodeItem*>(item);
-            if (node)
+            if (node && node->node_id() == node_id)
             {
-                if (node->node_id() == node_id)
-                {
-                    std::lock_guard<std::mutex> lock {m_mutex};
-                    auto adapter_item = new AdapterItem(adapter, node);
-                    auto position = node->pos() + QPointF(10.0f, 10.0f);
-                    adapter_item->setPos(position);
+                auto adapter_item = new AdapterItem(adapter, node);
+                auto position = node->pos() + QPointF(10.0f, 10.0f);
 
-                    m_items.push_back({++s_item_index, adapter_item});
-                    addItem(adapter_item);
-                    
-                    node->add_adapter(adapter_item);
-                }
+                addItem(adapter_item);
+                adapter_item->setPos(position);
+                node->add_adapter(adapter_item);
             }
         }
     }

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <nlohmann/json.hpp>
 #include <QGraphicsPixmapItem>
 #include <QGraphicsSceneMouseEvent>
 #include "ui/widgets/NodeDialog.h"
@@ -27,9 +28,15 @@ namespace discnet::sim::ui
         void add_adapter(AdapterItem* adapter);
         void remove_adapter(AdapterItem* adapter);
         std::vector<AdapterItem*> adapters();
+        uint32_t internal_id() const;
 
         void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
+
+        nlohmann::json serialize() const;
+        static NodeItem* deserialize(const nlohmann::json& json, SimulatorScene* scene);
+
     private:
+        uint32_t m_internal_id;
         uint16_t m_node_id;
         SimulatorScene* m_scene;
         NodeDialog* m_dialog;

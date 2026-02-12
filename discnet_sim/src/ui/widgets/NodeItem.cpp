@@ -2,8 +2,9 @@
  *
  */
 
-#include <QUuid>
+#include <atomic>
 #include <random>
+#include <QUuid>
 #include <discnet/typedefs.hpp>
 #include "ui/widgets/NodeItem.h"
 #include "ui/widgets/AdapterItem.h"
@@ -15,6 +16,9 @@ namespace discnet::sim::ui
     NodeItem::NodeItem(const uint16_t node_id, SimulatorScene* scene, QGraphicsItem *parent)
         : QGraphicsPixmapItem(parent), m_node_id(node_id), m_scene(scene)
     {
+        static std::atomic<int> s_sequence_number = 0;
+        m_internal_id = s_sequence_number.fetch_add(1, std::memory_order_relaxed);
+
         setPixmap(QPixmap(":/images/node.png"));
         setFlag(QGraphicsItem::ItemIsMovable, true);
         setFlag(QGraphicsItem::ItemIsSelectable, true);
@@ -89,6 +93,11 @@ namespace discnet::sim::ui
         return m_adapters;
     }
 
+    uint32_t NodeItem::internal_id() const
+    {
+        return m_internal_id;
+    }
+
     void NodeItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) 
     {
         QPointF delta = event->scenePos() - event->lastScenePos();
@@ -99,5 +108,33 @@ namespace discnet::sim::ui
         }
 
         QGraphicsPixmapItem::mouseMoveEvent(event);
+    }
+
+    nlohmann::json NodeItem::serialize() const
+    {
+        nlohmann::json position = {
+            { "x", scenePos().x() },
+            { "y", scenePos().y() }
+        };
+        
+        nlohmann::json result = {
+            { "internal_id", m_internal_id },
+            { "node_id", m_node_id },
+            { "position", position }
+        };
+
+        return result;
+    }
+
+    NodeItem* NodeItem::deserialize(const nlohmann::json& json, SimulatorScene* scene)
+    {
+        NodeItem* result = nullptr;
+        auto node_id = json["node_id"].get<uint16_t>();
+        auto x = json["position"]["x"].get<double>();
+        auto y = json["position"]["y"].get<double>();
+        result = new NodeItem(node_id, scene);
+        result->setPos(QPointF(x, y));
+        
+        return result;
     }
 } // !namespace discnet::sim::ui
