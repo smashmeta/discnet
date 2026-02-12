@@ -2,7 +2,10 @@
  *
  */
 
+
+#include <iostream>
 #include "ui/widgets/ConnectionItem.h"
+#include "ui/widgets/NodeItem.h"
 #include "ui/widgets/AdapterItem.h"
 
 
@@ -53,5 +56,26 @@ namespace discnet::sim::ui
         }
 
         return QGraphicsItem::itemChange(change, value);
+    }
+
+    void AdapterItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) 
+    {
+        QPointF new_position = event->scenePos() - boundingRect().center();
+        QPointF node_position = m_node->scenePos() + (m_node->boundingRect().center()/2);
+        auto distance = QLineF(node_position, new_position).length();
+        if (distance < 90.0)
+        {
+            setPos(new_position);
+        }
+        else
+        {
+            QPointF endpoint = QPointF(new_position - node_position);
+            QLineF line = QLineF(QPointF(0.0, 0.0), endpoint).unitVector();
+            line.setLength(90);
+            QPointF direction = line.p2();
+
+            std::cout << std::format("direction: x: {}, y: {}.", direction.x(), direction.y()) << std::endl;
+            setPos(node_position + direction);
+        }
     }
 } // !namespace discnet::sim::ui

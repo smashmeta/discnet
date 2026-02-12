@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <QGraphicsSceneMouseEvent>
 #include <QGraphicsPixmapItem>
 #include <discnet/adapter.hpp>
 
@@ -23,7 +24,10 @@ namespace discnet::sim::ui
         void set_connection(ConnectionItem* connection);
         ConnectionItem* connection();
         QPointF center() const;
+
+    protected:
         QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
+        void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
 
     private:
         adapter_t m_adapter;

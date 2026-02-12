@@ -221,7 +221,14 @@ namespace discnet::sim::ui
             }
         }
 
-        QGraphicsScene::mouseMoveEvent(event);
+        if (event->buttons() & Qt::LeftButton)
+        {
+            QGraphicsScene::mouseMoveEvent(event);
+        }
+        else
+        {
+            event->ignore();
+        }
     }
 
     void SimulatorScene::mouseReleaseEvent([[maybe_unused]] QGraphicsSceneMouseEvent *event)
