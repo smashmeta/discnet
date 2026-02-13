@@ -5,6 +5,7 @@
 #include <atomic>
 #include <random>
 #include <QUuid>
+#include <QGraphicsTextItem>
 #include <discnet/typedefs.hpp>
 #include "ui/widgets/NodeItem.h"
 #include "ui/widgets/AdapterItem.h"
@@ -24,6 +25,10 @@ namespace discnet::sim::ui
         setFlag(QGraphicsItem::ItemIsSelectable, true);
         m_dialog = new NodeDialog(node_id);
         m_adapterDialog = new AdapterDialog(m_internal_id);
+
+        auto name = new QGraphicsTextItem(std::format("{}", node_id).c_str(), this);
+        name->setFont(QFont("Arial", 22, QFont::Bold));
+        name->setPos(5, 25);
 
         m_scene->connect(m_adapterDialog, &AdapterDialog::accepted, m_scene, &SimulatorScene::adapterEvent);
     }
