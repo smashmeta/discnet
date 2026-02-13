@@ -260,14 +260,12 @@ namespace discnet::sim::ui
                         auto previous = adapter->connection();
                         if (previous)
                         {
-                            router->remove(previous);
+                            router->remove_connection(previous);
                             removeItem(previous);
                         }
 
                         auto connection = new ConnectionItem(adapter, router);
                         connection->setZValue(-1000.0f);
-                        adapter->set_connection(connection);
-                        router->add(connection);
                         addItem(connection);
                     }
                 }
@@ -325,7 +323,7 @@ namespace discnet::sim::ui
         bool result = true;
         using router_entries = std::map<uint32_t, RouterItem*>;
         using node_entries = std::map<uint32_t, NodeItem*>;
-        using adapter_entries = std::map<std::string, AdapterItem*>;
+        using adapter_entries = std::map<uint32_t, AdapterItem*>;
         using connection_entries = std::map<uint32_t, ConnectionItem*>;
         router_entries routers;
         node_entries nodes;
@@ -350,22 +348,24 @@ namespace discnet::sim::ui
             for (const auto& adapter_json : json["adapters"])
             {
                 auto internal_node_id = adapter_json["node_internal_id"].get<uint32_t>();
-                auto adapter_guid = adapter_json["guid"].get<std::string>();
+                auto internal_id = adapter_json["internal_id"].get<uint32_t>();
                 auto node = nodes.find(internal_node_id);
 
                 auto adapter = AdapterItem::deserialize(adapter_json, node->second);
-                adapters.insert(std::make_pair(adapter_guid, adapter));
+                adapters.insert(std::make_pair(internal_id, adapter));
             }
             for (const auto& connection_json : json["connections"])
             {
-                auto adapter_guid = connection_json["adapter"].get<std::string>();
+                auto adapter_internal_id = connection_json["adapter"].get<uint32_t>();
                 auto router_internal_id = connection_json["router"].get<uint32_t>();
                 auto internal_id = connection_json["internal_id"].get<uint32_t>();
-                auto adapter = adapters.find(adapter_guid);
+                auto adapter = adapters.find(adapter_internal_id);
                 auto router = routers.find(router_internal_id);
                 auto connection = new ConnectionItem(adapter->second, router->second);
                 connections.insert(std::make_pair(internal_id, connection));
             }
+
+            clear();
 
             for (auto* router : routers | std::views::values)
             {
@@ -384,6 +384,7 @@ namespace discnet::sim::ui
 
             for (auto* connection : connections | std::views::values)
             {
+                connection->setZValue(-1000.0f);
                 addItem(connection);
             }
         }
@@ -497,7 +498,7 @@ namespace discnet::sim::ui
             if (connection)
             {
                 auto router = connection->router();
-                router->remove(connection);
+                router->remove_connection(connection);
             }
 
             auto node = adapter->node();
@@ -536,10 +537,8 @@ namespace discnet::sim::ui
             {
                 auto adapter_item = new AdapterItem(adapter, node);
                 auto position = node->pos() + QPointF(10.0f, 10.0f);
-
-                addItem(adapter_item);
                 adapter_item->setPos(position);
-                node->add_adapter(adapter_item);
+                addItem(adapter_item);
             }
         }
     }

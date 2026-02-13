@@ -12,12 +12,16 @@
 namespace discnet::sim::ui
 {
     AdapterItem::AdapterItem(const adapter_t& adapter, NodeItem* node, QGraphicsItem* parent)
-        : QGraphicsPixmapItem(QPixmap(":/images/adapter.png"), parent), m_adapter(adapter),
+        : QGraphicsPixmapItem(QPixmap(std::format(":/images/adapter_{}.png", adapter.m_index % 5).c_str()), parent), m_adapter(adapter),
         m_node(node), m_connection(nullptr)
     {
+        static std::atomic<int> s_sequence_number = 0;
+        m_internal_id = s_sequence_number.fetch_add(1, std::memory_order_relaxed);
+
         setFlag(QGraphicsItem::ItemIsMovable, true);
         setFlag(QGraphicsItem::ItemIsSelectable, true);
         setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
+        m_node->add_adapter(this);
     }
 
     AdapterItem::~AdapterItem()
@@ -50,6 +54,11 @@ namespace discnet::sim::ui
         return m_adapter;
     }
 
+    uint32_t AdapterItem::internal_id() const
+    {
+        return m_internal_id;
+    }
+
     nlohmann::json AdapterItem::serialize() const
     {
         nlohmann::json addresses = nlohmann::json::array();
@@ -69,6 +78,7 @@ namespace discnet::sim::ui
          };
 
         nlohmann::json result = {
+            { "internal_id", m_internal_id },
             { "node_internal_id", m_node->internal_id() },
             { "guid", m_adapter.m_guid },
             { "mac", m_adapter.m_mac_address },
@@ -113,7 +123,6 @@ namespace discnet::sim::ui
         auto y = json["position"]["y"].get<double>();
         result = new AdapterItem(adapter, node);
         result->setPos(QPointF(x, y));
-        node->add_adapter(result);
         
         return result;
     }

@@ -21,12 +21,12 @@ namespace discnet::sim::ui
         setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
     }
 
-    void RouterItem::add(ConnectionItem* connection)
+    void RouterItem::add_connection(ConnectionItem* connection)
     {
         m_connections.push_back(connection);
     }
 
-    void RouterItem::remove(ConnectionItem* connection)
+    void RouterItem::remove_connection(ConnectionItem* connection)
     {
         auto existing = std::find(m_connections.begin(), m_connections.end(), connection);
         if (existing != m_connections.end())

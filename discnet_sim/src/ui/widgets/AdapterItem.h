@@ -26,6 +26,7 @@ namespace discnet::sim::ui
         ConnectionItem* connection();
         QPointF center() const;
         adapter_t adapter() const;
+        uint32_t internal_id() const;
 
         nlohmann::json serialize() const;
         static AdapterItem* deserialize(const nlohmann::json& json, NodeItem* node);
@@ -35,6 +36,7 @@ namespace discnet::sim::ui
         void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
 
     private:
+        uint32_t m_internal_id;
         adapter_t m_adapter;
         NodeItem* m_node;
         ConnectionItem* m_connection;

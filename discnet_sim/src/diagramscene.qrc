@@ -19,6 +19,12 @@
     <file>images/background4.png</file>
     <file>images/node.png</file>
     <file>images/router.png</file>
-    <file>images/adapter.png</file>
+    <file>images/save.png</file>
+    <file>images/open.png</file>
+    <file>images/adapter_1.png</file>
+    <file>images/adapter_2.png</file>
+    <file>images/adapter_0.png</file>
+    <file>images/adapter_3.png</file>
+    <file>images/adapter_4.png</file>
   </qresource>
 </RCC>

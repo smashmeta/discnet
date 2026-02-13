@@ -14,6 +14,8 @@ namespace discnet::sim::ui
     {
         static std::atomic<int> s_sequence_number = 0;
         m_internal_id = s_sequence_number.fetch_add(1, std::memory_order_relaxed);
+        m_adapter->set_connection(this);
+        m_router->add_connection(this);
 
         internal_update();
     }
@@ -44,7 +46,7 @@ namespace discnet::sim::ui
     {
         nlohmann::json result = {
             { "internal_id", m_internal_id },
-            { "adapter", m_adapter->adapter().m_guid },
+            { "adapter", m_adapter->internal_id() },
             { "router", m_router->internal_id() }
         };
 

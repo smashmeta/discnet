@@ -16,8 +16,8 @@ namespace discnet::sim::ui
     public:
         RouterItem(const std::string& name, QGraphicsItem *parent = nullptr);
     
-        void add(ConnectionItem* connection);
-        void remove(ConnectionItem* connection);
+        void add_connection(ConnectionItem* connection);
+        void remove_connection(ConnectionItem* connection);
         std::vector<ConnectionItem*> connections();
 
         QPointF center() const;
