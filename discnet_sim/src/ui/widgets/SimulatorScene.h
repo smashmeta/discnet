@@ -44,7 +44,7 @@ namespace discnet::sim::ui
         bool load(const std::string& json_str);
 
 public slots:
-        void adapterEvent(const uint16_t node_id, const adapter_t adapter);
+        void adapterEvent(const uint16_t internal_id, const adapter_t adapter);
 
 private slots:
         void onMenuDeletePressed();

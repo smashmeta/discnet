@@ -9,10 +9,10 @@
 
 namespace discnet::sim::ui
 {
-    AdapterDialog::AdapterDialog(uint16_t node_id, QWidget *parent)
+    AdapterDialog::AdapterDialog(uint16_t internal_node_id, QWidget *parent)
         : QDialog(parent)
         , ui(new Ui::AdapterDialog)
-        , m_node_id(node_id)
+        , m_internal_node_id(internal_node_id)
     {
         ui->setupUi(this);
     }
@@ -53,7 +53,7 @@ namespace discnet::sim::ui
             adapter.m_mtu = static_cast<uint16_t>(ui->leMtu->text().toInt());
             adapter.m_enabled = ui->cbEnabled->isChecked();
             adapter.m_loopback = ui->cbLoopback->isChecked();
-            emit accepted(m_node_id, adapter);
+            emit accepted(m_internal_node_id, adapter);
         }
         catch (const std::exception& ex)
         {

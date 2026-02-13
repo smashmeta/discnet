@@ -23,7 +23,7 @@ namespace discnet::sim::ui
         setFlag(QGraphicsItem::ItemIsMovable, true);
         setFlag(QGraphicsItem::ItemIsSelectable, true);
         m_dialog = new NodeDialog(node_id);
-        m_adapterDialog = new AdapterDialog(node_id);
+        m_adapterDialog = new AdapterDialog(m_internal_id);
 
         m_scene->connect(m_adapterDialog, &AdapterDialog::accepted, m_scene, &SimulatorScene::adapterEvent);
     }

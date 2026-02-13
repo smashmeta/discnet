@@ -18,7 +18,7 @@ namespace discnet::sim::ui
         Q_OBJECT
 
     public:
-        explicit AdapterDialog(uint16_t node_id, QWidget *parent = nullptr);
+        explicit AdapterDialog(uint16_t internal_node_id, QWidget *parent = nullptr);
         ~AdapterDialog();
 
         void setData(const adapter_t& adapter);
@@ -31,6 +31,6 @@ namespace discnet::sim::ui
 
     private:
         Ui::AdapterDialog *ui;
-        uint16_t m_node_id;
+        uint16_t m_internal_node_id;
     };
 } // !namespace discnet::sim::ui

@@ -528,12 +528,12 @@ namespace discnet::sim::ui
         }
     }
 
-    void SimulatorScene::adapterEvent(const uint16_t node_id, const adapter_t adapter)
+    void SimulatorScene::adapterEvent(const uint16_t internal_id, const adapter_t adapter)
     {
         for (auto& item : this->items())
         {
             auto node = dynamic_cast<NodeItem*>(item);
-            if (node && node->node_id() == node_id)
+            if (node && node->internal_id() == internal_id)
             {
                 auto adapter_item = new AdapterItem(adapter, node);
                 auto position = node->pos() + QPointF(10.0f, 10.0f);
