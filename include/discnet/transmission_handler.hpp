@@ -44,7 +44,7 @@ namespace discnet
         DISCNET_EXPORT void update(const discnet::time_point_t& current_time);
     private:
         void transmit_discovery_message();
-        discnet::network::messages::message_list_t get_messages_for_adapter(const discnet::adapter_identifier_t& adapter_identifier);
+        discnet::network::messages::message_list_t get_messages_for_adapter(const discnet::adapter_guid_t& adapter_identifier);
 
         discnet::application::configuration_t m_configuration;
         discnet::shared_logger m_logger;

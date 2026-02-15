@@ -5,12 +5,13 @@
 #pragma once
 
 #include <memory>
+#include <QTextEdit>
+#include <spdlog/sinks/qt_sinks.h>
 #include <discnet/typedefs.hpp>
 #include <discnet/application/configuration.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/network/network_handler.hpp>
-#include <QTextEdit>
-#include <spdlog/sinks/qt_sinks.h>
+
 
 namespace discnet
 {
@@ -35,23 +36,28 @@ namespace discnet
 
 namespace discnet::sim::logic
 {
+    using adapter_identifier_t = uint32_t;
     class simulator_adapter_fetcher;
     using shared_simulator_adapter_fetcher = std::shared_ptr<simulator_adapter_fetcher>;
 
     class network_traffic_manager;
     using shared_network_traffic_manager = std::shared_ptr<network_traffic_manager>;
 
+    using node_identifier_t = uint32_t;
+
     class discnet_node
     {
     public:
-        discnet_node(const application::configuration_t& configuration, const shared_network_traffic_manager& ntm, QTextEdit* text_edit);
+        discnet_node(const node_identifier_t identifier, const application::configuration_t& configuration, const shared_network_traffic_manager& ntm, QTextEdit* text_edit);
         ~discnet_node();
 
-        void add_adapter(const adapter_t& adapter);
+        void add_adapter(const adapter_identifier_t identifier, const adapter_t& adapter);
+        void remove_adapter(const adapter_identifier_t identifier);
         
         bool initialize();
         void update(time_point_t current_time);
     private:
+        node_identifier_t m_identifier;
         application::configuration_t m_configuration;
         discnet::shared_logger m_logger;
         shared_simulator_adapter_fetcher m_adapter_fetcher;

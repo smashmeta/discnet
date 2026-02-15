@@ -16,8 +16,8 @@
 namespace discnet::sim::logic
 {
     static int instance_id = 0;
-    discnet_node::discnet_node(const application::configuration_t& configuration, const shared_network_traffic_manager& ntm, QTextEdit* text_edit)
-        : m_configuration(configuration), m_network_traffic_manager(ntm)
+    discnet_node::discnet_node(const node_identifier_t identifier, const application::configuration_t& configuration, const shared_network_traffic_manager& ntm, QTextEdit* text_edit)
+        : m_identifier(identifier), m_configuration(configuration), m_network_traffic_manager(ntm)
     {
         // nothing for now
         m_logger = spdlog::qt_logger_mt(configuration.m_log_instance_id, text_edit);
@@ -28,9 +28,14 @@ namespace discnet::sim::logic
         m_logger->info("shutting down discnet node [{}].", m_configuration.m_node_id);
     }
 
-    void discnet_node::add_adapter(const adapter_t& adapter)
+    void discnet_node::add_adapter(const adapter_identifier_t identifier, const adapter_t& adapter)
     {
-        m_adapter_fetcher->add_adapter(adapter);
+        m_adapter_fetcher->add_adapter(identifier, adapter);
+    }
+
+    void discnet_node::remove_adapter(const adapter_identifier_t identifier)
+    {
+        m_adapter_fetcher->remove_adapter(identifier);
     }
 
     bool discnet_node::initialize()
@@ -44,7 +49,7 @@ namespace discnet::sim::logic
         m_adapter_manager = std::make_shared<adapter_manager>(m_configuration, m_adapter_fetcher);
 
         m_logger->info("setting up network_handler...");
-        m_network_handler = std::make_shared<network::network_handler>(m_configuration, m_adapter_manager, std::make_shared<simulator_client_creator>(m_configuration, m_network_traffic_manager));
+        m_network_handler = std::make_shared<network::network_handler>(m_configuration, m_adapter_manager, std::make_shared<simulator_client_creator>(m_identifier, m_configuration, m_network_traffic_manager, m_adapter_fetcher));
         m_logger->info("setting up route_manager...");
         m_route_manager = std::make_shared<route_manager>(m_configuration, m_adapter_manager, m_network_handler);
         m_logger->info("setting up transmission_handler...");

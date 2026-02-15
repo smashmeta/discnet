@@ -7,64 +7,10 @@
 
 namespace discnet::sim::logic
 {
-    void network_traffic_manager::data_sent(const uint16_t node_id, const network::udp_info_t& info, const discnet::network::buffer_t& buffer)
+    network_traffic_manager::network_traffic_manager()
+        : m_network_logger(spdlog::get("traffic"))
     {
-        if (m_network_logger)
-        {
-            std::string log_entry = std::format("node: {}, adapter: {}, multicast: [addr: {}, port: {}] - {}",
-                node_id, info.m_adapter.to_string(), info.m_adapter.to_string(), info.m_port, discnet::bytes_to_hex_string(buffer.data()));
-            m_network_logger->info(log_entry);
-
-            std::string subnet_mask_sender;
-            {
-                auto ip_str = info.m_adapter.to_string();
-                auto last_segment_pos = ip_str.find_last_of('.');
-                subnet_mask_sender = ip_str.substr(0, last_segment_pos);
-            }
-
-            for (auto& [id, adapters] : m_clients)
-            {
-                if (id != node_id)
-                {
-                    for (auto& adapter : adapters)
-                    {
-                        auto sim_adapter = std::dynamic_pointer_cast<simulator_udp_client>(adapter);
-                        if (sim_adapter)
-                        {
-                            std::string subnet_mask_receiver;
-                            {
-                                auto ip_str = adapter->info().m_adapter.to_string();
-                                auto last_segment_pos = ip_str.find_last_of('.');
-                                subnet_mask_receiver = ip_str.substr(0, last_segment_pos);
-                            }
-
-                            if (subnet_mask_sender == subnet_mask_receiver)
-                            {
-                                sim_adapter->receive_bytes(buffer, info.m_adapter);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    void network_traffic_manager::data_sent([[maybe_unused]] const uint16_t node_id, [[maybe_unused]] const network::udp_info_t& info, [[maybe_unused]] const discnet::network::buffer_t& buffer, [[maybe_unused]] const discnet::address_t& recipient)
-    {
-    // todo: implement
-    }
-
-    void network_traffic_manager::register_client(const uint16_t node_id, network::shared_udp_client client)
-    {
-        auto itr_client = m_clients.find(node_id);
-        if (itr_client != m_clients.end())
-        {
-            itr_client->second.push_back(client);
-        }
-        else
-        {
-            m_clients.insert({node_id, {client}});
-        }
+        // nothing for now
     }
 
     void network_traffic_manager::set_log_handle(QTextEdit* log_handle)
@@ -72,14 +18,136 @@ namespace discnet::sim::logic
         m_network_logger = spdlog::qt_logger_mt("sim_network_log", log_handle);
     }
 
-    bool network_traffic_manager::add_switch(const network_switch& val)
+    void network_traffic_manager::data_sent(const node_identifier_t identifier, const network::udp_info_t& info, const discnet::network::buffer_t& buffer)
     {
-        auto existing = m_switches.find(val.get_subnet());
-        if (existing == m_switches.end())
+        auto node = m_nodes.find(identifier);
+        if (node == m_nodes.end())
         {
-            m_switches.insert({val.get_subnet(), val});
+            m_network_logger->error("Failed to find node entry for node identifier {}. Message dropped.", identifier);
+            return;
+        }
+
+        for (auto& adapter : node->second)
+        {
+            if (adapter.m_client->info().m_adapter == info.m_adapter)
+            {
+                if (adapter.m_router)
+                {
+                    auto router = m_routers.find(adapter.m_router.value());
+                    if (router != m_routers.end())
+                    {
+                        router->second.data_sent(identifier, adapter.m_client, info, buffer);
+                    }
+                    else
+                    {
+                        // failed to find the router that the adapter is linked to
+                    }
+                }
+                else
+                {
+                    // this adapter is currently not linked to a router. dropping bytes
+                }
+            }
+        }
+    }
+
+    void network_traffic_manager::data_sent([[maybe_unused]] const node_identifier_t identifier, [[maybe_unused]] const network::udp_info_t& info, [[maybe_unused]] const discnet::network::buffer_t& buffer, [[maybe_unused]] const discnet::address_t& recipient)
+    {
+    // todo: implement
+    }
+
+    void network_traffic_manager::add_node(const node_identifier_t node_identifier, const adapter_identifier_t adapter_identifier, network::shared_udp_client client)
+    {
+        adapter_entry entry {.m_adapter_identifier = adapter_identifier, .m_router = {}, .m_client = client};
+        auto node = m_nodes.find(node_identifier);
+        if (node != m_nodes.end())
+        {
+            
+            node->second.push_back(entry);
+        }
+        else
+        {
+            m_nodes.insert({node_identifier, {entry}});
+        }
+    }
+
+    void network_traffic_manager::remove_node(const node_identifier_t node_identifier)
+    {
+        auto node = m_nodes.find(node_identifier);
+        if (node != m_nodes.end())
+        {
+            for (auto& entry : node->second)
+            {
+                if (entry.m_router)
+                {
+                    auto router = m_routers.find(entry.m_router.value());
+                    if (router != m_routers.end())
+                    {
+                        router->second.remove_participant(node_identifier);
+                    }
+                }
+            }
+
+            m_nodes.erase(node_identifier);
+        }
+    }
+
+    bool network_traffic_manager::add_router(const router_identifier_t& identifier, const router_properties& properties)
+    {
+        auto existing = m_routers.find(identifier);
+        if (existing == m_routers.end())
+        {
+            m_routers.insert({identifier, network_router(identifier, properties)});
         }
 
         return false;
+    }
+
+     void network_traffic_manager::remove_router(const router_identifier_t& identifier)
+    {
+        m_routers.erase(identifier);
+    }
+
+    bool network_traffic_manager::add_link(const node_identifier_t node_identifier, const adapter_identifier_t adapter_identifier, const router_identifier_t router_identifier)
+    {
+        auto node = m_nodes.find(node_identifier);
+        auto router = m_routers.find(router_identifier);
+        if (node != m_nodes.end() && router != m_routers.end())
+        {
+            for (auto& entry : node->second)
+            {
+                if (entry.m_adapter_identifier == adapter_identifier)
+                {
+                    entry.m_router = router_identifier;
+                    router->second.add_participant(node_identifier, entry.m_client);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    void network_traffic_manager::remove_link(const node_identifier_t node_identifier, const adapter_identifier_t adapter_identifier)
+    {
+        auto node = m_nodes.find(node_identifier);
+        if (node != m_nodes.end())
+        {
+            for (auto& entry : node->second)
+            {
+                if (entry.m_adapter_identifier == adapter_identifier)
+                {
+                    if (entry.m_router)
+                    {
+                        auto router = m_routers.find(entry.m_router.value());
+                        router->second.remove_participant(node_identifier);
+                        entry.m_router.reset();
+                    }
+
+                    break;
+                }
+            }
+        }
+        
     }
 } // !namespace discnet::sim::logic

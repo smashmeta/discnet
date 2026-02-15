@@ -8,6 +8,7 @@
 #include <QDrag>
 #include <QMimeData>
 #include <QMouseEvent>
+#include <QAction>
 #include <QGraphicsScene>
 #include "ui/widgets/RouterItem.h"
 #include "ui/widgets/NodeItem.h"
@@ -29,6 +30,9 @@ namespace discnet::sim::ui
         Q_OBJECT
     public:
         explicit SimulatorScene(QObject *parent = nullptr);
+        ~SimulatorScene();
+
+        void update(const discnet::time_point_t& time);
 
         void dragEnterEvent(QGraphicsSceneDragDropEvent *event) override;
         void dragMoveEvent(QGraphicsSceneDragDropEvent *event) override;
@@ -52,13 +56,27 @@ private slots:
         void onAddAdapterPressed();
 
 private:
+        void setup_menus();
+        void setup_adapter_menu();
+        void setup_node_menu();
+        void setup_router_menu();
+
         void removeNode(NodeItem* node);
         void removeAdapter(AdapterItem* adapter);
         void removeRouter(RouterItem* router);
 
 private:
-        logic::simulator m_simulator;
+        std::shared_ptr<logic::simulator> m_simulator;
         std::mutex m_connector_mutex;
         QGraphicsLineItem* m_connector;
+
+        QAction* m_properties_action;
+        QAction* m_delete_action;
+
+        QMenu* m_adapter_menu;
+        QMenu* m_node_menu;
+        QMenu* m_router_menu;
+
+        discnet::application::configuration_t m_configuration;
     };
 } // !namespace discnet::sim::ui
