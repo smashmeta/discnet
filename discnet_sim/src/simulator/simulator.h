@@ -12,22 +12,29 @@ class QTextEdit;
 
 namespace discnet::sim::logic
 {
-    using instance_identifier = uint16_t;
-
     class simulator
     {
     public:
         simulator();
 
-        shared_discnet_node find_node(const uint16_t node_id);
-        instance_identifier add_instance(const discnet::application::configuration_t& configuration, QTextEdit* log_handle);
-        bool add_switch(switch_identifier id);
-        bool remove_instance(const instance_identifier& id);
+        shared_discnet_node find_node(const node_identifier_t identifier);
+        void add_node(const node_identifier_t identifier, const discnet::application::configuration_t& configuration, QTextEdit* log_handle);
+        bool remove_node(const node_identifier_t identifier);
+
+        bool add_router(const router_identifier_t& identifier, const router_properties& properties);
+        void remove_router(const router_identifier_t& identifier);
+
+        void add_adapter(const node_identifier_t node_identifier, const adapter_identifier_t adapter_identifier, const adapter_t adapter);
+        void remove_adapter(const node_identifier_t node_identifier, const adapter_identifier_t adapter_identifier);
+
+        void add_link(const node_identifier_t node_identifier, const adapter_identifier_t adapter_identifier, const router_identifier_t router_identifier);
+        void remove_link(const node_identifier_t node_identifier, const adapter_identifier_t adapter_identifier);
+
         void set_traffic_manager_log_handle(QTextEdit* log_handle);
         void update(discnet::time_point_t current_time);
     private:
         std::mutex m_mutex;
-        std::map<instance_identifier, shared_discnet_node> m_nodes;
+        std::map<node_identifier_t, shared_discnet_node> m_nodes;
         shared_network_traffic_manager m_network_traffic_manager;
         
     };

@@ -17,26 +17,11 @@ namespace discnet::network
 {
     struct network_client_t
     {
-        discnet::adapter_identifier_t m_adapter_identifier;
+        discnet::adapter_guid_t m_adapter_identifier;
         discnet::network::shared_udp_client m_client;
         discnet::network::shared_data_handler m_data_handler;
     };
-
-    // using network_client_t = std::variant<discnet::network::shared_multicast_client, discnet::network::shared_unicast_client>;
-    // 
-    // struct network_channel_identifier_t
-    // {
-    //     discnet::adapter_identifier_t m_adapter_identifier;
-    //     discnet::endpoint_t m_endpoint;
-    // };
-    // 
-    // struct network_channel_t
-    // {
-    //     network_channel_identifier_t m_identifier;
-    //     network_client_t m_client;
-    //     discnet::network::shared_data_handler m_data_handler;
-    // };
-
+    
     struct iclient_creator
     {
         virtual shared_udp_client create(const udp_info_t& info, const data_received_func& callback_func) = 0;

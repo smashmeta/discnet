@@ -27,7 +27,9 @@ namespace discnet::sim::ui
         m_adapterDialog = new AdapterDialog(m_internal_id);
 
         auto name = new QGraphicsTextItem(std::format("{}", node_id).c_str(), this);
-        name->setFont(QFont("Arial", 22, QFont::Bold));
+        auto font = QFont("Arial", QFont::Bold);
+        font.setPixelSize(26);
+        name->setFont(font);
         name->setPos(5, 25);
 
         m_scene->connect(m_adapterDialog, &AdapterDialog::accepted, m_scene, &SimulatorScene::adapterEvent);
@@ -101,6 +103,11 @@ namespace discnet::sim::ui
     uint32_t NodeItem::internal_id() const
     {
         return m_internal_id;
+    }
+
+    NodeDialog* NodeItem::dialog() 
+    {
+        return m_dialog;
     }
 
     void NodeItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) 

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <QAction>
+#include <QTimer>
 #include <QMainWindow>
 #include <QGraphicsView>
 #include "ui/widgets/SimulatorScene.h"
@@ -49,6 +50,8 @@ namespace discnet::sim::ui
         explicit ApplicationWindow(QWidget *parent = nullptr);
         ~ApplicationWindow();
 
+        void update();
+
     protected:
         void open_scenario();
         void save_scenario();
@@ -59,5 +62,6 @@ namespace discnet::sim::ui
         SimulatorGraphicsView* m_view;
         QAction* m_open;
         QAction* m_save;
+        QTimer m_timer;
     };
 } // !namespace discnet::sim::ui

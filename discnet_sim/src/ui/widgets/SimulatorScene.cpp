@@ -7,6 +7,8 @@
 #include <QAction>
 #include <QIcon>
 #include <nlohmann/json.hpp>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/qt_sinks.h>
 #include <QGraphicsSceneDragDropEvent>
 #include <QGraphicsSceneContextMenuEvent>
 #include "ui/widgets/ToolBoxItem.h"
@@ -18,7 +20,75 @@ namespace discnet::sim::ui
     SimulatorScene::SimulatorScene(QObject *parent)
         : QGraphicsScene(parent), m_connector(nullptr)
     {
-        // nothing for now
+        m_configuration.m_multicast_address = boost::asio::ip::make_address_v4("224.1.1.2");
+        m_configuration.m_multicast_port = 1337;
+
+        auto network_traffic_simulator_log_view = new QTextEdit();
+        auto network_traffic_simulator_sink = std::make_shared<spdlog::sinks::qt_color_sink_mt>(network_traffic_simulator_log_view, 10000);
+        auto network_traffic_simulator_logger = std::make_shared<spdlog::logger>("traffic", network_traffic_simulator_sink);
+        spdlog::register_logger(network_traffic_simulator_logger);
+        m_simulator = std::make_shared<discnet::sim::logic::simulator>();
+
+        setup_menus();
+    }
+
+    void SimulatorScene::update(const discnet::time_point_t& time)
+    {
+        m_simulator->update(time);
+    }
+
+    void SimulatorScene::setup_menus()
+    {
+        m_properties_action = new QAction(QIcon(":/images/properties.png"), QString("&Properties"));
+        m_properties_action->setShortcut(QString("Properties"));
+        m_properties_action->setStatusTip(QString("Item Properties"));
+        connect(m_properties_action, &QAction::triggered, this, &SimulatorScene::onMenuProperiesPressed);
+
+        m_delete_action = new QAction(QIcon(":/images/delete.png"), QString("&Delete"));
+        m_delete_action->setShortcut(QString("Delete"));
+        m_delete_action->setStatusTip(QString("Delete item from diagram"));
+        connect(m_delete_action, &QAction::triggered, this, &SimulatorScene::onMenuDeletePressed);
+
+        setup_adapter_menu();
+        setup_node_menu();
+        setup_router_menu();
+    }
+
+    void SimulatorScene::setup_adapter_menu()
+    {
+        m_adapter_menu = new QMenu();
+        auto action = m_adapter_menu->addAction("ADAPTER");
+        action->setEnabled(false);
+        m_adapter_menu->addAction(m_properties_action);
+        m_adapter_menu->addAction(m_delete_action);
+    }
+
+    void SimulatorScene::setup_node_menu()
+    {
+        m_node_menu = new QMenu();
+        auto action = m_node_menu->addAction("NODE");
+        action->setEnabled(false);
+        auto addAdapterAction = new QAction(QIcon(":/images/adapter.png"), QString("&Add Adapter"));
+        connect(addAdapterAction, &QAction::triggered, this, &SimulatorScene::onAddAdapterPressed);
+        m_node_menu->addAction(m_properties_action);
+        m_node_menu->addAction(addAdapterAction);
+        m_node_menu->addAction(m_delete_action);
+    }
+
+    void SimulatorScene::setup_router_menu()
+    {
+        m_router_menu = new QMenu();
+        auto action = m_router_menu->addAction("ROUTER");
+        action->setEnabled(false);
+        m_router_menu->addAction(m_properties_action);
+        m_router_menu->addAction(m_delete_action);
+    }
+
+    SimulatorScene::~SimulatorScene()
+    {
+        delete m_node_menu;
+        delete m_adapter_menu;
+        delete m_router_menu;
     }
 
     void SimulatorScene::dragEnterEvent(QGraphicsSceneDragDropEvent *event)
@@ -65,6 +135,12 @@ namespace discnet::sim::ui
                     auto node = new NodeItem(node_id_sequence_number.fetch_add(1, std::memory_order_relaxed), this);
                     addItem(node);
                     node->setPos(event->scenePos() - QPointF(64, 64));
+
+                    discnet::application::configuration_t configuration = m_configuration;
+                    configuration.m_log_instance_id = std::format("node_{}", node->internal_id());
+                    configuration.m_node_id = node->node_id();
+                    m_simulator->add_node(node->internal_id(), configuration, node->dialog()->log());
+
                     break;
                 }
                 case ToolBoxItemType::Router:
@@ -72,6 +148,12 @@ namespace discnet::sim::ui
                     auto router = new RouterItem(std::format("router_{}", router_sequence_number.fetch_add(1, std::memory_order_relaxed)));
                     addItem(router);
                     router->setPos(event->scenePos() - QPointF(64, 64));
+
+                    discnet::sim::logic::router_properties properties;
+                    properties.m_drop_rate = 0.0f;
+                    properties.m_latency = std::chrono::milliseconds(0);
+                    m_simulator->add_router(router->internal_id(), properties);
+
                     break;
                 }
             }
@@ -109,45 +191,41 @@ namespace discnet::sim::ui
     void SimulatorScene::contextMenuEvent(QGraphicsSceneContextMenuEvent* event)
     {
         auto cursor_position = event->scenePos();
-        QGraphicsItem* item = itemAt(event->scenePos(), QTransform());
-        if (item) 
+        this->clearSelection();
+        
+        AdapterItem* adapter = nullptr;
+        NodeItem* node = nullptr;
+        RouterItem* router = nullptr;
+        for (auto item : items(event->scenePos()))
         {
-            this->clearSelection();
-            item->setSelected(true);
-
-            auto menu = new QMenu();
-            auto node = dynamic_cast<NodeItem*>(item);
-            if (node)
+            if (auto temp = dynamic_cast<AdapterItem*>(item); temp)
             {
-                auto action = menu->addAction("NODE");
-                action->setEnabled(false);
-
-                auto addAdapterAction = new QAction(QIcon(":/images/adapter.png"), QString("&Add Adapter"));
-                addAdapterAction->setShortcut(QString("Add Adapter"));
-                addAdapterAction->setStatusTip(QString("Add Adapter"));
-                connect(addAdapterAction, &QAction::triggered, this, &SimulatorScene::onAddAdapterPressed);
-                menu->addAction(addAdapterAction);
+                adapter = temp;
             }
-            auto router = dynamic_cast<RouterItem*>(item);
-            if (router)
+            if (auto temp = dynamic_cast<NodeItem*>(item); temp)
             {
-                auto action = menu->addAction("ROUTER");
-                action->setEnabled(false);
+                node = temp;
             }
-            
-            auto propertiesAction = new QAction(QIcon(":/images/properties.png"), QString("&Properties"));
-            propertiesAction->setShortcut(QString("Properties"));
-            propertiesAction->setStatusTip(QString("Item Properties"));
-            connect(propertiesAction, &QAction::triggered, this, &SimulatorScene::onMenuProperiesPressed);
+            if (auto temp = dynamic_cast<RouterItem*>(item); temp)
+            {
+                router = temp;
+            }
+        }
 
-            auto deleteAction = new QAction(QIcon(":/images/delete.png"), QString("&Delete"));
-            deleteAction->setShortcut(QString("Delete"));
-            deleteAction->setStatusTip(QString("Delete item from diagram"));
-            connect(deleteAction, &QAction::triggered, this, &SimulatorScene::onMenuDeletePressed);
-
-            menu->addAction(propertiesAction);
-            menu->addAction(deleteAction);
-            menu->popup(event->screenPos());
+        if (adapter)
+        {
+            adapter->setSelected(true);
+            m_adapter_menu->popup(event->screenPos());
+        }
+        else if (node)
+        {
+            node->setSelected(true);
+            m_node_menu->popup(event->screenPos());
+        }
+        else if (router)
+        {
+            router->setSelected(true);
+            m_router_menu->popup(event->screenPos());
         }
         else
         {
@@ -255,6 +333,18 @@ namespace discnet::sim::ui
                     }
 
                     auto router = dynamic_cast<RouterItem*>(item);
+                    if (router == nullptr)
+                    {
+                        for (auto temp : items(event->scenePos())) 
+                        {
+                            if (auto rtemp = dynamic_cast<RouterItem*>(temp); rtemp)
+                            {
+                                router = rtemp;
+                                break;
+                            }
+                        }
+                    }
+                    
                     if (router && adapter)
                     {
                         auto previous = adapter->connection();
@@ -262,11 +352,15 @@ namespace discnet::sim::ui
                         {
                             router->remove_connection(previous);
                             removeItem(previous);
+
+                            m_simulator->remove_link(adapter->node()->internal_id(), adapter->internal_id());
                         }
 
                         auto connection = new ConnectionItem(adapter, router);
                         connection->setZValue(-1000.0f);
                         addItem(connection);
+
+                        m_simulator->add_link(adapter->node()->internal_id(), adapter->internal_id(), router->internal_id());
                     }
                 }
 
@@ -332,6 +426,8 @@ namespace discnet::sim::ui
 
         try
         {
+            m_simulator = std::make_shared<discnet::sim::logic::simulator>();
+
             auto json = nlohmann::json::parse(json_str);
             for (const auto& router_json : json["routers"])
             {
@@ -370,22 +466,38 @@ namespace discnet::sim::ui
             for (auto* router : routers | std::views::values)
             {
                 addItem(router);
+
+                discnet::sim::logic::router_properties properties;
+                properties.m_drop_rate = 0.0f;
+                properties.m_latency = std::chrono::milliseconds(0);
+                m_simulator->add_router(router->internal_id(), properties);
             }
 
             for (auto* node : nodes | std::views::values)
             {
                 addItem(node);
+
+                discnet::application::configuration_t configuration = m_configuration;
+                configuration.m_log_instance_id = std::format("node_{}", node->internal_id());
+                configuration.m_node_id = node->node_id();
+                m_simulator->add_node(node->internal_id(), configuration, node->dialog()->log());
             }
 
             for (auto* adapter : adapters | std::views::values)
             {
                 addItem(adapter);
+
+                m_simulator->add_adapter(adapter->node()->internal_id(), adapter->internal_id(), adapter->adapter());
             }
+
+            m_simulator->update(sys_clock_t::now()); // trigger system to add added adapters to network traffic manager
 
             for (auto* connection : connections | std::views::values)
             {
                 connection->setZValue(-1000.0f);
                 addItem(connection);
+
+                m_simulator->add_link(connection->adapter()->node()->internal_id(), connection->adapter()->internal_id(), connection->router()->internal_id());
             }
         }
         catch (...)
@@ -410,6 +522,8 @@ namespace discnet::sim::ui
                 delete connection;
             }
 
+            m_simulator = std::make_shared<discnet::sim::logic::simulator>();
+
             result = false;
         }
 
@@ -425,18 +539,21 @@ namespace discnet::sim::ui
             
             if (auto adapter = dynamic_cast<AdapterItem*>(item); adapter)
             {
+                m_simulator->remove_adapter(adapter->node()->internal_id(), adapter->internal_id());
                 removeAdapter(adapter);
                 return;
             }
 
             if (auto router = dynamic_cast<RouterItem*>(item); router)
             {
+                m_simulator->remove_router(router->internal_id());
                 removeRouter(router);
                 return;
             }
 
             if (auto node = dynamic_cast<NodeItem*>(item); node)
             {
+                m_simulator->remove_node(node->internal_id());
                 removeNode(node);
                 return;
             }
@@ -454,6 +571,7 @@ namespace discnet::sim::ui
             {
                 node->showProperties();
             }
+            
             auto router = dynamic_cast<RouterItem*>(item);
             if (router)
             {
@@ -528,17 +646,19 @@ namespace discnet::sim::ui
         }
     }
 
-    void SimulatorScene::adapterEvent(const uint16_t internal_id, const adapter_t adapter)
+    void SimulatorScene::adapterEvent(const uint16_t internal_id, const adapter_t adapter_settings)
     {
         for (auto& item : this->items())
         {
             auto node = dynamic_cast<NodeItem*>(item);
             if (node && node->internal_id() == internal_id)
             {
-                auto adapter_item = new AdapterItem(adapter, node);
+                auto adapter_item = new AdapterItem(adapter_settings, node);
                 auto position = node->pos() + QPointF(10.0f, 10.0f);
                 adapter_item->setPos(position);
                 addItem(adapter_item);
+
+                m_simulator->add_adapter(node->internal_id(), adapter_item->internal_id(), adapter_settings);
             }
         }
     }

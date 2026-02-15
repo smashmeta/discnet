@@ -14,6 +14,7 @@ namespace discnet::sim::ui
     ApplicationWindow::ApplicationWindow(QWidget *parent)
         : QMainWindow(parent)
         , ui(new Ui::ApplicationWindow)
+        , m_timer(this)
     {
         ui->setupUi(this);
         setAcceptDrops(true);
@@ -40,6 +41,14 @@ namespace discnet::sim::ui
         m_view = new SimulatorGraphicsView(m_scene, this);
         m_view->setDragMode(QGraphicsView::RubberBandDrag);
         ui->scene->layout()->addWidget(m_view);
+
+        connect(&m_timer, &QTimer::timeout, this, &ApplicationWindow::update);
+        m_timer.start(100);
+    }
+
+    void ApplicationWindow::update()
+    {
+        m_scene->update(sys_clock_t::now());
     }
 
     ApplicationWindow::~ApplicationWindow()

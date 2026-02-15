@@ -162,7 +162,7 @@ bool route_manager::process_route(const adapter_t& adapter, const discnet::time_
     return true;
 }
 
-route_manager::routes_t route_manager::find_routes_for_adapter(const adapter_identifier_t& outbound_adapter)
+route_manager::routes_t route_manager::find_routes_for_adapter(const adapter_guid_t& outbound_adapter)
 {
     routes_t result;
 
@@ -197,7 +197,7 @@ route_manager::routes_t route_manager::find_routes_for_adapter(const adapter_ide
     return result;
 }
 
-route_manager::routes_t route_manager::find_routes_on_adapter(const adapter_identifier_t& outbound_adapter)
+route_manager::routes_t route_manager::find_routes_on_adapter(const adapter_guid_t& outbound_adapter)
 {
     routes_t result;
 

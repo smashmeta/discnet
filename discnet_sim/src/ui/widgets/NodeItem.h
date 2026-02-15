@@ -30,6 +30,8 @@ namespace discnet::sim::ui
         std::vector<AdapterItem*> adapters();
         uint32_t internal_id() const;
 
+        NodeDialog* dialog();
+
         void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
 
         nlohmann::json serialize() const;

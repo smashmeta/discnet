@@ -31,12 +31,12 @@ namespace discnet
         DISCNET_EXPORT std::vector<adapter_t> adapters() const;
 
         DISCNET_EXPORT std::expected<adapter_t, std::string> find_adapter(const address_t& address) const;
-        DISCNET_EXPORT std::expected<adapter_t, std::string> find_adapter(const adapter_identifier_t& id) const;
+        DISCNET_EXPORT std::expected<adapter_t, std::string> find_adapter(const adapter_guid_t& id) const;
     protected:
         discnet::application::configuration_t m_configuration;
         discnet::shared_logger m_logger;
         std::shared_ptr<adapter_fetcher> m_fetcher;
-        std::map<adapter_identifier_t, adapter_t> m_adapters;
+        std::map<adapter_guid_t, adapter_t> m_adapters;
     };
 
     typedef std::shared_ptr<discnet::adapter_manager> shared_adapter_manager;

@@ -178,7 +178,7 @@ namespace discnet
             }
         }
 
-        typedef std::map<adapter_identifier_t, adapter_t> adapters_map_t;
+        typedef std::map<adapter_guid_t, adapter_t> adapters_map_t;
         for (adapters_map_t::const_iterator adapter_itr = m_adapters.cbegin(); adapter_itr != m_adapters.cend();)
         {
             auto existing_id = std::find_if(current_adapters.begin(), current_adapters.end(), 
@@ -224,7 +224,7 @@ namespace discnet
         return std::unexpected(std::format("failed to find adapter by address: {}", address.to_string()));
     }
 
-    std::expected<adapter_t, std::string> adapter_manager::find_adapter(const adapter_identifier_t& id) const
+    std::expected<adapter_t, std::string> adapter_manager::find_adapter(const adapter_guid_t& id) const
     {
         auto itr_adapter = m_adapters.find(id);
         if (itr_adapter != m_adapters.end())

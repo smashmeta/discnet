@@ -13,7 +13,7 @@ namespace discnet::network
 {
     namespace 
     {
-        bool equals(const network_client_t& lhs, const adapter_identifier_t& adapter_id)
+        bool equals(const network_client_t& lhs, const adapter_guid_t& adapter_id)
         {
             return lhs.m_adapter_identifier == adapter_id;
         }

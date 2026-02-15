@@ -65,7 +65,7 @@ namespace discnet
         }
     }
 
-    discnet::network::messages::message_list_t transmission_handler::get_messages_for_adapter(const discnet::adapter_identifier_t& adapter_identifier)
+    discnet::network::messages::message_list_t transmission_handler::get_messages_for_adapter(const discnet::adapter_guid_t& adapter_identifier)
     {
         boost::ignore_unused(adapter_identifier);
 
