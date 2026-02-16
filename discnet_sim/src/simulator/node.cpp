@@ -16,8 +16,9 @@
 namespace discnet::sim::logic
 {
     static int instance_id = 0;
-    discnet_node::discnet_node(const node_identifier_t identifier, const application::configuration_t& configuration, const shared_network_traffic_manager& ntm, QTextEdit* text_edit)
-        : m_identifier(identifier), m_configuration(configuration), m_network_traffic_manager(ntm)
+    discnet_node::discnet_node(const node_identifier_t identifier, const application::configuration_t& configuration, const shared_network_traffic_manager& ntm, 
+        QTextEdit* text_edit, discnet::sim::models::RouteModel* routes_model)
+        : m_identifier(identifier), m_configuration(configuration), m_network_traffic_manager(ntm), m_routes_model(routes_model)
     {
         // nothing for now
         m_logger = spdlog::qt_logger_mt(configuration.m_log_instance_id, text_edit);
@@ -55,6 +56,9 @@ namespace discnet::sim::logic
         m_logger->info("setting up transmission_handler...");
         m_transmission_handler = std::make_shared<transmission_handler>(m_configuration, m_route_manager, m_network_handler, m_adapter_manager);
 
+        m_route_manager->e_new_route.connect(std::bind(&discnet_node::route_changed, this, std::placeholders::_1, true));
+        m_route_manager->e_online_state_changed.connect(std::bind(&discnet_node::route_changed, this, std::placeholders::_1, std::placeholders::_2));
+
         return true;
     }
 
@@ -64,5 +68,10 @@ namespace discnet::sim::logic
         m_network_handler->update(current_time);
         m_route_manager->update(current_time);
         m_transmission_handler->update(current_time);
+    }
+
+    void discnet_node::route_changed(const route_t& route, [[maybe_unused]] bool prev)
+    {
+        m_routes_model->update(route);
     }
 } // !namespace discnet::main

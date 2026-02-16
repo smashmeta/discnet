@@ -15,7 +15,7 @@
 namespace discnet::sim::ui
 {
     NodeItem::NodeItem(const uint16_t node_id, SimulatorScene* scene, QGraphicsItem *parent)
-        : QGraphicsPixmapItem(parent), m_node_id(node_id), m_scene(scene)
+        : QGraphicsPixmapItem(parent), m_routes_model(new discnet::sim::models::RouteModel()), m_node_id(node_id), m_scene(scene)
     {
         static std::atomic<int> s_sequence_number = 0;
         m_internal_id = s_sequence_number.fetch_add(1, std::memory_order_relaxed);
@@ -23,7 +23,7 @@ namespace discnet::sim::ui
         setPixmap(QPixmap(":/images/node.png"));
         setFlag(QGraphicsItem::ItemIsMovable, true);
         setFlag(QGraphicsItem::ItemIsSelectable, true);
-        m_dialog = new NodeDialog(node_id);
+        m_dialog = new NodeDialog(node_id, m_routes_model);
         m_adapterDialog = new AdapterDialog(m_internal_id);
 
         auto name = new QGraphicsTextItem(std::format("{}", node_id).c_str(), this);
@@ -108,6 +108,11 @@ namespace discnet::sim::ui
     NodeDialog* NodeItem::dialog() 
     {
         return m_dialog;
+    }
+
+    discnet::sim::models::RouteModel* NodeItem::routes_model()
+    {
+        return m_routes_model;
     }
 
     void NodeItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) 

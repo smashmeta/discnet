@@ -139,7 +139,7 @@ namespace discnet::sim::ui
                     discnet::application::configuration_t configuration = m_configuration;
                     configuration.m_log_instance_id = std::format("node_{}", node->internal_id());
                     configuration.m_node_id = node->node_id();
-                    m_simulator->add_node(node->internal_id(), configuration, node->dialog()->log());
+                    m_simulator->add_node(node->internal_id(), configuration, node->dialog()->log(), node->routes_model());
 
                     break;
                 }
@@ -480,7 +480,7 @@ namespace discnet::sim::ui
                 discnet::application::configuration_t configuration = m_configuration;
                 configuration.m_log_instance_id = std::format("node_{}", node->internal_id());
                 configuration.m_node_id = node->node_id();
-                m_simulator->add_node(node->internal_id(), configuration, node->dialog()->log());
+                m_simulator->add_node(node->internal_id(), configuration, node->dialog()->log(), node->routes_model());
             }
 
             for (auto* adapter : adapters | std::views::values)

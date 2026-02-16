@@ -25,9 +25,9 @@ namespace discnet::sim::logic
         return {};
     }
 
-    void simulator::add_node(const node_identifier_t identifier, const discnet::application::configuration_t& configuration, QTextEdit* log_handle)
+    void simulator::add_node(const node_identifier_t identifier, const discnet::application::configuration_t& configuration, QTextEdit* log_handle, discnet::sim::models::RouteModel* routes_model)
     {
-        auto node = std::make_shared<discnet_node>(identifier, configuration, m_network_traffic_manager, log_handle);
+        auto node = std::make_shared<discnet_node>(identifier, configuration, m_network_traffic_manager, log_handle, routes_model);
         node->initialize();
         
         std::lock_guard<std::mutex> lock {m_mutex};

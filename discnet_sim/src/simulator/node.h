@@ -11,6 +11,7 @@
 #include <discnet/application/configuration.hpp>
 #include <discnet/adapter_manager.hpp>
 #include <discnet/network/network_handler.hpp>
+#include "models/RouteModel.h"
 
 
 namespace discnet
@@ -48,7 +49,8 @@ namespace discnet::sim::logic
     class discnet_node
     {
     public:
-        discnet_node(const node_identifier_t identifier, const application::configuration_t& configuration, const shared_network_traffic_manager& ntm, QTextEdit* text_edit);
+        discnet_node(const node_identifier_t identifier, const application::configuration_t& configuration, const shared_network_traffic_manager& ntm, 
+            QTextEdit* text_edit, discnet::sim::models::RouteModel* routes_model);
         ~discnet_node();
 
         void add_adapter(const adapter_identifier_t identifier, const adapter_t& adapter);
@@ -56,6 +58,10 @@ namespace discnet::sim::logic
         
         bool initialize();
         void update(time_point_t current_time);
+
+    private:
+        void route_changed(const route_t& route, bool prev);
+
     private:
         node_identifier_t m_identifier;
         application::configuration_t m_configuration;
@@ -67,6 +73,7 @@ namespace discnet::sim::logic
         shared_discovery_message_handler m_discovery_message_handler;
         shared_transmission_handler m_transmission_handler;
         shared_network_traffic_manager m_network_traffic_manager;
+        discnet::sim::models::RouteModel* m_routes_model;
     };
 
     using shared_discnet_node = std::shared_ptr<discnet_node>;

@@ -8,8 +8,14 @@
 #include <QTextEdit>
 #include <QStringListModel>
 
+
 namespace Ui {
 class NodeDialog;
+}
+
+namespace discnet::sim::models 
+{
+    class RouteModel;
 }
 
 namespace discnet::sim::ui
@@ -19,19 +25,14 @@ namespace discnet::sim::ui
         Q_OBJECT
 
     public:
-        explicit NodeDialog(uint16_t node_id, QWidget *parent = nullptr);
+        explicit NodeDialog(uint16_t node_id, discnet::sim::models::RouteModel* model, QWidget *parent = nullptr);
         ~NodeDialog();
 
         QTextEdit* log();
 
-    signals:
-        void client_enabled(const uint16_t node_id, const bool enable, NodeDialog* dialog);
-
-    private slots:
-        void on_btnEnable_clicked();
-
     private:
         Ui::NodeDialog *ui;
         uint16_t m_node_id;
+        discnet::sim::models::RouteModel* m_route_model;
     };
 } // !namespace discnet::sim::ui

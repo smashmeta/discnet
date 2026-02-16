@@ -9,6 +9,7 @@
 #include <QGraphicsSceneMouseEvent>
 #include "ui/widgets/NodeDialog.h"
 #include "ui/widgets/AdapterDialog.h"
+#include "models/RouteModel.h"
 #include <discnet/adapter.hpp>
 
 namespace discnet::sim::ui
@@ -31,6 +32,7 @@ namespace discnet::sim::ui
         uint32_t internal_id() const;
 
         NodeDialog* dialog();
+        discnet::sim::models::RouteModel* routes_model();
 
         void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
 
@@ -40,6 +42,7 @@ namespace discnet::sim::ui
     private:
         uint32_t m_internal_id;
         uint16_t m_node_id;
+        discnet::sim::models::RouteModel* m_routes_model;
         SimulatorScene* m_scene;
         NodeDialog* m_dialog;
         AdapterDialog* m_adapterDialog;

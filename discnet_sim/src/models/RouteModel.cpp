@@ -2,7 +2,9 @@
  *
  */
 
+#include <ranges>
 #include "models/RouteModel.h"
+
 
 namespace discnet::sim::models
 {
@@ -22,7 +24,9 @@ namespace discnet::sim::models
                     return "NodeId";
                 case 1:
                     return "Online";
-                case 2: 
+                case 2:
+                    return "Links";
+                case 3: 
                     return "Time";
             }
         }
@@ -37,7 +41,7 @@ namespace discnet::sim::models
 
     int RouteModel::columnCount([[maybe_unused]] const QModelIndex& parent) const
     {
-        return 3;
+        return 4;
     }
 
     QVariant RouteModel::data(const QModelIndex& index, int role) const
@@ -58,11 +62,13 @@ namespace discnet::sim::models
                     switch (column)
                     {
                         case 0:
-                            return  ""; // discnet::to_string(entry.m_identifier).c_str();
+                            return discnet::to_string(entry->m_identifier).c_str();
                         case 1:
-                            return ""; // entry.m_status.m_online;
-                        case 2: 
-                            return ""; // std::format("{}", entry.m_last_discovery).c_str();
+                            return entry->m_status.m_online;
+                        case 2:
+                            return entry->m_status.m_jumps.size();
+                        case 3: 
+                            return std::format("{}", entry->m_last_discovery).c_str();
 
                     }
                 }
@@ -84,12 +90,24 @@ namespace discnet::sim::models
 
     void RouteModel::update(const discnet::route_t& entry)
     {
-        for (auto& existing : m_data)
+        bool updated = false;
+        for (auto [i, existing] : std::views::enumerate(m_data))
         {
             if (existing.m_identifier == entry.m_identifier)
             {
-
+                existing = entry;
+                emit dataChanged(index(i, 0), index(i, 3));
+                updated = true;
+                break;
             }
+        }
+
+        if (!updated)
+        {
+            int newRowIndex = rowCount();
+            beginInsertRows(QModelIndex(), newRowIndex, newRowIndex);
+            m_data.push_back(entry);
+            endInsertRows();
         }
     }
 

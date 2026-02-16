@@ -5,6 +5,7 @@
 #pragma once
 
 #include <discnet/application/configuration.hpp>
+#include "models/RouteModel.h"
 #include "simulator/network_traffic_manager.h"
 #include "simulator/node.h"
 
@@ -18,7 +19,7 @@ namespace discnet::sim::logic
         simulator();
 
         shared_discnet_node find_node(const node_identifier_t identifier);
-        void add_node(const node_identifier_t identifier, const discnet::application::configuration_t& configuration, QTextEdit* log_handle);
+        void add_node(const node_identifier_t identifier, const discnet::application::configuration_t& configuration, QTextEdit* log_handle, discnet::sim::models::RouteModel* routes_model);
         bool remove_node(const node_identifier_t identifier);
 
         bool add_router(const router_identifier_t& identifier, const router_properties& properties);
