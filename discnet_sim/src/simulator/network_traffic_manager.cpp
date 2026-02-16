@@ -105,6 +105,17 @@ namespace discnet::sim::logic
 
      void network_traffic_manager::remove_router(const router_identifier_t& identifier)
     {
+        for (auto& adapters : m_nodes | std::views::values)
+        {
+            for (auto& adapter : adapters)
+            {
+                if (adapter.m_router && adapter.m_router == identifier)
+                {
+                    adapter.m_router.reset();
+                }
+            }
+        }
+
         m_routers.erase(identifier);
     }
 
@@ -140,7 +151,11 @@ namespace discnet::sim::logic
                     if (entry.m_router)
                     {
                         auto router = m_routers.find(entry.m_router.value());
-                        router->second.remove_participant(node_identifier);
+                        if (router != m_routers.end())
+                        {
+                            router->second.remove_participant(node_identifier);   
+                        }
+
                         entry.m_router.reset();
                     }
 

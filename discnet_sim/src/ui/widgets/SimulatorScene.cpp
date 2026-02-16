@@ -348,9 +348,9 @@ namespace discnet::sim::ui
                     if (router && adapter)
                     {
                         auto previous = adapter->connection();
-                        if (previous)
+                        if (previous && previous->router())
                         {
-                            router->remove_connection(previous);
+                            previous->router()->remove_connection(previous);
                             removeItem(previous);
 
                             m_simulator->remove_link(adapter->node()->internal_id(), adapter->internal_id());

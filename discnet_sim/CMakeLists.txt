@@ -19,22 +19,26 @@ find_package(nlohmann_json REQUIRED)
 # setting up source files and header files groups
 file(GLOB HEADERS_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h" )
 file(GLOB HEADERS_SIM_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/simulator/*.h")
+file(GLOB HEADERS_MODELS_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/models/*.h")
 file(GLOB HEADERS_UI_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.h")
 file(GLOB HEADERS_UI_WIDGETS_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*.h")
 
 file(GLOB QRC_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.qrc")
 file(GLOB SOURCE_DEFAULT_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 file(GLOB SOURCE_SIM_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/simulator/*.cpp")
+file(GLOB SOURCE_MODELS_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/models/*.cpp")
 file(GLOB SOURCE_UI_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.cpp")
 file(GLOB SOURCE_UI_WIDGETS_GRP "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*.cpp")
 
 # adding file filters to visual studio project
 source_group("header/" FILES ${HEADERS_DEFAULT_GRP})
 source_group("header/sim/" FILES ${HEADERS_SIM_GRP})
+source_group("header/models/" FILES ${HEADERS_MODELS_GRP})
 source_group("header/ui/" FILES ${HEADERS_UI_GRP})
 source_group("header/ui/widgets/" FILES ${HEADERS_UI_WIDGETS_GRP})
 source_group("src/" FILES ${SOURCE_DEFAULT_GRP})
 source_group("src/sim/" FILES ${SOURCE_SIM_GRP})
+source_group("src/models/" FILES ${SOURCE_MODELS_GRP})
 source_group("src/ui/" FILES ${SOURCE_UI_GRP})
 source_group("src/ui/widgets/" FILES ${SOURCE_UI_WIDGETS_GRP})
 
@@ -42,11 +46,13 @@ source_group("src/ui/widgets/" FILES ${SOURCE_UI_WIDGETS_GRP})
 add_executable(discnet_sim
     ${HEADERS_DEFAULT_GRP}
     ${HEADERS_SIM_GRP}
+    ${HEADERS_MODELS_GRP}
     ${HEADERS_UI_GRP}
     ${HEADERS_UI_WIDGETS_GRP}
 	${QRC_DEFAULT_GRP}
     ${SOURCE_DEFAULT_GRP}
     ${SOURCE_SIM_GRP}
+    ${SOURCE_MODELS_GRP}
     ${SOURCE_UI_GRP}
     ${SOURCE_UI_WIDGETS_GRP}
 )
